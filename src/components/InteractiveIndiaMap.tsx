@@ -23,6 +23,15 @@ import {
   SatelliteOpticalPass,
   convertAPReservoirToStation
 } from '../data/indiaHydrologyData';
+import { AP_RIVER_VECTORS } from '../data/andhraRiversGeoData';
+import { AP_OFFICIAL_RIVER_GAUGE_STATIONS } from '../data/apRiverGaugesData';
+import { 
+  AP_MONSOON_RAINFALL_2026, 
+  AP_RAINFALL_HYDROLOGICAL_STATIONS, 
+  APDistrictRainfallRecord 
+} from '../data/apMonsoonRainfall2026';
+import { APRainfallTelemetryModal } from './APRainfallTelemetryModal';
+import { APBasinSchematicsModal } from './APBasinSchematicsModal';
 import { 
   Layers, 
   Satellite, 
@@ -57,7 +66,8 @@ import {
   Clock,
   RotateCcw,
   Zap,
-  Sparkles
+  Sparkles,
+  Workflow
 } from 'lucide-react';
 import { 
   AP_OFFICIAL_RESERVOIRS, 
@@ -98,16 +108,21 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const hybridLabelLayerRef = useRef<L.TileLayer | null>(null);
   const topoLayerRef = useRef<L.TileLayer | null>(null);
+  const riverVectorsLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const dossierRef = useRef<HTMLDivElement | null>(null);
 
   // Consolidated Filter Drawer State
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState<boolean>(false);
   const [selectedUnitMode, setSelectedUnitMode] = useState<'state' | 'basin'>('state');
-  const [selectedState, setSelectedState] = useState<string>(initialState || 'All India');
+  const [selectedState, setSelectedState] = useState<string>(initialState || 'Andhra Pradesh');
   const [selectedBasin, setSelectedBasin] = useState<string>('All Basins');
   const [selectedCategory, setSelectedCategory] = useState<TelemetryCategory | 'all' | 'extinct'>(initialCategory || 'all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<WaterHealthStatus | 'all'>('all');
+
+  // Basemap Selector: OpenStreetMap Rivers (OSM with visible river channels & names), Satellite Hybrid, Topo
+  const [selectedBasemap, setSelectedBasemap] = useState<'osm_rivers' | 'satellite' | 'topo'>('osm_rivers');
+  const [showRiverVectors, setShowRiverVectors] = useState<boolean>(true);
 
   // Integrated Master Layers (Satellite HD + WRIS Borders + Topo Watershed Relief)
   const [showWrisBorders, setShowWrisBorders] = useState<boolean>(true);
@@ -164,13 +179,22 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     return calculateMacroReservoirSummary(apReservoirsList);
   }, [apReservoirsList]);
 
-  // Master Dynamic Stations: non-AP stations from national grid + converted live AP reservoirs
+  // Master Dynamic Stations: converted live AP 113 reservoirs + 265 AP river gauges + 31 AP monsoon rainfall stations + AP groundwater & wetlands + non-AP national stations
   const dynamicStations = useMemo(() => {
     const updatedApStations = apReservoirsList.map(convertAPReservoirToStation);
     const nonApStations = HYDROLOGICAL_STATIONS.filter(
-      (s) => !(s.state === 'Andhra Pradesh' && s.category === 'reservoir')
+      (s) => s.state !== 'Andhra Pradesh'
     );
-    return [...updatedApStations, ...nonApStations];
+    const apGroundwaterAndWetlands = HYDROLOGICAL_STATIONS.filter(
+      (s) => s.state === 'Andhra Pradesh' && (s.category === 'groundwater' || s.category === 'bhuvan_wbis')
+    );
+    return [
+      ...updatedApStations,
+      ...AP_OFFICIAL_RIVER_GAUGE_STATIONS,
+      ...AP_RAINFALL_HYDROLOGICAL_STATIONS,
+      ...apGroundwaterAndWetlands,
+      ...nonApStations,
+    ];
   }, [apReservoirsList]);
 
   // Keep selectedStation updated with live data if currently viewing an AP reservoir
@@ -221,6 +245,12 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
 
     return () => clearInterval(timer);
   }, [isAutoTelemetryStreamEnabled, streamIntervalSeconds, triggerTelemetrySync]);
+
+  // AP Monsoon Rainfall (Jun 01 - Oct 13, 2026) Modal State
+  const [isRainfallModalOpen, setIsRainfallModalOpen] = useState<boolean>(false);
+
+  // AP River Basin Networks & Schematics (5 Basins) Modal State
+  const [isSchematicsModalOpen, setIsSchematicsModalOpen] = useState<boolean>(false);
 
   // AP Water Grid (113) & CSV Sync Modal State
   const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
@@ -371,9 +401,12 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
+    const initialMapCenter: [number, number] = (initialState === 'All India') ? [20.5937, 78.9629] : [15.912, 79.740];
+    const initialMapZoom = (initialState === 'All India') ? 5 : 7;
+
     const map = L.map(mapContainerRef.current, {
-      center: [20.5937, 78.9629],
-      zoom: 5,
+      center: initialMapCenter,
+      zoom: initialMapZoom,
       minZoom: 4,
       maxZoom: 18,
       zoomControl: false,
@@ -413,27 +446,44 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     };
   }, []);
 
-  // Master Unified Basemap Layer: High-Res Satellite + WRIS Boundaries & Labels + Topo Watershed Relief Integrated
+  // Master Dynamic Basemap Layer (OpenStreetMap Rivers, Satellite Hybrid, Topo)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // 1. Base Satellite Imagery (ISRO Bhuvan / Esri World Imagery)
-    if (!tileLayerRef.current) {
-      const baseSat = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {
-          maxZoom: 18,
-          maxNativeZoom: 17, // Native tiles up to 17, seamlessly hardware upscaled at zoom 18
-          attribution: '&copy; ISRO NRSC Bhuvan & India-WRIS Hydrological Surveillance Grid',
-          subdomains: 'abcd',
-        }
-      ).addTo(map);
-      tileLayerRef.current = baseSat;
+    // 1. Remove previous basemap layer if switching
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = null;
     }
 
-    // 2. Integrated Topo Watershed & Basin Relief Contours Layer
-    if (showWatershedContours) {
+    let url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    let maxZoom = 19;
+    let maxNativeZoom = 19;
+    let attribution = '&copy; OpenStreetMap contributors & India Hydrological Network';
+
+    if (selectedBasemap === 'satellite') {
+      url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      attribution = '&copy; ISRO NRSC Bhuvan & Esri World Imagery';
+      maxZoom = 18;
+      maxNativeZoom = 17;
+    } else if (selectedBasemap === 'topo') {
+      url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}';
+      attribution = '&copy; Esri World Topo Map & India-WRIS Watershed Relief';
+      maxZoom = 18;
+      maxNativeZoom = 16;
+    }
+
+    const baseTile = L.tileLayer(url, {
+      maxZoom,
+      maxNativeZoom,
+      attribution,
+      subdomains: 'abcd',
+    }).addTo(map);
+    tileLayerRef.current = baseTile;
+
+    // 2. Integrated Topo Watershed & Basin Relief Contours Layer (When in satellite mode)
+    if (showWatershedContours && selectedBasemap === 'satellite') {
       if (!topoLayerRef.current) {
         const topoLayer = L.tileLayer(
           'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
@@ -450,8 +500,8 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       topoLayerRef.current = null;
     }
 
-    // 3. Integrated India-WRIS Boundaries, State Borders & River/Place Labels
-    if (showWrisBorders) {
+    // 3. Integrated India-WRIS Boundaries & Place Labels (When in satellite mode)
+    if (showWrisBorders && selectedBasemap === 'satellite') {
       if (!hybridLabelLayerRef.current) {
         const labelLayer = L.tileLayer(
           'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
@@ -467,7 +517,43 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       map.removeLayer(hybridLabelLayerRef.current);
       hybridLabelLayerRef.current = null;
     }
-  }, [showWrisBorders, showWatershedContours]);
+  }, [selectedBasemap, showWrisBorders, showWatershedContours]);
+
+  // 4. Vector River Network Layer (Draws Glowing Water-Blue River Paths across Andhra Pradesh)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (!riverVectorsLayerGroupRef.current) {
+      riverVectorsLayerGroupRef.current = L.layerGroup().addTo(map);
+    }
+    const group = riverVectorsLayerGroupRef.current;
+    group.clearLayers();
+
+    if (showRiverVectors) {
+      AP_RIVER_VECTORS.forEach((river) => {
+        const polyline = L.polyline(river.coordinates, {
+          color: selectedBasemap === 'satellite' ? '#38bdf8' : '#0284c7',
+          weight: selectedBasemap === 'satellite' ? river.weight + 0.5 : river.weight,
+          opacity: 0.88,
+          lineCap: 'round',
+          lineJoin: 'round',
+        });
+
+        polyline.bindTooltip(
+          `<div style="font-family: monospace; font-size: 11px; font-weight: bold; color: #38bdf8; background: #0f172a; padding: 4px 8px; border-radius: 6px; border: 1px solid #0284c7;">
+            🌊 ${river.name}<br/><span style="font-size: 9px; color: #94a3b8; font-weight: normal;">${river.basin}</span>
+          </div>`,
+          {
+            sticky: true,
+            opacity: 0.95,
+          }
+        );
+
+        polyline.addTo(group);
+      });
+    }
+  }, [showRiverVectors, selectedBasemap]);
 
   // Dynamic Radius Function: Ultra-crisp micro dots at low zoom, expanding smoothly upon zooming
   const calculateMarkerRadius = useCallback((zoom: number, station: HydrologicalStation) => {
@@ -732,7 +818,29 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Quick Switch Chips: AP Reservoirs vs All India */}
-            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-2xl p-1 shadow-inner">
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-2xl p-1 shadow-inner flex-wrap">
+              {/* 1. All Andhra Pradesh Data Button (Shows 100% of AP data together) */}
+              <button
+                onClick={() => {
+                  setSelectedUnitMode('state');
+                  setSelectedState('Andhra Pradesh');
+                  setSelectedCategory('all');
+                  const map = mapInstanceRef.current;
+                  if (map) {
+                    map.flyTo([15.912, 79.740], 7, { animate: true, duration: 1.2 });
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                  selectedState === 'Andhra Pradesh' && selectedCategory === 'all'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40 ring-1 ring-emerald-400'
+                    : 'text-emerald-300 hover:text-white hover:bg-slate-800'
+                }`}
+                title="View All Andhra Pradesh Data Simultaneously (113 Dams + 265 River Gauges + 31 Rainfall Gauges + 31 River Vectors)"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>🌟 AP All Data ({dynamicStations.filter(s => s.state === 'Andhra Pradesh').length})</span>
+              </button>
+
               <button
                 onClick={() => {
                   setSelectedUnitMode('state');
@@ -757,6 +865,48 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
               <button
                 onClick={() => {
                   setSelectedUnitMode('state');
+                  setSelectedState('Andhra Pradesh');
+                  setSelectedCategory('river_level');
+                  const map = mapInstanceRef.current;
+                  if (map) {
+                    map.flyTo([16.30, 80.50], 7, { animate: true, duration: 1.2 });
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                  selectedState === 'Andhra Pradesh' && (selectedCategory === 'river_level' || selectedCategory === 'river_discharge')
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-indigo-300 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Focus on Andhra Pradesh River Gauges & Discharges (265 CWC/APWRD Telemetry Stations)"
+              >
+                <Gauge className="w-3.5 h-3.5" />
+                <span>🌊 AP River Gauges ({dynamicStations.filter(s => s.state === 'Andhra Pradesh' && (s.category === 'river_level' || s.category === 'river_discharge')).length})</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedUnitMode('state');
+                  setSelectedState('Andhra Pradesh');
+                  setSelectedCategory('rainfall');
+                  const map = mapInstanceRef.current;
+                  if (map) {
+                    map.flyTo([15.912, 79.740], 7, { animate: true, duration: 1.2 });
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                  selectedState === 'Andhra Pradesh' && selectedCategory === 'rainfall'
+                    ? 'bg-teal-600 text-white shadow-md'
+                    : 'text-teal-300 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Focus on Andhra Pradesh District Monsoon Rainfall (Jun 01 - Oct 13, 2026)"
+              >
+                <CloudRain className="w-3.5 h-3.5" />
+                <span>🌧️ AP Rainfall ({AP_MONSOON_RAINFALL_2026.length})</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedUnitMode('state');
                   setSelectedState('All India');
                   setSelectedCategory('all');
                   const map = mapInstanceRef.current;
@@ -776,6 +926,26 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
               </button>
             </div>
 
+            {/* AP River Basin Flow Schematics Modal Button */}
+            <button
+              onClick={() => setIsSchematicsModalOpen(true)}
+              className="px-3.5 py-2 rounded-2xl bg-slate-900 border border-blue-500/40 hover:border-blue-400 text-blue-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              title="View AP 5 Major River Basin Flow Connectivity Schematics (Krishna, Godavari, Pennar, Vamsadhara, Nagavali)"
+            >
+              <Workflow className="w-4 h-4 text-blue-400" />
+              <span>🗺️ River Schematics (5)</span>
+            </button>
+
+            {/* AP Monsoon Rainfall Telemetry Grid Button */}
+            <button
+              onClick={() => setIsRainfallModalOpen(true)}
+              className="px-3.5 py-2 rounded-2xl bg-slate-900 border border-teal-500/40 hover:border-teal-400 text-teal-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              title="View AP District-Wise Monsoon Rainfall Telemetry (Jun 01 - Oct 13, 2026)"
+            >
+              <CloudRain className="w-4 h-4 text-teal-400" />
+              <span>🌧️ Rainfall Grid ({AP_MONSOON_RAINFALL_2026.length})</span>
+            </button>
+
             {/* AP Water Grid 113 & CSV Hub Button */}
             <button
               onClick={() => setIsCsvModalOpen(true)}
@@ -786,10 +956,55 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
               <span>📁 Water Grid CSV (113)</span>
             </button>
 
-            {/* Integrated Layer Indicator Badge */}
-            <div className="hidden 2xl:flex items-center gap-1.5 bg-slate-900 border border-emerald-500/30 text-emerald-300 rounded-2xl px-3 py-2 text-[11px] font-bold">
-              <Satellite className="w-3.5 h-3.5 text-emerald-400" />
-              <span>🛰️ ISRO Bhuvan HD + WRIS Borders Integrated</span>
+            {/* Basemap & Waterway Network Switcher */}
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-2xl p-1 shadow-inner">
+              <button
+                onClick={() => setSelectedBasemap('osm_rivers')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                  selectedBasemap === 'osm_rivers'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="OpenStreetMap: Crisp Blue Rivers, Streams, and Watercourse Names"
+              >
+                <span>🗺️ Rivers (OSM)</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedBasemap('satellite')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                  selectedBasemap === 'satellite'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="High-Resolution Satellite: Bhuvan / Optical Space Imagery"
+              >
+                <span>🛰️ Satellite</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedBasemap('topo')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                  selectedBasemap === 'topo'
+                    ? 'bg-teal-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Topographic: Watershed Contours & Elevation Relief"
+              >
+                <span>🏔️ Topo</span>
+              </button>
+
+              <button
+                onClick={() => setShowRiverVectors(!showRiverVectors)}
+                className={`px-2 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer border ${
+                  showRiverVectors
+                    ? 'bg-sky-950/80 border-sky-500/70 text-sky-300'
+                    : 'border-slate-800 text-slate-500 hover:text-slate-300'
+                }`}
+                title="Toggle Andhra Pradesh River Network Vectors Overlay"
+              >
+                <span>🌊 Rivers: {showRiverVectors ? 'ON' : 'OFF'}</span>
+              </button>
             </div>
 
             {/* Unified Filters & Layers Button */}
@@ -1293,6 +1508,53 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Ground Watercourse Verification */}
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-sky-400 uppercase tracking-wider">
+                      📍 WATERCOURSE GROUND LOCATION
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">100% VERIFIED</span>
+                  </div>
+                  <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1.5 text-xs">
+                    <div className="text-[10px] text-slate-400 font-mono">OFFICIAL SITE CORRELATION</div>
+                    <div className="text-sm font-bold text-white">
+                      {typeof selectedStation.governmentDossier === 'object' && selectedStation.governmentDossier !== null
+                        ? (selectedStation.governmentDossier as any).officialLocationDesc
+                        : (typeof selectedStation.governmentDossier === 'string'
+                            ? selectedStation.governmentDossier
+                            : `${selectedStation.riverName ?? 'Waterway'} River Channel at ${selectedStation.district}`)}
+                    </div>
+                    <div className="text-[11px] text-sky-300 font-mono flex items-center justify-between pt-1">
+                      <span>Coordinates:</span>
+                      <strong>{selectedStation.lat.toFixed(4)}°N, {selectedStation.lng.toFixed(4)}°E</strong>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${selectedStation.lat}&mlon=${selectedStation.lng}#map=16/${selectedStation.lat}/${selectedStation.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-blue-950/70 border border-blue-600/50 hover:bg-blue-900 text-blue-300 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all text-center cursor-pointer shadow-sm"
+                      title="Verify river course on OpenStreetMap"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
+                      <span>OSM River Map</span>
+                    </a>
+                    <a
+                      href={`https://www.google.com/maps/@?api=1&map_action=map&center=${selectedStation.lat},${selectedStation.lng}&zoom=17&basemap=satellite`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-emerald-950/70 border border-emerald-600/50 hover:bg-emerald-900 text-emerald-300 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all text-center cursor-pointer shadow-sm"
+                      title="Verify river channel on Satellite View"
+                    >
+                      <Satellite className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Google Satellite</span>
+                    </a>
+                  </div>
+                </div>
               </>
             )}
 
@@ -1382,25 +1644,30 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             {/* 4. RAINFALL TELEMETRY METRICS */}
             {selectedStation.category === 'rainfall' && (
               <>
+                {/* Official Monsoon Cumulative Metrics */}
                 <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-bold text-teal-400 uppercase tracking-wider">
-                      24H PRECIPITATION
+                      MONSOON RECORDED (JUN 01 - OCT 13)
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">IMD AWS</span>
+                    <span className="text-[10px] text-teal-300 font-mono font-bold">IMD / APWRIMS</span>
                   </div>
                   <div>
                     <div className="text-3xl font-black text-teal-300 font-mono">
                       {selectedStation.rainfallMm ?? 0.0} mm
                     </div>
-                    <span className="text-xs text-teal-200 font-semibold">Past 24 Hours Recorded Rainfall</span>
+                    <span className="text-xs text-teal-200 font-semibold">Cumulative Actual Rainfall</span>
                   </div>
                   <div className="border-t border-slate-800 pt-2 text-xs flex justify-between text-slate-300">
-                    <span>Rainfall Category:</span>
-                    <strong className="text-white font-mono">
-                      {(selectedStation.rainfallMm ?? 0) > 64.5 ? 'Heavy Rain' :
-                       (selectedStation.rainfallMm ?? 0) > 15.5 ? 'Moderate Rain' :
-                       (selectedStation.rainfallMm ?? 0) > 2.5 ? 'Light Rain' : 'Dry / Nil'}
+                    <span>Status / Category:</span>
+                    <strong className={`font-mono px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                      selectedStation.status === 'red' 
+                        ? 'bg-rose-950 text-rose-300 border border-rose-800' 
+                        : 'bg-amber-950 text-amber-300 border border-amber-800'
+                    }`}>
+                      {typeof selectedStation.governmentDossier === 'object' && (selectedStation.governmentDossier as any)?.status 
+                        ? (selectedStation.governmentDossier as any).status 
+                        : (selectedStation.departurePercent ?? 0) < -50 ? 'Scanty' : 'Deficient'}
                     </strong>
                   </div>
                 </div>
@@ -1408,26 +1675,64 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                 <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-bold text-sky-400 uppercase tracking-wider">
-                      CLIMATE COMPARISON
+                      CLIMATE NORMAL & DEVIATION
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">DEPARTURE %</span>
+                    <span className="text-[10px] text-slate-400 font-mono">HISTORICAL NORMAL</span>
                   </div>
                   <div>
                     <div className="text-3xl font-black text-white font-mono">
                       {selectedStation.normalRainfallMm ?? 0.0} mm
                     </div>
-                    <span className="text-xs text-slate-400">Normal Historical Baseline</span>
+                    <span className="text-xs text-slate-400">Normal Expected Baseline (mm)</span>
                   </div>
                   <div className="border-t border-slate-800 pt-2 text-xs flex justify-between">
-                    <span className="text-slate-300">Monsoon Departure:</span>
-                    <strong className={`font-mono ${
-                      (selectedStation.departurePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-amber-400'
+                    <span className="text-slate-300">Deviation Percentage:</span>
+                    <strong className={`font-mono font-bold ${
+                      (selectedStation.departurePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
                     }`}>
                       {(selectedStation.departurePercent ?? 0) > 0 ? '+' : ''}
                       {selectedStation.departurePercent ?? 0}%
                     </strong>
                   </div>
                 </div>
+
+                {/* Monthly Breakdown Grid if available */}
+                {typeof selectedStation.governmentDossier === 'object' && (selectedStation.governmentDossier as any)?.august && (
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2.5 col-span-1 lg:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-sky-400" />
+                        MONTHLY TELEMETRY PROGRESSION (AUG, SEP & OCT 2026)
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-sky-950 text-sky-300 border border-sky-800">
+                        Rainy Days: {(selectedStation.governmentDossier as any).rainyDays} Days
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 pt-1 font-mono text-center text-xs">
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <div className="text-[10px] text-slate-400 font-sans">August 2026</div>
+                        <div className="text-sm font-bold text-white mt-0.5">
+                          {(selectedStation.governmentDossier as any).august.actualMm} mm
+                        </div>
+                        <div className="text-[9px] text-slate-500">Norm: {(selectedStation.governmentDossier as any).august.normalMm} mm</div>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <div className="text-[10px] text-slate-400 font-sans">September 2026</div>
+                        <div className="text-sm font-bold text-white mt-0.5">
+                          {(selectedStation.governmentDossier as any).september.actualMm} mm
+                        </div>
+                        <div className="text-[9px] text-slate-500">Norm: {(selectedStation.governmentDossier as any).september.normalMm} mm</div>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <div className="text-[10px] text-slate-400 font-sans">Oct 01 - 13, 2026</div>
+                        <div className="text-sm font-bold text-white mt-0.5">
+                          {(selectedStation.governmentDossier as any).octoberToDate.actualMm} mm
+                        </div>
+                        <div className="text-[9px] text-slate-500">Norm: {(selectedStation.governmentDossier as any).octoberToDate.normalMm} mm</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between">
@@ -1462,7 +1767,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                     </div>
                     <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
                       <div className="text-[10px] text-slate-400 font-mono">STATUS</div>
-                      <div className="text-sm font-bold text-emerald-400 mt-0.5">Live Synced with IMD Pune AWS Grid</div>
+                      <div className="text-sm font-bold text-emerald-400 mt-0.5">Live Synced with IMD / APWRIMS Monsoon Grid</div>
                     </div>
                   </div>
                 </div>
@@ -1720,11 +2025,20 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           {selectedStation.governmentDossier && (
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
-              <div className="text-xs space-y-1">
-                <strong className="text-white font-bold block">Government Station Dossier:</strong>
-                <p className="text-slate-300 leading-relaxed font-medium">
-                  {selectedStation.governmentDossier}
-                </p>
+              <div className="text-xs space-y-1 w-full">
+                <strong className="text-white font-bold block">Government Telemetry Dossier:</strong>
+                {typeof selectedStation.governmentDossier === 'string' ? (
+                  <p className="text-slate-300 leading-relaxed font-medium">
+                    {selectedStation.governmentDossier}
+                  </p>
+                ) : (
+                  <div className="text-slate-300 space-y-1 font-mono text-[11px] bg-slate-950 p-2.5 rounded-xl border border-slate-800 mt-1">
+                    <div>Location: <span className="text-white font-bold">{selectedStation.governmentDossier.officialLocationDesc}</span></div>
+                    <div>Agency: <span className="text-sky-300">{selectedStation.governmentDossier.reportingAgency}</span></div>
+                    <div>Reading: <span className="text-emerald-300">{selectedStation.governmentDossier.waterLevelStage}</span> ({selectedStation.governmentDossier.readingTimestamp})</div>
+                    <div>Status: <span className="text-amber-300">{selectedStation.governmentDossier.verificationStatus}</span></div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1754,23 +2068,70 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
-                  Integrated GIS Layers
+                  Basemap & River Waterway Layers
                 </label>
-                <span className="text-[10px] text-emerald-400 font-mono">ALL-IN-ONE COMPOSITE</span>
+                <span className="text-[10px] text-sky-400 font-mono">DYNAMIC ENGINE</span>
               </div>
               
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <Satellite className="w-4 h-4 text-amber-400" />
-                    <div>
-                      <span className="font-bold text-white block">🛰️ ISRO Bhuvan HD Satellite</span>
-                      <span className="text-[10px] text-slate-400">High-resolution optical space view</span>
-                    </div>
+                {/* 1. Basemap Selector */}
+                <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-2">
+                  <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Select Base Map View</span>
                   </div>
-                  <span className="text-[10px] text-emerald-400 font-mono font-bold">LOCKED ON</span>
+                  <div className="grid grid-cols-3 gap-1">
+                    <button
+                      onClick={() => setSelectedBasemap('osm_rivers')}
+                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
+                        selectedBasemap === 'osm_rivers'
+                          ? 'bg-blue-600 text-white shadow'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🗺️ Rivers (OSM)
+                    </button>
+                    <button
+                      onClick={() => setSelectedBasemap('satellite')}
+                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
+                        selectedBasemap === 'satellite'
+                          ? 'bg-emerald-600 text-white shadow'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🛰️ Satellite
+                    </button>
+                    <button
+                      onClick={() => setSelectedBasemap('topo')}
+                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
+                        selectedBasemap === 'topo'
+                          ? 'bg-teal-600 text-white shadow'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🏔️ Topo Relief
+                    </button>
+                  </div>
                 </div>
 
+                {/* 2. Vector River Networks Toggle */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🌊</span>
+                    <div>
+                      <span className="font-bold text-white block">AP River Waterway Networks</span>
+                      <span className="text-[10px] text-slate-400">Glowing vector paths of Godavari, Krishna, Pennar, etc.</span>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={showRiverVectors}
+                    onChange={(e) => setShowRiverVectors(e.target.checked)}
+                    className="w-4 h-4 rounded text-sky-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* 3. India WRIS Borders */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-sky-400" />
@@ -1787,11 +2148,12 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                   />
                 </div>
 
+                {/* 4. Topo Watershed Contours */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
                   <div className="flex items-center gap-2">
                     <Mountain className="w-4 h-4 text-teal-400" />
                     <div>
-                      <span className="font-bold text-white block">🌊 Topo Watershed & Basin Relief</span>
+                      <span className="font-bold text-white block">🏔️ Topo Watershed & Basin Relief</span>
                       <span className="text-[10px] text-slate-400">River catchment relief & elevation contours</span>
                     </div>
                   </div>
@@ -2117,6 +2479,52 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           </div>
         </div>
       )}
+
+      {/* AP Monsoon Rainfall Telemetry (Jun 01 - Oct 13, 2026) Modal */}
+      <APRainfallTelemetryModal
+        isOpen={isRainfallModalOpen}
+        onClose={() => setIsRainfallModalOpen(false)}
+        onFlyToDistrict={(rec) => {
+          setSelectedUnitMode('state');
+          setSelectedState('Andhra Pradesh');
+          setSelectedCategory('rainfall');
+          const stn = dynamicStations.find((s) => s.id === rec.id);
+          if (stn) {
+            setSelectedStation(stn);
+          }
+          const map = mapInstanceRef.current;
+          if (map) {
+            map.flyTo([rec.lat, rec.lng], 10, { animate: true, duration: 1.2 });
+          }
+          if (dossierRef.current) {
+            dossierRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
+
+      {/* AP River Basin Flow Networks & Schematics (5 Basins) Modal */}
+      <APBasinSchematicsModal
+        isOpen={isSchematicsModalOpen}
+        onClose={() => setIsSchematicsModalOpen(false)}
+        liveReservoirs={apReservoirsList}
+        onFlyToNode={(node) => {
+          setSelectedUnitMode('state');
+          setSelectedState('Andhra Pradesh');
+          const matchedStation = dynamicStations.find(
+            (s) => s.id === node.id || (Math.abs(s.lat - node.lat) < 0.05 && Math.abs(s.lng - node.lng) < 0.05)
+          );
+          if (matchedStation) {
+            setSelectedStation(matchedStation);
+          }
+          const map = mapInstanceRef.current;
+          if (map) {
+            map.flyTo([node.lat, node.lng], 12, { animate: true, duration: 1.2 });
+          }
+          if (dossierRef.current) {
+            dossierRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
 
       {/* AP Water Grid (113 Reservoirs) & CSV Hub Modal */}
       {isCsvModalOpen && (

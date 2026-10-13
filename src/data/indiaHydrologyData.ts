@@ -1,4 +1,5 @@
 import { AP_OFFICIAL_RESERVOIRS, APReservoirRecord } from './apReservoirsData';
+import { AP_OFFICIAL_RIVER_GAUGE_STATIONS } from './apRiverGaugesData';
 /**
  * India National Hydrological Telemetry Grid Dataset
  * Synced with India-WRIS (Water Resources Information System) & ISRO Bhuvan WBIS
@@ -48,7 +49,7 @@ export interface HydrologicalStation {
   hindiName?: string;
   basin: string;
   subBasin?: string;
-  agency: 'CWC' | 'CGWB' | 'IMD' | 'APWRIMS' | 'ISRO-NRSC' | 'WRD';
+  agency: 'CWC' | 'CGWB' | 'IMD' | 'APWRIMS' | 'ISRO-NRSC' | 'WRD' | 'NHP_AWLR' | 'NHP_AWS' | 'APWRD_AWLR';
   lat: number;
   lng: number;
   status: WaterHealthStatus;
@@ -72,6 +73,7 @@ export interface HydrologicalStation {
   warningLevelM?: number;
   dangerLevelM?: number;
   dischargeCusecs?: number;
+  trend?: string;
 
   // 3. Rainfall Specific Metrics
   rainfallMm?: number;
@@ -100,7 +102,7 @@ export interface HydrologicalStation {
   gridStatus?: string;
   effluentAuditStatus?: string;
   effluentAuditDate?: string;
-  governmentDossier?: string;
+  governmentDossier?: string | Record<string, any>;
   ndwiPasses?: SatelliteOpticalPass[];
 }
 
@@ -139,7 +141,7 @@ export const STATE_SUMMARIES: Record<string, StateHydrologySummary> = {
     totalStations: 3840,
     monitoredStations: 740,
     reservoirsCount: 113,
-    riverGaugesCount: 44,
+    riverGaugesCount: 265,
     rainfallStationsCount: 168,
     groundwaterWellsCount: 280,
     bhuvanWaterBodiesCount: 46,
@@ -4600,15 +4602,19 @@ const RAW_NATIONAL_STATIONS: HydrologicalStation[] = [
   }
 ];
 
-// Master Stations Export: Combines 113 Official AP Reservoirs + All National Grid Stations
+// Master Stations Export: Combines 113 Official AP Reservoirs + 44 AP River Gauges + All National Grid Stations
 const stationMap = new Map<string, HydrologicalStation>();
-// AP reservoirs first
+// 1. AP reservoirs first
 AP_ALL_RESERVOIR_STATIONS.forEach(s => stationMap.set(s.id, s));
-// Add national stations if not already present
+// 2. AP official river gauges & discharges (44 CWC / APWRIMS telemetry stations)
+AP_OFFICIAL_RIVER_GAUGE_STATIONS.forEach(s => stationMap.set(s.id, s));
+// 3. Add national stations if not already present
 RAW_NATIONAL_STATIONS.forEach(s => {
   if (!stationMap.has(s.id)) {
     stationMap.set(s.id, s);
   }
 });
 
+export { AP_OFFICIAL_RIVER_GAUGE_STATIONS };
 export const HYDROLOGICAL_STATIONS: HydrologicalStation[] = Array.from(stationMap.values());
+
