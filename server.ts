@@ -27,7 +27,6 @@ async function startServer() {
   app.all('/api/bhuvan', bhuvanHandler);
 
   let viteServer: ViteDevServer | null = null;
-  let vitePromise: Promise<ViteDevServer> | null = null;
 
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));
@@ -35,31 +34,15 @@ async function startServer() {
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
     });
   } else {
-    vitePromise = createViteServer({
+    viteServer = await createViteServer({
       server: {
         middlewareMode: true,
         hmr: process.env.DISABLE_HMR !== 'true',
         watch: process.env.DISABLE_HMR === 'true' ? null : undefined,
       },
       appType: 'spa',
-    }).then((server) => {
-      viteServer = server;
-      console.log('Vite dev middleware attached');
-      return server;
     });
-
-    app.use(async (req: Request, res: Response, next: NextFunction) => {
-      if (req.path.startsWith('/api') || req.path === '/health') {
-        return next();
-      }
-      if (!viteServer && vitePromise) {
-        await vitePromise;
-      }
-      if (viteServer) {
-        return viteServer.middlewares(req, res, next);
-      }
-      next();
-    });
+    app.use(viteServer.middlewares);
   }
 
   const server = app.listen(PORT, '0.0.0.0', () => {

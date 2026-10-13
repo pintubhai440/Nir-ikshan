@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     // Attempt real handshake to ISRO Bhuvan API
     try {
-      const bhuvanTestUrl = `https://bhuvan-app1.nrsc.gov.in/api/api_details.php?token=${encodeURIComponent(token.trim())}`;
+      const bhuvanTestUrl = `https://bhuvan-app1.nrsc.gov.in/api/?token=${encodeURIComponent(token.trim())}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 

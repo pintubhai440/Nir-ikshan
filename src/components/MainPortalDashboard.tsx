@@ -160,25 +160,32 @@ export const MainPortalDashboard: React.FC<MainPortalDashboardProps> = ({
         </div>
       </div>
 
-      {/* PRIMARY MAP: ALL-INDIA NATIONAL WATER GRID (ORIGINAL DEFAULT AS REQUESTED) */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+      {/* PRIMARY MAP: ALL-INDIA NATIONAL WATER GRID */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
           <div>
-            <h3 className="font-extrabold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+            <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
               <span>🇮🇳 National Water Grid & River Basins of India</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Comprehensive micro-watershed surveillance and satellite optical coverage across India.
+              Comprehensive micro-watershed surveillance, satellite optical passes, and real-time hydrological grid.
             </p>
           </div>
 
-          <button
-            onClick={() => onSelectRole('admin')}
-            className="px-4 py-2 bg-gradient-to-r from-[#0047ab] to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-          >
-            <span>Open Andhra Pradesh State Command</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-50 text-[#0047ab] border border-sky-200 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+              <span>💧 113 AP Water Grid Reservoirs Integrated</span>
+            </span>
+
+            <button
+              onClick={() => onSelectRole('admin')}
+              className="px-4 py-2 bg-gradient-to-r from-[#0047ab] to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <span>Open Andhra Pradesh State Command</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         <InteractiveIndiaMap
