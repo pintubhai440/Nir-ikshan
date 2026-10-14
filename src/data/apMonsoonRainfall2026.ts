@@ -87,8 +87,8 @@ export const AP_MONSOON_RAINFALL_2026: APDistrictRainfallRecord[] = [
     districtName: 'Alluri Sitharama Raju',
     region: 'North Coastal',
     basin: 'Godavari & Sileru Basin',
-    lat: 17.95,
-    lng: 81.85,
+    lat: 18.083,
+    lng: 82.667,
     augNormalMm: 245.08,
     augActualMm: 122.23,
     sepNormalMm: 181.22,
@@ -187,8 +187,8 @@ export const AP_MONSOON_RAINFALL_2026: APDistrictRainfallRecord[] = [
     districtName: 'Konaseema',
     region: 'Godavari Delta',
     basin: 'Godavari Delta (Gowthami/Vasishta)',
-    lat: 16.57,
-    lng: 81.98,
+    lat: 16.575,
+    lng: 82.005,
     augNormalMm: 231.52,
     augActualMm: 81.31,
     sepNormalMm: 199.07,
@@ -227,8 +227,8 @@ export const AP_MONSOON_RAINFALL_2026: APDistrictRainfallRecord[] = [
     districtName: 'West Godavari',
     region: 'Godavari Delta',
     basin: 'Errakalva & Kolleru Basin',
-    lat: 16.71,
-    lng: 81.34,
+    lat: 16.545,
+    lng: 81.521,
     augNormalMm: 250.4,
     augActualMm: 116.54,
     sepNormalMm: 185.5,
@@ -347,8 +347,8 @@ export const AP_MONSOON_RAINFALL_2026: APDistrictRainfallRecord[] = [
     districtName: 'Palnadu',
     region: 'Krishna Basin',
     basin: 'Krishna Middle (Nagarjuna Sagar)',
-    lat: 16.577,
-    lng: 79.313,
+    lat: 16.234,
+    lng: 80.054,
     augNormalMm: 139.75,
     augActualMm: 47.04,
     sepNormalMm: 134.48,
@@ -644,7 +644,9 @@ export const AP_MONSOON_RAINFALL_2026: APDistrictRainfallRecord[] = [
   },
 ];
 
-export const AP_RAINFALL_HYDROLOGICAL_STATIONS: HydrologicalStation[] = AP_MONSOON_RAINFALL_2026.map((r) => ({
+export const AP_RAINFALL_HYDROLOGICAL_STATIONS: HydrologicalStation[] = AP_MONSOON_RAINFALL_2026
+  .filter((r) => !r.isRegionTotal)
+  .map((r) => ({
   id: r.id,
   name: `${r.districtName} Rainfall Telemetry`,
   code: `AP-RAIN-${r.districtName.substring(0, 4).toUpperCase()}`,

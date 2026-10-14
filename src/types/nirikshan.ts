@@ -56,6 +56,7 @@ export interface WaterBody {
     dischargeCusecs?: number;
     inflowCusecs?: number;
     rainfallMm?: number;
+    normalRainfallMm?: number;
     departurePercent?: number;
     depthToWaterM_bgl?: number;
     rechargeTrend?: string;

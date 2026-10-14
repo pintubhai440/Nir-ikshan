@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ANDHRA_PRADESH_26_DISTRICTS, STATE_COMMAND_HUB, TELEMETRY_NETWORK_BEAMS, DistrictTelemetry } from '../data/andhraDistrictsData';
 import { AP_OFFICIAL_RESERVOIRS, APReservoirRecord } from '../data/apReservoirsData';
+import { AP_DISTRICT_RAINFALL_SUMMARIES } from '../data/apMandalWiseRainfall2026';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 export type MapDisplayMode = 
@@ -8,7 +9,8 @@ export type MapDisplayMode =
   | 'surveillance'    // Dark Futuristic Cyber Grid (video animation style)
   | 'ndwi_satellite'  // ISRO Bhuvan NDWI Satellite False Color (water cyan/blue, land dark)
   | 'wris_storage'    // Live India-WRIS Reservoir Storage % Heatmap
-  | 'dwlr_groundwater'; // CGWB Groundwater Table Depth Heatmap
+  | 'dwlr_groundwater' // CGWB Groundwater Table Depth Heatmap
+  | 'rainfall';       // AP Monsoon Cumulative Rainfall & Departure Heatmap
 
 interface Andhra26DistrictsMapSvgProps {
   selectedDistrictId?: string;
@@ -147,6 +149,21 @@ export const Andhra26DistrictsMapSvg: React.FC<Andhra26DistrictsMapSvgProps> = (
       if (depth <= 6.5) return '#10b981';
       if (depth <= 9.0) return '#f59e0b';
       return '#e11d48';
+    }
+
+    if (mapDisplayMode === 'rainfall') {
+      if (isSelected) return '#38bdf8';
+      if (isHovered) return '#67e8f9';
+      const summary = AP_DISTRICT_RAINFALL_SUMMARIES[district.name] || 
+        AP_DISTRICT_RAINFALL_SUMMARIES[district.name.replace(' District', '')] ||
+        Object.values(AP_DISTRICT_RAINFALL_SUMMARIES).find(s => district.name.toLowerCase().includes(s.district.toLowerCase()) || s.district.toLowerCase().includes(district.name.toLowerCase()));
+      if (summary) {
+        if (summary.avgDeviationPercent >= 20) return '#0284c7'; // Blue (Excess)
+        if (summary.avgDeviationPercent >= -19) return '#10b981'; // Green (Normal)
+        if (summary.avgDeviationPercent >= -59) return '#eab308'; // Yellow (Deficient)
+        return '#ef4444'; // Red (Large Deficient)
+      }
+      return '#0d9488';
     }
 
     if (mapDisplayMode === 'surveillance') {
@@ -384,6 +401,27 @@ export const Andhra26DistrictsMapSvg: React.FC<Andhra26DistrictsMapSvgProps> = (
                     >
                       {dist.name}
                     </text>
+                    {mapDisplayMode === 'rainfall' && (() => {
+                      const rainSummary = AP_DISTRICT_RAINFALL_SUMMARIES[dist.name] || 
+                        AP_DISTRICT_RAINFALL_SUMMARIES[dist.name.replace(' District', '')] ||
+                        Object.values(AP_DISTRICT_RAINFALL_SUMMARIES).find(s => dist.name.toLowerCase().includes(s.district.toLowerCase()) || s.district.toLowerCase().includes(dist.name.toLowerCase()));
+                      if (!rainSummary) return null;
+                      return (
+                        <text
+                          x={dist.svgCenter.x}
+                          y={dist.svgCenter.y + 14}
+                          textAnchor="middle"
+                          fontSize="7.5"
+                          fontWeight="700"
+                          fill="#f8fafc"
+                          stroke="rgba(0,0,0,0.85)"
+                          strokeWidth="1.8"
+                          paintOrder="stroke"
+                        >
+                          {rainSummary.avgActualMm}mm ({rainSummary.avgDeviationPercent > 0 ? '+' : ''}{rainSummary.avgDeviationPercent}%)
+                        </text>
+                      );
+                    })()}
                   </g>
                 </g>
               );

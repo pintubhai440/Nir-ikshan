@@ -550,6 +550,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               >
                 ⚓ DWLR Table
               </button>
+
+              <button
+                onClick={() => setMapDisplayMode('rainfall')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  mapDisplayMode === 'rainfall'
+                    ? 'bg-teal-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-teal-600'
+                }`}
+                title="AP Monsoon Cumulative Rainfall & Departure Heatmap"
+              >
+                🌧️ Rainfall Heatmap
+              </button>
             </div>
           </div>
         </div>

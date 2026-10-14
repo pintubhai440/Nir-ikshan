@@ -42,6 +42,7 @@ import { PARVATHIPURAM_ALL_MANDAL_WATER_BODIES } from '../data/parvathipuramMand
 import { VisakhapatnamCadastralMapSvg, VisakhapatnamMandalData } from './VisakhapatnamCadastralMapSvg';
 import { VISAKHAPATNAM_ALL_MANDAL_WATER_BODIES } from '../data/visakhapatnamMandalsWaterData';
 import { AllDistrictsCombinedCadastralMapSvg } from './AllDistrictsCombinedCadastralMapSvg';
+import { AP_MANDAL_WISE_RAINFALL_2026 } from '../data/apMandalWiseRainfall2026';
 
 interface InteractiveAndhraMapProps {
   waterBodies: WaterBody[];
@@ -130,6 +131,45 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
         existingIds.add(mandalWb.id);
       }
     });
+
+    // Add all 688 Andhra Pradesh mandal-wise rainfall stations
+    AP_MANDAL_WISE_RAINFALL_2026.forEach((r) => {
+      const mandalWbId = `wb-rainfall-${r.id}`;
+      if (!existingIds.has(mandalWbId)) {
+        existingIds.add(mandalWbId);
+        const isExcess = r.status === 'Large Excess' || r.status === 'Excess';
+        const isNormal = r.status === 'Normal';
+        const isLargeDeficient = r.status === 'Large Deficient';
+        const statusColor: WaterBodyStatusColor = isNormal ? 'green' : isExcess ? 'blue' : isLargeDeficient ? 'red' : 'yellow';
+
+        merged.push({
+          id: mandalWbId,
+          name: `${r.mandal} Mandal Telemetry Station`,
+          teluguName: `${r.mandal} మండల వర్షపాతం కేంద్రం`,
+          type: 'Rainfall Station',
+          datasetType: 'rainfall',
+          endpoint: 'POST /Dataset/Rainfall',
+          agency: 'IMD / APWRIMS',
+          district: r.district,
+          mandal: r.mandal,
+          village: `${r.mandal} Mandal HQ`,
+          coordinates: { lat: r.lat, lng: r.lng },
+          statusColor,
+          statusLabel: `${r.actualMm} mm (Norm: ${r.normalMm} mm | ${r.deviationPercent}%)`,
+          waterLevelPercent: Math.min(100, Math.max(0, Math.round((r.actualMm / Math.max(r.normalMm, 1)) * 100))),
+          tdsPpm: 0,
+          wasteLevel: 'None',
+          lastInspected: '2026-10-13',
+          description: `Cumulative Monsoon Rainfall Telemetry (01/06/2025 - 13/10/2026): Recorded ${r.actualMm} mm against Normal ${r.normalMm} mm (${r.deviationPercent > 0 ? '+' : ''}${r.deviationPercent}% deviation). Classification Status: ${r.status}.`,
+          liveTelemetry: {
+            rainfallMm: r.actualMm,
+            normalRainfallMm: r.normalMm,
+            departurePercent: r.deviationPercent,
+          },
+        });
+      }
+    });
+
     return merged;
   }, [waterBodies]);
 
@@ -1028,8 +1068,8 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
               <span className="text-base font-bold font-mono text-slate-900 mt-0.5 block">
                 {activeWaterBody.liveTelemetry?.dangerLevelM
                   ? `${activeWaterBody.liveTelemetry.dangerLevelM} m`
-                  : activeWaterBody.liveTelemetry?.departurePercent
-                  ? `+${activeWaterBody.liveTelemetry.departurePercent}% Normal`
+                  : activeWaterBody.liveTelemetry?.departurePercent !== undefined
+                  ? `${activeWaterBody.liveTelemetry.departurePercent > 0 ? '+' : ''}${activeWaterBody.liveTelemetry.departurePercent}% Departure`
                   : activeWaterBody.liveTelemetry?.rechargeTrend
                   ? activeWaterBody.liveTelemetry.rechargeTrend
                   : activeWaterBody.liveTelemetry?.fullCapacityMCM
@@ -1041,11 +1081,17 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
               </span>
             </div>
 
-            {/* Card 3: TDS Machine Sensor */}
+            {/* Card 3: TDS Machine Sensor / Historical Normal */}
             <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-              <span className="text-[10px] text-slate-400 font-mono block uppercase">TDS MACHINE SENSOR</span>
+              <span className="text-[10px] text-slate-400 font-mono block uppercase">
+                {activeWaterBody.type === 'Rainfall Station' ? 'HISTORICAL NORMAL' : 'TDS MACHINE SENSOR'}
+              </span>
               <span className="text-base font-bold font-mono text-slate-900 mt-0.5 block">
-                {activeWaterBody.tdsPpm && activeWaterBody.tdsPpm > 0 ? (
+                {activeWaterBody.type === 'Rainfall Station' ? (
+                  <>
+                    {activeWaterBody.liveTelemetry?.normalRainfallMm ?? 0} <span className="text-xs font-sans font-normal text-slate-500">mm</span>
+                  </>
+                ) : activeWaterBody.tdsPpm && activeWaterBody.tdsPpm > 0 ? (
                   <>
                     {activeWaterBody.tdsPpm} <span className="text-xs font-sans font-normal text-slate-500">ppm</span>
                   </>
@@ -1054,7 +1100,9 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
                 )}
               </span>
               <span className={`text-[10px] font-bold block mt-0.5 ${
-                !activeWaterBody.tdsPpm || activeWaterBody.tdsPpm <= 0
+                activeWaterBody.type === 'Rainfall Station'
+                  ? 'text-sky-600'
+                  : !activeWaterBody.tdsPpm || activeWaterBody.tdsPpm <= 0
                   ? 'text-rose-600'
                   : activeWaterBody.tdsPpm <= 300
                   ? 'text-emerald-600'
@@ -1064,7 +1112,9 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
                   ? 'text-amber-600'
                   : 'text-rose-600'
               }`}>
-                {!activeWaterBody.tdsPpm || activeWaterBody.tdsPpm <= 0
+                {activeWaterBody.type === 'Rainfall Station'
+                  ? 'IMD Climate Normal (1971-2020)'
+                  : !activeWaterBody.tdsPpm || activeWaterBody.tdsPpm <= 0
                   ? 'Electrode Error / Disconnected'
                   : activeWaterBody.tdsPpm <= 300
                   ? 'Safe Potable Water (BIS <300)'

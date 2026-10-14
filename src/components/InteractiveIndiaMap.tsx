@@ -30,6 +30,11 @@ import {
   AP_RAINFALL_HYDROLOGICAL_STATIONS, 
   APDistrictRainfallRecord 
 } from '../data/apMonsoonRainfall2026';
+import {
+  AP_MANDAL_WISE_RAINFALL_2026,
+  AP_MANDAL_RAINFALL_STATIONS,
+  APMandalRainfallRecord
+} from '../data/apMandalWiseRainfall2026';
 import { APRainfallTelemetryModal } from './APRainfallTelemetryModal';
 import { APBasinSchematicsModal } from './APBasinSchematicsModal';
 import { 
@@ -191,6 +196,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     return [
       ...updatedApStations,
       ...AP_OFFICIAL_RIVER_GAUGE_STATIONS,
+      ...AP_MANDAL_RAINFALL_STATIONS,
       ...AP_RAINFALL_HYDROLOGICAL_STATIONS,
       ...apGroundwaterAndWetlands,
       ...nonApStations,
@@ -901,7 +907,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                 title="Focus on Andhra Pradesh District Monsoon Rainfall (Jun 01 - Oct 13, 2026)"
               >
                 <CloudRain className="w-3.5 h-3.5" />
-                <span>🌧️ AP Rainfall ({AP_MONSOON_RAINFALL_2026.length})</span>
+                <span>🌧️ AP Rainfall ({dynamicStations.filter(s => s.state === 'Andhra Pradesh' && s.category === 'rainfall').length})</span>
               </button>
 
               <button
@@ -940,10 +946,10 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             <button
               onClick={() => setIsRainfallModalOpen(true)}
               className="px-3.5 py-2 rounded-2xl bg-slate-900 border border-teal-500/40 hover:border-teal-400 text-teal-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-              title="View AP District-Wise Monsoon Rainfall Telemetry (Jun 01 - Oct 13, 2026)"
+              title="View AP Mandal-Wise & District-Wise Monsoon Rainfall Telemetry (Jun 01 - Oct 13, 2026)"
             >
               <CloudRain className="w-4 h-4 text-teal-400" />
-              <span>🌧️ Rainfall Grid ({AP_MONSOON_RAINFALL_2026.length})</span>
+              <span>🌧️ Rainfall Grid ({AP_MANDAL_WISE_RAINFALL_2026.length} Mandals)</span>
             </button>
 
             {/* AP Water Grid 113 & CSV Hub Button */}
@@ -2495,6 +2501,22 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           const map = mapInstanceRef.current;
           if (map) {
             map.flyTo([rec.lat, rec.lng], 10, { animate: true, duration: 1.2 });
+          }
+          if (dossierRef.current) {
+            dossierRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+        onFlyToMandal={(rec: APMandalRainfallRecord) => {
+          setSelectedUnitMode('state');
+          setSelectedState('Andhra Pradesh');
+          setSelectedCategory('rainfall');
+          const stn = dynamicStations.find((s) => s.id === rec.id);
+          if (stn) {
+            setSelectedStation(stn);
+          }
+          const map = mapInstanceRef.current;
+          if (map) {
+            map.flyTo([rec.lat, rec.lng], 12, { animate: true, duration: 1.2 });
           }
           if (dossierRef.current) {
             dossierRef.current.scrollIntoView({ behavior: 'smooth' });
