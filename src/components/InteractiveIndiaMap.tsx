@@ -37,6 +37,8 @@ import {
 } from '../data/apMandalWiseRainfall2026';
 import { APRainfallTelemetryModal } from './APRainfallTelemetryModal';
 import { APBasinSchematicsModal } from './APBasinSchematicsModal';
+import { APGroundwaterTelemetryModal } from './APGroundwaterTelemetryModal';
+import { AP_GROUNDWATER_DTWL_2026, APGroundwaterDtwlRecord } from '../data/apGroundwaterDtwl2026';
 import { 
   Layers, 
   Satellite, 
@@ -254,6 +256,9 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
 
   // AP Monsoon Rainfall (Jun 01 - Oct 13, 2026) Modal State
   const [isRainfallModalOpen, setIsRainfallModalOpen] = useState<boolean>(false);
+
+  // AP Ground Water Depth to Water Level (Pre-Monsoon Jan 2026) Modal State
+  const [isGroundwaterModalOpen, setIsGroundwaterModalOpen] = useState<boolean>(false);
 
   // AP River Basin Networks & Schematics (5 Basins) Modal State
   const [isSchematicsModalOpen, setIsSchematicsModalOpen] = useState<boolean>(false);
@@ -950,6 +955,16 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             >
               <CloudRain className="w-4 h-4 text-teal-400" />
               <span>🌧️ Rainfall Grid ({AP_MANDAL_WISE_RAINFALL_2026.length} Mandals)</span>
+            </button>
+
+            {/* AP & National Ground Water Telemetry Grid Button */}
+            <button
+              onClick={() => setIsGroundwaterModalOpen(true)}
+              className="px-3.5 py-2 rounded-2xl bg-slate-900 border border-amber-500/40 hover:border-amber-400 text-amber-300 hover:text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              title={`View Ground Water Depth to Water Level (Pre-Monsoon Jan 2026) Across Monitored Districts (${AP_GROUNDWATER_DTWL_2026.length} DWLR Stations)`}
+            >
+              <Activity className="w-4 h-4 text-amber-400" />
+              <span>⛏️ Ground Water DWLR ({AP_GROUNDWATER_DTWL_2026.length} Wells)</span>
             </button>
 
             {/* AP Water Grid 113 & CSV Hub Button */}
@@ -2517,6 +2532,28 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           const map = mapInstanceRef.current;
           if (map) {
             map.flyTo([rec.lat, rec.lng], 12, { animate: true, duration: 1.2 });
+          }
+          if (dossierRef.current) {
+            dossierRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
+
+      {/* AP Ground Water Depth to Water Level (Pre-Monsoon Jan 2026) Modal */}
+      <APGroundwaterTelemetryModal
+        isOpen={isGroundwaterModalOpen}
+        onClose={() => setIsGroundwaterModalOpen(false)}
+        onSelectStation={(rec: APGroundwaterDtwlRecord) => {
+          setSelectedUnitMode('state');
+          setSelectedState(rec.state);
+          setSelectedCategory('groundwater');
+          const stn = dynamicStations.find((s) => s.id === rec.id);
+          if (stn) {
+            setSelectedStation(stn);
+          }
+          const map = mapInstanceRef.current;
+          if (map) {
+            map.flyTo([rec.lat, rec.lng], 13, { animate: true, duration: 1.2 });
           }
           if (dossierRef.current) {
             dossierRef.current.scrollIntoView({ behavior: 'smooth' });

@@ -43,6 +43,8 @@ import { VisakhapatnamCadastralMapSvg, VisakhapatnamMandalData } from './Visakha
 import { VISAKHAPATNAM_ALL_MANDAL_WATER_BODIES } from '../data/visakhapatnamMandalsWaterData';
 import { AllDistrictsCombinedCadastralMapSvg } from './AllDistrictsCombinedCadastralMapSvg';
 import { AP_MANDAL_WISE_RAINFALL_2026 } from '../data/apMandalWiseRainfall2026';
+import { AP_GROUNDWATER_WATER_BODIES, AP_GROUNDWATER_DTWL_2026, APGroundwaterDtwlRecord } from '../data/apGroundwaterDtwl2026';
+import { APGroundwaterTelemetryModal } from './APGroundwaterTelemetryModal';
 
 interface InteractiveAndhraMapProps {
   waterBodies: WaterBody[];
@@ -94,6 +96,8 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
   const [isNdwiSatelliteOverlayActive, setIsNdwiSatelliteOverlayActive] = useState(true);
   // Expanded map height (default to generous height for high-definition surveillance)
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+  // Groundwater 304 DWLR stations modal state
+  const [isGroundwaterModalOpen, setIsGroundwaterModalOpen] = useState(false);
 
   // Active selected water body
   const [activeWaterBody, setActiveWaterBody] = useState<WaterBody | null>(() => {
@@ -167,6 +171,14 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
             departurePercent: r.deviationPercent,
           },
         });
+      }
+    });
+
+    // Add all 304 Andhra Pradesh Groundwater DWLR Telemetry stations (Pre-Monsoon Jan 2026)
+    AP_GROUNDWATER_WATER_BODIES.forEach((gw) => {
+      if (!existingIds.has(gw.id)) {
+        existingIds.add(gw.id);
+        merged.push(gw);
       }
     });
 
@@ -397,15 +409,40 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
       const x = ((lng - minLng) / (maxLng - minLng)) * 720 + 110;
       const y = ((maxLat - lat) / (maxLat - minLat)) * 500 + 90;
       return { x: Math.max(90, Math.min(880, x)), y: Math.max(70, Math.min(630, y)) };
-    } else {
-      const minLat = 17.60;
-      const maxLat = 19.05;
-      const minLng = 82.80;
-      const maxLng = 83.95;
-      const x = ((lng - minLng) / (maxLng - minLng)) * 740 + 90;
-      const y = ((maxLat - lat) / (maxLat - minLat)) * 520 + 70;
-      return { x: Math.max(80, Math.min(890, x)), y: Math.max(60, Math.min(630, y)) };
+    } else if (effectiveDistrict !== 'all') {
+      // Dynamic district framing for any of the 26 Andhra Pradesh districts
+      const distPoints = allAvailableWaterBodies.filter(w => w.district?.toLowerCase() === effectiveDistrict.toLowerCase());
+      if (distPoints.length > 0) {
+        let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+        distPoints.forEach(p => {
+          if (p.coordinates?.lat && p.coordinates?.lng) {
+            minLat = Math.min(minLat, p.coordinates.lat);
+            maxLat = Math.max(maxLat, p.coordinates.lat);
+            minLng = Math.min(minLng, p.coordinates.lng);
+            maxLng = Math.max(maxLng, p.coordinates.lng);
+          }
+        });
+        const latSpan = Math.max(0.2, maxLat - minLat);
+        const lngSpan = Math.max(0.2, maxLng - minLng);
+        const padLat = latSpan * 0.18;
+        const padLng = lngSpan * 0.18;
+        minLat -= padLat;
+        maxLat += padLat;
+        minLng -= padLng;
+        maxLng += padLng;
+        const x = ((lng - minLng) / (maxLng - minLng)) * 740 + 110;
+        const y = ((maxLat - lat) / (maxLat - minLat)) * 520 + 80;
+        return { x: Math.max(80, Math.min(890, x)), y: Math.max(60, Math.min(640, y)) };
+      }
     }
+    // State-Wide Andhra Pradesh Telemetry Projection (Lat 12.5 - 19.2 | Lng 76.5 - 84.8)
+    const minLat = 12.50;
+    const maxLat = 19.20;
+    const minLng = 76.50;
+    const maxLng = 84.80;
+    const x = ((lng - minLng) / (maxLng - minLng)) * 760 + 80;
+    const y = ((maxLat - lat) / (maxLat - minLat)) * 540 + 60;
+    return { x: Math.max(70, Math.min(910, x)), y: Math.max(50, Math.min(650, y)) };
   };
 
   const getColorClasses = (color: WaterBodyStatusColor) => {
@@ -573,6 +610,17 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
             <span>15-Day NDWI</span>
           </button>
 
+          {/* AP Ground Water Telemetry (304 Wells) Button */}
+          <button
+            onClick={() => setIsGroundwaterModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+            title="View Real CGWB & AP Ground Water Department DWLR Telemetry (304 Wells, Jan 2026)"
+          >
+            <Activity className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden sm:inline">Ground Water DWLR</span>
+            <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-mono">304</span>
+          </button>
+
           {/* Expand Map Height Button */}
           <button
             onClick={() => setIsMapExpanded(!isMapExpanded)}
@@ -583,22 +631,8 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
             }`}
             title={isMapExpanded ? 'Normal Map Size' : 'Enlarge Map Size (Bada Karo)'}
           >
-            {isMapExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {isMapExpanded ? <Minimize2 className="w-3.5 h-3.5 text-blue-600" /> : <Maximize2 className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline text-[11px]">{isMapExpanded ? 'Standard' : 'Enlarge'}</span>
-          </button>
-
-          {/* Map Size Expand/Collapse button */}
-          <button
-            onClick={() => setIsMapExpanded(!isMapExpanded)}
-            className={`p-1.5 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold ${
-              isMapExpanded 
-                ? 'bg-blue-50 border-blue-300 text-blue-700' 
-                : 'border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-            title={isMapExpanded ? 'Standard Map Size' : 'Expand Map (बड़ा नक्शा बनाएं)'}
-          >
-            {isMapExpanded ? <Minimize2 className="w-3.5 h-3.5 text-blue-600" /> : <Maximize2 className="w-3.5 h-3.5 text-slate-600" />}
-            <span className="hidden sm:inline">{isMapExpanded ? 'Normal Map' : 'Bada Map'}</span>
           </button>
 
           {/* Theme switcher */}
@@ -610,27 +644,19 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
             {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
           </button>
 
-          {/* District selector buttons */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold">
+          {/* District selector buttons & Comprehensive AP Dropdown */}
+          <div className="flex items-center gap-1.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold">
             <button
               onClick={() => setSelectedDistrict('all')}
               className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
                 effectiveDistrict === 'all' ? 'bg-[#0047ab] text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>🌐 All Grid (3 Districts)</span>
-            </button>
-            <button
-              onClick={() => setSelectedDistrict('Parvathipuram Manyam')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                effectiveDistrict === 'Parvathipuram Manyam' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Parvathipuram
+              <span>🌐 All AP</span>
             </button>
             <button
               onClick={() => setSelectedDistrict('Vizianagaram')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+              className={`px-2 py-1 rounded-md transition-all cursor-pointer hidden md:inline-block ${
                 effectiveDistrict === 'Vizianagaram' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -638,12 +664,49 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
             </button>
             <button
               onClick={() => setSelectedDistrict('Visakhapatnam')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+              className={`px-2 py-1 rounded-md transition-all cursor-pointer hidden md:inline-block ${
                 effectiveDistrict === 'Visakhapatnam' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Visakhapatnam
             </button>
+
+            <select
+              value={effectiveDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              className="bg-white border border-slate-300 text-slate-800 rounded-md px-2 py-1 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer max-w-[210px] truncate"
+              title="Select any of the 26 AP Districts with active groundwater DWLR telemetry"
+            >
+              <option value="all">📍 All AP Grid (26 Districts)</option>
+              <optgroup label="All 26 AP Districts (Groundwater DWLR Synced)">
+                <option value="Alluri Sitharama Raju">Alluri Sitharama Raju (30 DWLR)</option>
+                <option value="Anakapalli">Anakapalli (15 DWLR)</option>
+                <option value="Ananthapuramu">Ananthapuramu (28 DWLR)</option>
+                <option value="Annamayya">Annamayya (33 DWLR)</option>
+                <option value="Bapatla">Bapatla (15 DWLR)</option>
+                <option value="Chittoor">Chittoor (25 DWLR)</option>
+                <option value="Dr. B.R. Ambedkar Konaseema">Dr. B.R. Ambedkar Konaseema (30 DWLR)</option>
+                <option value="East Godavari">East Godavari (20 DWLR)</option>
+                <option value="Eluru">Eluru (24 DWLR)</option>
+                <option value="Guntur">Guntur (14 DWLR)</option>
+                <option value="Kakinada">Kakinada (14 DWLR)</option>
+                <option value="Krishna">Krishna (17 DWLR)</option>
+                <option value="Kurnool">Kurnool (15 DWLR)</option>
+                <option value="Nandyal">Nandyal (17 DWLR)</option>
+                <option value="Ntr">NTR (16 DWLR)</option>
+                <option value="Palnadu">Palnadu (23 DWLR)</option>
+                <option value="Parvathipuram Manyam">Parvathipuram Manyam (17 DWLR)</option>
+                <option value="Prakasam">Prakasam (30 DWLR)</option>
+                <option value="Sri Potti Sriramulu Nellore">SPS Nellore (32 DWLR)</option>
+                <option value="Sri Sathya Sai">Sri Sathya Sai (29 DWLR)</option>
+                <option value="Srikakulam">Srikakulam (37 DWLR)</option>
+                <option value="Tirupati">Tirupati (29 DWLR)</option>
+                <option value="Visakhapatnam">Visakhapatnam (13 DWLR)</option>
+                <option value="Vizianagaram">Vizianagaram (18 DWLR)</option>
+                <option value="West Godavari">West Godavari (22 DWLR)</option>
+                <option value="Y.S.R.">Y.S.R. Kadapa (31 DWLR)</option>
+              </optgroup>
+            </select>
           </div>
 
           {/* 5-Color Filter Tabs: All, Extinct (Grey), Danger Zone (Red), Good Condition (Green), Medium (Yellow), Normal (Blue) */}
@@ -1922,6 +1985,20 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         onLodgeComplaint={onLodgeComplaint ? () => onLodgeComplaint() : undefined}
+      />
+
+      {/* 7. AP Ground Water Pre-Monsoon Jan-2026 DWLR Telemetry Modal (304 Stations) */}
+      <APGroundwaterTelemetryModal
+        isOpen={isGroundwaterModalOpen}
+        onClose={() => setIsGroundwaterModalOpen(false)}
+        onSelectStation={(rec: APGroundwaterDtwlRecord) => {
+          setSelectedDistrict(rec.district);
+          setActiveDatasetTab('groundwater');
+          const targetWb = allAvailableWaterBodies.find(w => w.id === `wb-gw-${rec.id}`);
+          if (targetWb) {
+            handleSelectWaterBody(targetWb);
+          }
+        }}
       />
     </div>
   );

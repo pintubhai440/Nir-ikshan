@@ -1,5 +1,6 @@
 import { AP_OFFICIAL_RESERVOIRS, APReservoirRecord } from './apReservoirsData';
 import { AP_OFFICIAL_RIVER_GAUGE_STATIONS } from './apRiverGaugesData';
+import { AP_GROUNDWATER_HYDROLOGICAL_STATIONS } from './apGroundwaterDtwl2026';
 /**
  * India National Hydrological Telemetry Grid Dataset
  * Synced with India-WRIS (Water Resources Information System) & ISRO Bhuvan WBIS
@@ -138,16 +139,30 @@ export const STATE_SUMMARIES: Record<string, StateHydrologySummary> = {
   },
   'Andhra Pradesh': {
     state: 'Andhra Pradesh',
-    totalStations: 3840,
-    monitoredStations: 740,
+    totalStations: 4420,
+    monitoredStations: 1485,
     reservoirsCount: 113,
-    riverGaugesCount: 265,
-    rainfallStationsCount: 168,
-    groundwaterWellsCount: 280,
+    riverGaugesCount: 44,
+    rainfallStationsCount: 688,
+    groundwaterWellsCount: 594,
     bhuvanWaterBodiesCount: 46,
-    averageWaterTableDepth: 8.2,
-    observedRangeMBGL: '-01.20 to -145.80',
+    averageWaterTableDepth: 5.42,
+    observedRangeMBGL: '0.04 to 62.40 mbgl',
     center: [16.5062, 80.6480],
+    zoom: 7,
+  },
+  'Arunachal Pradesh': {
+    state: 'Arunachal Pradesh',
+    totalStations: 180,
+    monitoredStations: 42,
+    reservoirsCount: 2,
+    riverGaugesCount: 8,
+    rainfallStationsCount: 18,
+    groundwaterWellsCount: 14,
+    bhuvanWaterBodiesCount: 10,
+    averageWaterTableDepth: 5.03,
+    observedRangeMBGL: '1.73 to 10.55 mbgl',
+    center: [28.2180, 94.7278],
     zoom: 7,
   },
   'Telangana': {
@@ -4602,19 +4617,21 @@ const RAW_NATIONAL_STATIONS: HydrologicalStation[] = [
   }
 ];
 
-// Master Stations Export: Combines 113 Official AP Reservoirs + 44 AP River Gauges + All National Grid Stations
+// Master Stations Export: Combines 113 Official AP Reservoirs + 44 AP River Gauges + 304 Authentic AP Groundwater Stations + All National Grid Stations
 const stationMap = new Map<string, HydrologicalStation>();
 // 1. AP reservoirs first
 AP_ALL_RESERVOIR_STATIONS.forEach(s => stationMap.set(s.id, s));
 // 2. AP official river gauges & discharges (44 CWC / APWRIMS telemetry stations)
 AP_OFFICIAL_RIVER_GAUGE_STATIONS.forEach(s => stationMap.set(s.id, s));
-// 3. Add national stations if not already present
+// 3. AP Ground Water Telemetry Pre-Monsoon Jan 2026 (304 authentic DWLR stations)
+AP_GROUNDWATER_HYDROLOGICAL_STATIONS.forEach(s => stationMap.set(s.id, s));
+// 4. Add national stations if not already present
 RAW_NATIONAL_STATIONS.forEach(s => {
   if (!stationMap.has(s.id)) {
     stationMap.set(s.id, s);
   }
 });
 
-export { AP_OFFICIAL_RIVER_GAUGE_STATIONS };
+export { AP_OFFICIAL_RIVER_GAUGE_STATIONS, AP_GROUNDWATER_HYDROLOGICAL_STATIONS };
 export const HYDROLOGICAL_STATIONS: HydrologicalStation[] = Array.from(stationMap.values());
 

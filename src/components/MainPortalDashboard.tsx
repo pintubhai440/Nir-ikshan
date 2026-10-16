@@ -175,7 +175,12 @@ export const MainPortalDashboard: React.FC<MainPortalDashboardProps> = ({
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-50 text-[#0047ab] border border-sky-200 shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-              <span>💧 113 AP Water Grid Reservoirs Integrated</span>
+              <span>💧 113 AP Water Grid Reservoirs</span>
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>⛏️ 608 DWLR Ground Water Wells</span>
             </span>
 
             <button

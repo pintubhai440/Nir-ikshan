@@ -7,6 +7,8 @@
  * Grounded with ISRO Bhuvan Optical Passes & NDWI Spectral Hydrology across all 26 Districts.
  */
 
+import { WaterBody, WaterBodyStatusColor } from '../types/nirikshan';
+
 export interface APReservoirRecord {
   id: string;
   name: string;
@@ -4778,4 +4780,64 @@ export function simulateReservoirTelemetryFluctuations(reservoirs: APReservoirRe
     changedLog
   };
 }
+
+/**
+ * Converts official AP reservoir record to Nir-ikshan WaterBody format
+ */
+export function convertAPReservoirToWaterBody(r: APReservoirRecord): WaterBody {
+  const statusColor: WaterBodyStatusColor = 
+    r.storagePercentage >= 75 ? 'green' :
+    r.storagePercentage >= 40 ? 'blue' :
+    r.storagePercentage >= 20 ? 'yellow' : 'red';
+
+  return {
+    id: `wb-res-${r.id}`,
+    name: r.name,
+    teluguName: r.teluguName,
+    state: 'Andhra Pradesh',
+    type: 'Reservoir',
+    datasetType: 'reservoir',
+    endpoint: 'POST /Dataset/Reservoir',
+    agency: 'APWRIMS / CWC',
+    district: r.district,
+    mandal: r.mandal || `${r.district} Mandal`,
+    village: r.village || `${r.name} Dam Site`,
+    coordinates: r.geoCoords,
+    statusColor,
+    statusLabel: `${r.storagePercentage}% Storage (${r.currentStorageTMC} TMC / ${r.grossCapacityTMC} TMC)`,
+    waterLevelPercent: Math.round(r.storagePercentage),
+    tdsPpm: 210,
+    wasteLevel: 'None',
+    lastInspected: r.date,
+    description: `Official APWRIMS Water Grid Reservoir in ${r.district}. Gross Capacity: ${r.grossCapacityTMC} TMC (${r.grossCapacityMCM} MCM), Live Storage: ${r.currentStorageTMC} TMC (${r.currentStorageMCM} MCM) at ${r.currentLevelFeet} ft level. Inflow: ${r.inflowCusecs} cusecs, Outflow: ${r.outflowCusecs} cusecs.`,
+    liveTelemetry: {
+      storageBMC: Number((r.currentStorageMCM / 1000).toFixed(3)),
+      storageMCM: r.currentStorageMCM,
+      fullCapacityMCM: r.grossCapacityMCM,
+      waterLevelM: Number((r.currentLevelFeet * 0.3048).toFixed(1)),
+      inflowCusecs: r.inflowCusecs,
+      dischargeCusecs: r.outflowCusecs,
+      subBasin: r.basin,
+    },
+    bhuvanWbis: {
+      ndwiScore: r.bhuvanSatellite.ndwiScore,
+      ndwiClassification: r.bhuvanSatellite.ndwiClassification,
+      waterSpreadAreaHa: r.bhuvanSatellite.waterSpreadAreaHa,
+      historicalBaselineHa: r.bhuvanSatellite.baselineHistoricalHa,
+      areaChangePercent: r.bhuvanSatellite.areaChangePercent,
+      satelliteMission: r.bhuvanSatellite.satelliteSensor,
+      last15DayPassDate: r.bhuvanSatellite.passDate,
+      cycleDays: 15,
+      cloudCoverPercent: r.bhuvanSatellite.cloudCoverPercent,
+      siltationIndexPercent: 18,
+      encroachmentRisk: 'Low',
+      waterRemainingPercent: Math.round(r.storagePercentage),
+      estimatedVolumeMCM: r.currentStorageMCM,
+      isExtinct: false,
+      bhuvanLulcTheme: 'Water Bodies - Reservoirs / Lakes'
+    }
+  };
+}
+
+export const AP_OFFICIAL_RESERVOIR_WATER_BODIES: WaterBody[] = AP_OFFICIAL_RESERVOIRS.map(convertAPReservoirToWaterBody);
 
