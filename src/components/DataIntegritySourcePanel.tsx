@@ -20,7 +20,7 @@ export const DataIntegritySourcePanel: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Database className="w-5 h-5 text-[#0047ab]" />
-            National Hydrological Portals & Scientific Data Integrity (डेटा सत्यनिष्ठा)
+            National Hydrological Portals & Scientific Data Integrity
           </h2>
           <p className="text-xs text-slate-500 font-medium">
             Zero Fabricated Data Guarantee. Standardised classification between statutory government observations, satellite proxies, and physical field audits.

@@ -542,7 +542,7 @@ export const ParvathipuramCadastralMapSvg: React.FC<ParvathipuramCadastralMapSvg
           <button
             onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
             className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer"
-            title="प्लस पर क्लिक करके बड़ा करें (Zoom In +)"
+            title="Zoom In (+)"
           >
             <Plus className="w-5 h-5 stroke-[2.5]" />
           </button>
@@ -552,7 +552,7 @@ export const ParvathipuramCadastralMapSvg: React.FC<ParvathipuramCadastralMapSvg
           <button
             onClick={() => setZoomLevel((z) => Math.max(0.65, z - 0.25))}
             className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer"
-            title="माइनस पर क्लिक करके छोटा करें (Zoom Out -)"
+            title="Zoom Out (-)"
           >
             <Minus className="w-5 h-5 stroke-[2.5]" />
           </button>

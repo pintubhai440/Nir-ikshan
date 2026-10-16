@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { WaterBody, CitizenComplaint, OfficerContact } from '../types/nirikshan';
 import { ANDHRA_PRADESH_26_DISTRICTS, DistrictTelemetry } from '../data/andhraDistrictsData';
 import { Andhra26DistrictsMapSvg, MapDisplayMode } from './Andhra26DistrictsMapSvg';
+import { InteractiveIndiaMap } from './InteractiveIndiaMap';
 import { BhuvanWbisDetailModal } from './BhuvanWbisDetailModal';
 import { AP_OFFICIAL_RESERVOIRS, AP_MACRO_RESERVOIR_SUMMARY, APReservoirRecord } from '../data/apReservoirsData';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   ShieldCheck, 
   AlertTriangle, 
@@ -41,6 +43,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenDirectoryModal,
   onOpenLodgeModal,
 }) => {
+  const { t } = useLanguage();
   // Map View Filter: 'all' | 'alerts' | 'active'
   const [viewFilter, setViewFilter] = useState<'all' | 'alerts' | 'active'>('all');
   
@@ -50,6 +53,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   );
   const [hoveredDistrictId, setHoveredDistrictId] = useState<string | null>(null);
   const [mapTheme, setMapTheme] = useState<'light' | 'dark'>('light');
+
+  // Map View Mode: India Map (AP Focused & Highlighted) vs AP 26 Districts Detail
+  const [adminMapType, setAdminMapType] = useState<'india_ap_highlight' | 'ap_cadastral'>('india_ap_highlight');
 
   // Display Mode & Layer Toggles
   const [mapDisplayMode, setMapDisplayMode] = useState<MapDisplayMode>('cadastral');
@@ -359,7 +365,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span>ANDHRA PRADESH STATE WATER SURVEILLANCE GRID • 26 DISTRICTS ACTIVE</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight mt-1">
-            State Water Governance Command (రాష్ట్ర జల పర్యవేక్షణ కేంద్రం)
+            {t('stateGovernanceTitle')}
           </h2>
           <p className="text-xs sm:text-sm text-sky-200 mt-1 max-w-3xl">
             Integrated command over all <strong>26 Andhra Pradesh districts</strong> with official <strong>APWRIMS & CWC Live Reservoir Telemetry (10-04-2026)</strong> and <strong>ISRO Bhuvan 15-Day Optical Passes</strong>.
@@ -616,6 +622,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* National AP-Focus vs AP 26 Districts Mode Switcher */}
+            <div className="flex items-center bg-[#03045E]/10 p-0.5 rounded-lg border border-[#03045E]/20 text-xs font-bold">
+              <button
+                onClick={() => setAdminMapType('india_ap_highlight')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                  adminMapType === 'india_ap_highlight'
+                    ? 'bg-[#0077B6] text-white shadow-xs font-bold'
+                    : 'text-slate-700 hover:text-slate-900'
+                }`}
+              >
+                <span>🇮🇳 India Map (AP Focused)</span>
+              </button>
+              <button
+                onClick={() => setAdminMapType('ap_cadastral')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                  adminMapType === 'ap_cadastral'
+                    ? 'bg-[#0077B6] text-white shadow-xs font-bold'
+                    : 'text-slate-700 hover:text-slate-900'
+                }`}
+              >
+                <span>🗺️ AP 26 Districts Vector</span>
+              </button>
+            </div>
+
             <button
               onClick={() => setMapTheme(mapTheme === 'light' ? 'dark' : 'light')}
               className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-semibold cursor-pointer"
@@ -658,41 +688,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
 
-        {/* SVG Map Canvas with Live Video-Style Animated Telemetry Beams, Rivers & Official AP Reservoirs */}
-        <div className={`relative w-full h-[760px] sm:h-[860px] lg:h-[940px] xl:h-[980px] rounded-2xl overflow-hidden border border-slate-200 shadow-inner ${
-          mapTheme === 'dark' || mapDisplayMode === 'surveillance' ? 'bg-[#0b1329]' : 'bg-[#fafafa]'
-        }`}>
-          <Andhra26DistrictsMapSvg
-            selectedDistrictId={selectedDistrict?.id}
-            onSelectDistrict={handleSelectDistrictFromMap}
-            viewFilter={viewFilter}
-            theme={mapTheme}
-            hoveredDistrictId={hoveredDistrictId}
-            setHoveredDistrictId={setHoveredDistrictId}
-            showTelemetryBeams={showTelemetryBeams}
-            showSatelliteScan={showSatelliteScan}
-            mapDisplayMode={mapDisplayMode}
-            showRivers={showRivers}
-            showReservoirs={showReservoirs}
-            selectedReservoirId={selectedReservoir?.id}
-            onSelectReservoir={handleSelectReservoir}
-          />
+        {/* Map Canvas: Either India Map (AP Highlighted & Focused) or 26-District Cadastral Vector Map */}
+        {adminMapType === 'india_ap_highlight' ? (
+          <div className="w-full">
+            <InteractiveIndiaMap
+              waterBodies={waterBodies}
+              complaints={complaints}
+              currentRole="admin"
+              initialState="Andhra Pradesh"
+              onLodgeComplaint={onOpenLodgeModal}
+            />
+          </div>
+        ) : (
+          <div className={`relative w-full h-[760px] sm:h-[860px] lg:h-[940px] xl:h-[980px] rounded-2xl overflow-hidden border border-slate-200 shadow-inner ${
+            mapTheme === 'dark' || mapDisplayMode === 'surveillance' ? 'bg-[#0b1329]' : 'bg-[#fafafa]'
+          }`}>
+            <Andhra26DistrictsMapSvg
+              selectedDistrictId={selectedDistrict?.id}
+              onSelectDistrict={handleSelectDistrictFromMap}
+              viewFilter={viewFilter}
+              theme={mapTheme}
+              hoveredDistrictId={hoveredDistrictId}
+              setHoveredDistrictId={setHoveredDistrictId}
+              showTelemetryBeams={showTelemetryBeams}
+              showSatelliteScan={showSatelliteScan}
+              mapDisplayMode={mapDisplayMode}
+              showRivers={showRivers}
+              showReservoirs={showReservoirs}
+              selectedReservoirId={selectedReservoir?.id}
+              onSelectReservoir={handleSelectReservoir}
+            />
 
-          {/* Floating High-Tech Status HUD on Map */}
-          <div className="absolute bottom-3 left-3 z-10 bg-slate-900/90 backdrop-blur-md border border-slate-700 text-white rounded-xl p-2.5 px-3.5 text-xs font-mono space-y-1 shadow-lg pointer-events-none">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-              <span className="font-bold text-sky-300">AMARAVATI WATER APEX COMMAND</span>
-            </div>
-            <div className="text-[11px] text-slate-300 flex items-center gap-3 flex-wrap">
-              <span>Target: <strong className="text-white">{selectedReservoir?.name || selectedDistrict?.name || 'AP Grid'}</strong></span>
-              <span>•</span>
-              <span>Basin: <strong className="text-sky-300">{selectedReservoir?.basin || 'Statewide'}</strong></span>
-              <span>•</span>
-              <span>WRIS Sync: <strong className="text-emerald-300">10-04-2026 ACTIVE</strong></span>
+            {/* Floating High-Tech Status HUD on Map */}
+            <div className="absolute bottom-3 left-3 z-10 bg-slate-900/90 backdrop-blur-md border border-slate-700 text-white rounded-xl p-2.5 px-3.5 text-xs font-mono space-y-1 shadow-lg pointer-events-none">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span className="font-bold text-sky-300">AMARAVATI WATER APEX COMMAND</span>
+              </div>
+              <div className="text-[11px] text-slate-300 flex items-center gap-3 flex-wrap">
+                <span>Target: <strong className="text-white">{selectedReservoir?.name || selectedDistrict?.name || 'AP Grid'}</strong></span>
+                <span>•</span>
+                <span>Basin: <strong className="text-sky-300">{selectedReservoir?.basin || 'Statewide'}</strong></span>
+                <span>•</span>
+                <span>WRIS Sync: <strong className="text-emerald-300">10-04-2026 ACTIVE</strong></span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ============================================================== */}

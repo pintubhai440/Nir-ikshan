@@ -77,7 +77,7 @@ export interface WaterBody {
   imageUrl?: string;
 }
 
-export type UserRoleType = 'overview' | 'admin' | 'user' | 'nodal_vizianagaram' | 'nodal_parvathipuram' | 'inspector' | 'engineer';
+export type UserRoleType = 'overview' | 'admin' | 'user' | 'nodal_vizianagaram' | 'nodal_parvathipuram' | 'nodal_visakhapatnam' | 'inspector' | 'engineer';
 
 export interface CitizenComplaint {
   id: string; // e.g. "CMP-AP-2026-101"

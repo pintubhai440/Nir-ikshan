@@ -85,6 +85,7 @@ import {
   parseAPReservoirsCSV,
   simulateReservoirTelemetryFluctuations
 } from '../data/apReservoirsData';
+import { useLanguage } from '../context/LanguageContext';
 
 interface InteractiveIndiaMapProps {
   waterBodies?: WaterBody[];
@@ -108,6 +109,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   onSelectWaterBody,
   onLodgeComplaint,
 }) => {
+  const { t, language } = useLanguage();
   // Leaflet map refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -1159,23 +1161,23 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         <div className="flex flex-wrap items-center gap-3.5 sm:gap-5 text-xs font-semibold">
           <span className="flex items-center gap-1.5 text-emerald-300">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>
-            <span>🟢 Pristine / High Storage (&gt;75%)</span>
+            <span>🟢 {t('statusGreenTitle')}</span>
           </span>
           <span className="flex items-center gap-1.5 text-sky-300">
             <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-sm"></span>
-            <span>🔵 Normal Govt Telemetry Flow (40-75%)</span>
+            <span>🔵 {t('statusBlueTitle')}</span>
           </span>
           <span className="flex items-center gap-1.5 text-amber-300">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>
-            <span>🟡 Warning / Moderate Stress (&lt;40%)</span>
+            <span>🟡 {t('statusYellowTitle')}</span>
           </span>
           <span className="flex items-center gap-1.5 text-rose-300">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-sm"></span>
-            <span>🔴 Danger Mark / Severe Depletion / Flood</span>
+            <span>🔴 {t('statusRedTitle')}</span>
           </span>
           <span className="flex items-center gap-1.5 text-slate-400">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-sm"></span>
-            <span>⚪ Sookh Kar Mit Gaya (Extinct Bed)</span>
+            <span>⚪ {t('statusGreyTitle')}</span>
           </span>
         </div>
       </div>
@@ -1903,7 +1905,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                     </div>
                     <div className="text-xs text-sky-300 font-semibold mt-0.5">
                       {selectedStation.isExtinct || selectedStation.status === 'grey' 
-                        ? 'Sookh Kar Mit Gaya (< 0.0 Dry Shrub)' 
+                        ? (language === 'hi' ? 'विलुप्त जलाशय (सूख कर मिट गया)' : language === 'te' ? 'అంతరించిన జలాశయం (పూర్తిగా ఎండిపోయింది)' : 'Extinct Lake Bed (< 0.0 Dry Shrub)')
                         : (selectedStation.ndwiScore ?? 0.38) > 0.3 ? 'Deep Surface Water (> 0.3)' : 'Moderate Surface Water (0.1 - 0.3)'}
                     </div>
                   </div>
@@ -1966,7 +1968,9 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                   <div className="border-t border-slate-800 pt-2 text-xs flex justify-between text-slate-300">
                     <span>Bed Status:</span>
                     <strong className={`font-mono ${selectedStation.isExtinct ? 'text-rose-400' : 'text-sky-300'}`}>
-                      {selectedStation.isExtinct ? 'Dry Tank Bed (Sookh Gaya)' : 'Monitored Water Bed'}
+                      {selectedStation.isExtinct 
+                        ? (language === 'hi' ? 'सूखा तालाब तल (विलुप्त)' : language === 'te' ? 'ఎండిన చెరువు తలం (కనుమరుగైంది)' : 'Dry Tank Bed (Extinct)') 
+                        : (language === 'hi' ? 'सक्रिय निगरानी जल तल' : language === 'te' ? 'పర్యవేక్షణ జల తలం' : 'Monitored Water Bed')}
                     </strong>
                   </div>
                 </div>
@@ -2364,7 +2368,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-slate-400 font-bold">⚪</span>
-                    <span>Sookh Kar Mit Gaya (Extinct Beds)</span>
+                    <span>{language === 'hi' ? 'विलुप्त जलाशय (सूख कर मिट गया)' : language === 'te' ? 'అంతరించిన జలాశయాలు' : 'Extinct Water Beds (Dried Up)'}</span>
                   </div>
                   <span className="font-mono text-[10px] opacity-80">{counts.extinct}</span>
                 </button>
@@ -2374,19 +2378,19 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             {/* Water Health Status Filter */}
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
-                Hydrological Status
+                {language === 'hi' ? 'जलवैज्ञानिक स्थिति' : language === 'te' ? 'హైడ్రోలాజికల్ స్థితి' : 'Hydrological Status'}
               </label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
               >
-                <option value="all">All Hydrological Statuses</option>
-                <option value="green">🟢 Pristine / High Storage (&gt;75%)</option>
-                <option value="blue">🔵 Normal Govt Telemetry Flow</option>
-                <option value="yellow">🟡 Warning / Moderate Stress</option>
-                <option value="red">🔴 Danger Mark / Severe Depletion</option>
-                <option value="grey">⚪ Sookh Kar Mit Gaya (Extinct Bed)</option>
+                <option value="all">{language === 'hi' ? 'सभी जलवैज्ञानिक स्थितियां' : language === 'te' ? 'అన్ని హైడ్రోలాజికల్ స్థితులు' : 'All Hydrological Statuses'}</option>
+                <option value="green">🟢 {t('statusGreenTitle')}</option>
+                <option value="blue">🔵 {t('statusBlueTitle')}</option>
+                <option value="yellow">🟡 {t('statusYellowTitle')}</option>
+                <option value="red">🔴 {t('statusRedTitle')}</option>
+                <option value="grey">⚪ {t('statusGreyTitle')}</option>
               </select>
             </div>
 

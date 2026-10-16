@@ -126,7 +126,7 @@ export const NirikshanNavbar: React.FC<NirikshanNavbarProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-extrabold tracking-tight text-[#1b2a4a]">
-                Nir-ikshan <span className="text-sm font-semibold text-sky-600 font-sans">(नीर-ईक्षण)</span>
+                Nir-ikshan
               </h1>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">
                 5-Role Ecosystem
@@ -145,7 +145,7 @@ export const NirikshanNavbar: React.FC<NirikshanNavbarProps> = ({
             className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all hover:scale-102 active:scale-98 animate-pulse"
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Lodge Complain (शिकायत दर्ज करें)</span>
+            <span>Lodge Complaint</span>
           </button>
 
           {/* If protected role is logged in, show sign-out option */}

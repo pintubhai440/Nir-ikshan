@@ -1,20 +1,16 @@
 import React, { useState } from 'react';
 import { CitizenComplaint, WaterBody } from '../types/nirikshan';
 import { InteractiveAndhraMap } from './InteractiveAndhraMap';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   AlertTriangle, 
-  MapPin, 
   Search, 
   Phone, 
   CheckCircle2, 
-  Clock, 
-  ArrowRight, 
   ShieldCheck, 
-  ExternalLink,
   ChevronRight,
   UserCheck,
-  Wrench,
-  Sparkles
+  Wrench
 } from 'lucide-react';
 
 interface CitizenDashboardProps {
@@ -30,6 +26,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   onOpenLodgeModal,
   onOpenDirectoryModal,
 }) => {
+  const { t } = useLanguage();
   const [searchPhone, setSearchPhone] = useState('');
   const [trackedComplaint, setTrackedComplaint] = useState<CitizenComplaint | null>(complaints[0] || null);
 
@@ -60,35 +57,35 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* Hero Welcome Banner */}
-      <div className="bg-gradient-to-r from-[#0047ab] via-[#1b2a4a] to-blue-950 text-white rounded-2xl p-5 sm:p-6 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#03045E] via-[#0077B6] to-[#00B4D8] text-white rounded-3xl p-5 sm:p-6 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-2 max-w-2xl">
           <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-xs font-mono text-sky-200 border border-white/10">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>PUBLIC WATER SURVEILLANCE & GRIEVANCE REDRESSAL</span>
+            <span>{t('citizenHeroTag')}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-            Nir-ikshan Citizen Portal (ప్రజా జల పర్యవేక్షణ)
+            {t('citizenHeroTitle')}
           </h2>
           <p className="text-xs sm:text-sm text-sky-200 leading-relaxed font-normal">
-            No login required! Citizens in <strong>Vizianagaram</strong>, <strong>Parvathipuram Manyam</strong> & <strong>Visakhapatnam</strong> can track water bodies, monitor water quality, and lodge direct complaints with auto-GPS coordinates and photo proofs.
+            {t('citizenHeroDesc')}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
           <button
             onClick={onOpenLodgeModal}
-            className="px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 text-xs sm:text-sm transition-all hover:scale-102 active:scale-98 animate-pulse"
+            className="px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 text-xs sm:text-sm transition-all hover:scale-102 active:scale-98 animate-pulse cursor-pointer"
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>Lodge Complain (शिकायत दर्ज करें)</span>
+            <span>{t('lodgeComplaint')}</span>
           </button>
 
           <button
             onClick={onOpenDirectoryModal}
-            className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl border border-white/20 text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors"
+            className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl border border-white/20 text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <Phone className="w-4 h-4 text-sky-300" />
-            <span>Officer Directory</span>
+            <span>{t('officersDirectory')}</span>
           </button>
         </div>
       </div>
@@ -107,10 +104,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-[#0047ab]" />
-              <span>Track Your Complaint Status (शिकायत स्थिति ट्रैकर)</span>
+              <span>{t('trackStatusTitle')}</span>
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              Enter your mobile number or Ticket ID (e.g. 98480 or CMP-AP-2026-101) to view live inspection & engineer progress
+              {t('trackStatusDesc')}
             </p>
           </div>
 
@@ -118,7 +115,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             <Search className="w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by Mobile No or Ticket ID..."
+              placeholder={t('searchPlaceholder')}
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
               className="text-xs bg-transparent border-none focus:outline-none w-56 font-semibold"
@@ -131,12 +128,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           {/* Complaints List Column */}
           <div className="space-y-3 lg:col-span-1 max-h-[460px] overflow-y-auto pr-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Active Complaints ({myComplaints.length})
+              {t('activeComplaints')} ({myComplaints.length})
             </span>
 
             {myComplaints.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200">
-                No complaints found matching "{searchPhone}".
+                {t('noComplaintsFound')} "{searchPhone}".
               </div>
             ) : (
               myComplaints.map((c) => {
@@ -209,7 +206,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     {/* Step 1 */}
                     <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
-                      <div className="text-[10px] font-bold text-emerald-600 mb-0.5">1. SUBMITTED</div>
+                      <div className="text-[10px] font-bold text-emerald-600 mb-0.5">{t('stepSubmitted')}</div>
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 mx-auto my-1" />
                       <div className="text-[10px] text-slate-600">{trackedComplaint.citizenName}</div>
                     </div>
@@ -223,7 +220,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       <div className={`text-[10px] font-bold mb-0.5 ${
                         getStatusStepNumber(trackedComplaint.status) >= 2 ? 'text-[#0047ab]' : 'text-slate-400'
                       }`}>
-                        2. INSPECTOR DISPATCHED
+                        {t('stepInspectorAssigned')}
                       </div>
                       <UserCheck className={`w-4 h-4 mx-auto my-1 ${
                         getStatusStepNumber(trackedComplaint.status) >= 2 ? 'text-[#0047ab]' : 'text-slate-400'
@@ -242,7 +239,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       <div className={`text-[10px] font-bold mb-0.5 ${
                         getStatusStepNumber(trackedComplaint.status) >= 4 ? 'text-amber-700' : 'text-slate-400'
                       }`}>
-                        3. ACTION WORKER
+                        {t('stepActionAssigned')}
                       </div>
                       <Wrench className={`w-4 h-4 mx-auto my-1 ${
                         getStatusStepNumber(trackedComplaint.status) >= 4 ? 'text-amber-600' : 'text-slate-400'
@@ -261,7 +258,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       <div className={`text-[10px] font-bold mb-0.5 ${
                         trackedComplaint.status === 'RESOLVED' ? 'text-emerald-700' : 'text-slate-400'
                       }`}>
-                        4. SOLVED & CLOSED
+                        {t('stepResolved')}
                       </div>
                       <CheckCircle2 className={`w-4 h-4 mx-auto my-1 ${
                         trackedComplaint.status === 'RESOLVED' ? 'text-emerald-600' : 'text-slate-400'
@@ -331,7 +328,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                 </div>
                 <button
                   onClick={onOpenDirectoryModal}
-                  className="px-3 py-1.5 bg-[#0047ab] text-white font-bold rounded-lg text-xs hover:bg-blue-700 transition-colors"
+                  className="px-3 py-1.5 bg-[#0047ab] text-white font-bold rounded-lg text-xs hover:bg-blue-700 transition-colors cursor-pointer"
                 >
                   Contact Nodal Officer
                 </button>

@@ -138,7 +138,7 @@ export const NirikshanVerticalSidebar: React.FC<NirikshanVerticalSidebarProps> =
               </div>
               <div>
                 <h1 className="text-lg font-extrabold tracking-tight text-[#1b2a4a]">
-                  Nir-ikshan <span className="text-xs font-semibold text-sky-600 font-sans">(नीर-ईक्षण)</span>
+                  Nir-ikshan
                 </h1>
                 <p className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
                   Govt. of Andhra Pradesh
@@ -150,7 +150,7 @@ export const NirikshanVerticalSidebar: React.FC<NirikshanVerticalSidebarProps> =
             <button
               onClick={onClose}
               className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
-              title="Close Menu (मेनू बंद करें)"
+              title="Close Menu"
             >
               <X className="w-5 h-5" />
             </button>
@@ -170,7 +170,7 @@ export const NirikshanVerticalSidebar: React.FC<NirikshanVerticalSidebarProps> =
               className="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-600/20 flex items-center justify-center gap-2 transition-all hover:scale-101 active:scale-98 animate-pulse cursor-pointer"
             >
               <AlertTriangle className="w-4 h-4 text-white" />
-              <span>Lodge Complain (शिकायत दर्ज करें)</span>
+              <span>Lodge Complaint</span>
             </button>
           </div>
         </div>

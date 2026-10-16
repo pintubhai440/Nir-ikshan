@@ -24,6 +24,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../context/LanguageContext';
 
 interface InspectorDashboardProps {
   complaints: CitizenComplaint[];
@@ -43,6 +44,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   onSubmitInspectionReport,
   onSubmitPostWorkVerification,
 }) => {
+  const { t, language } = useLanguage();
   const [selectedComplaint, setSelectedComplaint] = useState<CitizenComplaint | null>(null);
   const [selectedVerificationComplaint, setSelectedVerificationComplaint] = useState<CitizenComplaint | null>(null);
 
@@ -193,7 +195,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             <span>FIELD WATER QUALITY & INVESTIGATION CELL</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-1">
-            Field Inspector Mobile Workstation (క్షేత్ర స్థాయి తనిఖీ)
+            {language === 'hi' ? 'फील्ड इंस्पेक्टर मोबाइल वर्कस्टेशन' : language === 'te' ? 'ఫీల్డ్ ఇన్స్పెక్టర్ మొబైల్ వర్క్‌స్టేషన్' : 'Field Inspector Mobile Workstation'}
           </h2>
           <p className="text-xs sm:text-sm text-sky-200">
             Mobile-optimized protocol: Log on-site GPS, assess water presence, measure machine TDS level, identify contamination source pin, and verify complaint validity.
@@ -265,7 +267,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                     className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Activity className="w-4 h-4" />
-                    <span>Conduct Field Investigation & Log TDS (स्थल जांच एवं रिपोर्ट)</span>
+                    <span>{language === 'hi' ? 'स्थल जांच करें एवं टीडीएस रिपोर्ट भरें' : language === 'te' ? 'క్షేత్ర తనిఖీ నిర్వహించి TDS నమోదు చేయండి' : 'Conduct Field Investigation & Log TDS'}</span>
                   </button>
                 </div>
               ))
@@ -344,7 +346,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                     className="w-full py-2 bg-[#0047ab] hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Verify Quality & Close Case (सत्यापन करें)</span>
+                    <span>{language === 'hi' ? 'गुणवत्ता सत्यापन करें एवं केस बंद करें' : language === 'te' ? 'నాణ్యతను ధృవీకరించి కేసును పరిష్కరించండి' : 'Verify Quality & Close Case'}</span>
                   </button>
                 </div>
               ))
@@ -402,14 +404,14 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                         <Camera className="w-4 h-4" />
                       </span>
                       <h4 className="font-bold text-emerald-950 text-xs sm:text-sm">
-                        Site Verified Image Upload (स्थल सत्यापन फोटो अपलोड करें)
+                        {language === 'hi' ? 'स्थल सत्यापन फोटो अपलोड करें' : language === 'te' ? 'సైట్ ధృవీకరణ ఫోటోను అప్‌లోడ్ చేయండి' : 'Site Verified Image Upload'}
                       </h4>
                       <span className="bg-emerald-700 text-white text-[9px] font-mono uppercase px-2 py-0.5 rounded font-bold">
                         Mandatory Proof
                       </span>
                     </div>
                     <p className="text-[11px] text-emerald-800 mt-0.5">
-                      Field investigation photo evidence is required for Nodal Officer & Action Engineer verification.
+                      {language === 'hi' ? 'नोडल अधिकारी एवं एक्शन इंजीनियर सत्यापन के लिए फील्ड जांच फोटो साक्ष्य अनिवार्य है।' : language === 'te' ? 'నోడల్ అధికారి & యాక్షన్ ఇంజనీర్ ధృవీకరణ కోసం ఫీల్డ్ తనిఖీ ఫోటో సాక్ష్యం తప్పనిసరి.' : 'Field investigation photo evidence is required for Nodal Officer & Action Engineer verification.'}
                     </p>
                   </div>
 
@@ -420,7 +422,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Photo (फोटो चुनें)</span>
+                      <span>{language === 'hi' ? 'फोटो अपलोड करें' : language === 'te' ? 'ఫోటో అప్‌లోడ్ చేయండి' : 'Upload Photo'}</span>
                     </button>
 
                     <button
@@ -429,7 +431,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       className="px-3 py-1.5 bg-[#0047ab] hover:bg-blue-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                     >
                       <Camera className="w-3.5 h-3.5" />
-                      <span>Camera (कैमरा)</span>
+                      <span>{language === 'hi' ? 'कैमरा' : language === 'te' ? 'కెమెరా' : 'Camera'}</span>
                     </button>
                   </div>
                 </div>
@@ -570,7 +572,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       <Link2 className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="url"
-                        placeholder="Or paste site verified image URL (या फोटो का वेब लिंक डालें)..."
+                        placeholder={language === 'hi' ? 'अथवा फोटो का वेब लिंक यहां चिपकाएं...' : language === 'te' ? 'లేదా సైట్ ఫోటో వెబ్ లింక్‌ను ఇక్కడ పేస్ట్ చేయండి...' : 'Or paste site verified image URL...'}
                         value={manualPhotoUrl}
                         onChange={(e) => setManualPhotoUrl(e.target.value)}
                         className="w-full pl-8 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
@@ -626,34 +628,34 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Water Presence / Quantity (जल की उपस्थिति)
+                    {language === 'hi' ? 'जल की उपस्थिति / मात्रा' : language === 'te' ? 'నీటి లభ్యత / పరిమాణం' : 'Water Presence / Quantity'}
                   </label>
                   <select
                     value={waterPresence}
                     onChange={(e) => setWaterPresence(e.target.value as any)}
                     className="w-full p-2 border border-slate-300 rounded-lg font-semibold"
                   >
-                    <option value="Abundant">Abundant Flow (पर्याप्त जल प्रवाह)</option>
-                    <option value="Moderate">Moderate Flow (मध्यम प्रवाह)</option>
-                    <option value="Low">Low / Depleted (अत्यंत कम जल)</option>
-                    <option value="Stagnant Dry">Stagnant Dry Puddle (स्थिर सूखा)</option>
-                    <option value="Extinct">Completely Dry Extinct Bed (पूर्णतः सूखा)</option>
+                    <option value="Abundant">{language === 'hi' ? 'प्रचुर जल प्रवाह' : language === 'te' ? 'సమృద్ధిగా ప్రవాహం' : 'Abundant Flow'}</option>
+                    <option value="Moderate">{language === 'hi' ? 'मध्यम प्रवाह' : language === 'te' ? 'మధ్యస్థ ప్రవాహం' : 'Moderate Flow'}</option>
+                    <option value="Low">{language === 'hi' ? 'अत्यंत कम जल' : language === 'te' ? 'చాలా తక్కువ నీరు' : 'Low / Depleted'}</option>
+                    <option value="Stagnant Dry">{language === 'hi' ? 'स्थिर सूखा गड्ढा' : language === 'te' ? 'నిలిచిపోయిన ఎండిన గుంట' : 'Stagnant Dry Puddle'}</option>
+                    <option value="Extinct">{language === 'hi' ? 'पूर्णतः सूखा विलुप्त तल' : language === 'te' ? 'పూర్తిగా ఎండిపోయిన అంతరించిన తలం' : 'Completely Dry Extinct Bed'}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Waste / Contamination Level (कचरे का स्तर)
+                    {language === 'hi' ? 'कचरे अथवा प्रदूषण का स्तर' : language === 'te' ? 'వ్యర్థాలు / కాలుష్యం స్థాయి' : 'Waste / Contamination Level'}
                   </label>
                   <select
                     value={wasteLevel}
                     onChange={(e) => setWasteLevel(e.target.value as any)}
-                    className="w-full p-2 border border-slate-300 rounded-lg font-semibold"
+                    className="w-full p-2 border border-slate-300 rounded-lg font-semibold bg-white cursor-pointer"
                   >
-                    <option value="Low">Low (हल्का कचरा)</option>
-                    <option value="Moderate">Moderate (मध्यम कचरा)</option>
-                    <option value="Heavy">Heavy Contamination (भारी कचरा)</option>
-                    <option value="Severe Choke">Severe Choke / Toxic Hazard (गंभीर रुकावट)</option>
+                    <option value="Low">{language === 'hi' ? 'हल्का कचरा' : language === 'te' ? 'తక్కువ వ్యర్థాలు' : 'Low'}</option>
+                    <option value="Moderate">{language === 'hi' ? 'मध्यम कचरा' : language === 'te' ? 'మధ్యస్థ వ్యర్థాలు' : 'Moderate'}</option>
+                    <option value="Heavy">{language === 'hi' ? 'भारी कचरा' : language === 'te' ? 'భారీ కాలుష్యం' : 'Heavy Contamination'}</option>
+                    <option value="Severe Choke">{language === 'hi' ? 'गंभीर रुकावट व संकट' : language === 'te' ? 'తీవ్రమైన అడ్డంకి / ప్రమాదం' : 'Severe Choke / Toxic Hazard'}</option>
                   </select>
                 </div>
               </div>
@@ -661,34 +663,34 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
               {/* Waste Type */}
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  Type of Waste / Pollutant (कचरे का प्रकार)
+                  {language === 'hi' ? 'कचरे अथवा प्रदूषक का प्रकार' : language === 'te' ? 'వ్యర్థాలు / కాలుష్య కారకం రకం' : 'Type of Waste / Pollutant'}
                 </label>
                 <select
                   value={wasteType}
                   onChange={(e) => setWasteType(e.target.value as any)}
-                  className="w-full p-2 border border-slate-300 rounded-lg font-semibold"
+                  className="w-full p-2 border border-slate-300 rounded-lg font-semibold bg-white cursor-pointer"
                 >
-                  <option value="Plastic & Polythene">Plastic & Polythene Packaging (प्लास्टिक एवं पॉलीथीन)</option>
-                  <option value="Domestic Sewage">Domestic Sewage Outfall (घरेलू सीवेज/गंदा पानी)</option>
-                  <option value="Industrial Chemical Effluent">Industrial Chemical Effluent (औद्योगिक रसायन एवं डाई)</option>
-                  <option value="Agricultural Pesticide Runoff">Agricultural Pesticide Runoff (कीटनाशक एवं रासायनिक बहाव)</option>
-                  <option value="Construction Debris & Bitumen">Construction Debris & Bitumen Gravel (निर्माण मलबा)</option>
-                  <option value="Dead Biomass & Eutrophic Algae">Dead Biomass & Eutrophic Algae (सड़ा हुआ जलकुंभी एवं शैवाल)</option>
+                  <option value="Plastic & Polythene">{language === 'hi' ? 'प्लास्टिक एवं पॉलीथीन कचरा' : language === 'te' ? 'ప్లాస్టిక్ & పాలిథిన్ వ్యర్థాలు' : 'Plastic & Polythene Packaging'}</option>
+                  <option value="Domestic Sewage">{language === 'hi' ? 'घरेलू सीवेज / गंदा पानी' : language === 'te' ? 'గృహ మురుగునీరు' : 'Domestic Sewage Outfall'}</option>
+                  <option value="Industrial Chemical Effluent">{language === 'hi' ? 'औद्योगिक रसायन एवं डाई' : language === 'te' ? 'పారిశ్రామిక రసాయన వ్యర్థాలు' : 'Industrial Chemical Effluent'}</option>
+                  <option value="Agricultural Pesticide Runoff">{language === 'hi' ? 'कीटनाशक एवं कृषि रासायनिक बहाव' : language === 'te' ? 'వ్యవసాయ పురుగుమందుల ప్రవాహం' : 'Agricultural Pesticide Runoff'}</option>
+                  <option value="Construction Debris & Bitumen">{language === 'hi' ? 'निर्माण मलबा एवं डामर बजरी' : language === 'te' ? 'భవన నిర్మాణ వ్యర్థాలు' : 'Construction Debris & Bitumen Gravel'}</option>
+                  <option value="Dead Biomass & Eutrophic Algae">{language === 'hi' ? 'सड़ा हुआ बायोमास एवं शैवाल' : language === 'te' ? 'కుళ్ళిన వ్యర్థాలు & ఆల్గే' : 'Dead Biomass & Eutrophic Algae'}</option>
                 </select>
               </div>
 
-              {/* Source Pin Description (as requested: "source pin dalana hai ki kachra kahan se aa raha hai") */}
+              {/* Source Pin Description */}
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  Waste Source Pin Landmark (कचरा कहाँ से आ रहा है - स्रोत विवरण)
+                  {language === 'hi' ? 'कचरा स्रोत स्थल (कहाँ से आ रहा है)' : language === 'te' ? 'వ్యర్థాల మూలం వివరాలు' : 'Waste Source Pin Landmark'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Upstream textile dyeing unit ditch #2 / Municipal shandy market culvert"
+                  placeholder={language === 'hi' ? 'जैसे कपड़ा रंगाई इकाई नाला #2 / मंडी का पुलिया' : language === 'te' ? 'ఉదా: టెక్స్‌టైల్ డైయింగ్ కాలువ / మునిసిపల్ మార్కెట్' : 'e.g. Upstream textile dyeing unit ditch #2 / Municipal market culvert'}
                   value={sourcePinDescription}
                   onChange={(e) => setSourcePinDescription(e.target.value)}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
+                  className="w-full p-2 border border-slate-300 rounded-lg bg-white"
                 />
               </div>
 
@@ -697,7 +699,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
                     <Droplet className="w-3.5 h-3.5 text-blue-600" />
-                    <span>TDS Water Level Machine Reading (TDS मीटर रीडिंग)</span>
+                    <span>{language === 'hi' ? 'टीडीएस वाटर लेवल मशीन रीडिंग' : language === 'te' ? 'TDS నీటి స్థాయి మెషిన్ రీడింగ్' : 'TDS Water Level Machine Reading'}</span>
                   </label>
                   <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
                     tdsReadingPpm < 300
@@ -732,7 +734,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
               {/* Complaint Validity Check */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
                 <label className="text-[11px] font-bold text-slate-800 block">
-                  Citizen Complaint Authenticity Check (शिकायत की वैधता)
+                  {language === 'hi' ? 'नागरिक शिकायत सत्यापन एवं वैधता जांच' : language === 'te' ? 'పౌరుడి ఫిర్యాదు వాస్తవికత ధృవీకరణ' : 'Citizen Complaint Authenticity Check'}
                 </label>
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
@@ -743,7 +745,9 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       onChange={() => setIsComplaintValid(true)}
                       className="text-emerald-600"
                     />
-                    <span className="text-emerald-800">Authentic & Valid (शिकायत सही है)</span>
+                    <span className="text-emerald-800">
+                      {language === 'hi' ? 'शिकायत सही एवं प्रमाणित है' : language === 'te' ? 'ఫిర్యాదు నిజమైనది మరియు ధృవీకరించబడింది' : 'Authentic & Valid Complaint'}
+                    </span>
                   </label>
                   <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
                     <input
@@ -753,7 +757,9 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       onChange={() => setIsComplaintValid(false)}
                       className="text-rose-600"
                     />
-                    <span className="text-rose-800">Invalid / Disputed (शिकायत अमान्य)</span>
+                    <span className="text-rose-800">
+                      {language === 'hi' ? 'शिकायत अमान्य अथवा विवादित' : language === 'te' ? 'చెల్లనిది లేదా వివాదాస్పదమైనది' : 'Invalid / Disputed Complaint'}
+                    </span>
                   </label>
                 </div>
 
@@ -850,7 +856,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                   <div>
                     <label className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
                       <Camera className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Post-Work Site Verification Photo (सत्यापन फोटो)</span>
+                      <span>{language === 'hi' ? 'कार्य समाप्ति उपरांत स्थल सत्यापन फोटो' : language === 'te' ? 'పని పూర్తయిన తర్వాత క్షేత్రస్థాయి ధృవీకరణ ఫోటో' : 'Post-Work Site Verification Photo'}</span>
                     </label>
                     <span className="text-[10px] text-slate-500">
                       Upload ground proof after engineer completed remediation work

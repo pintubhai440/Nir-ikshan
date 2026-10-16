@@ -19,6 +19,7 @@ import {
   Ban
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../context/LanguageContext';
 
 interface EngineerDashboardProps {
   complaints: CitizenComplaint[];
@@ -35,6 +36,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   onBlockTask,
   onCompleteTask,
 }) => {
+  const { t, language } = useLanguage();
   const [selectedTaskToAccept, setSelectedTaskToAccept] = useState<CitizenComplaint | null>(null);
   const [selectedTaskToBlock, setSelectedTaskToBlock] = useState<CitizenComplaint | null>(null);
   const [selectedTaskToComplete, setSelectedTaskToComplete] = useState<CitizenComplaint | null>(null);
@@ -96,7 +98,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             <span>ACTION WORKER & REMEDIAL ENGINEERING ENGINE</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-1">
-            Action Engineer Mobile Workspace (ఫీల్డ్ ఇంజనీరింగ్ వర్కర్)
+            {language === 'hi' ? 'एक्शन इंजीनियर मोबाइल कार्यक्षेत्र' : language === 'te' ? 'ఫీల్డ్ ఇంజనీరింగ్ వర్క్‌స్పేస్' : 'Action Engineer Mobile Workspace'}
           </h2>
           <p className="text-xs sm:text-sm text-amber-100">
             Field execution protocol: Review tasks, inspect strict deadlines, accept with "Before-Work" condition photograph, or block with reason. Upload "After-Work" proof to submit for re-inspection.
@@ -249,7 +251,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                       className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <Camera className="w-4 h-4" />
-                      <span>Upload "After Work Photo" & Finish Job (काम पूरा करें)</span>
+                      <span>
+                        {language === 'hi' ? 'कार्य समाप्ति का फोटो अपलोड करें एवं कार्य पूरा करें' : language === 'te' ? 'పని పూర్తయిన ఫోటోను అప్‌లోడ్ చేసి పూర్తి చేయండి' : 'Upload "After Work Photo" & Finish Job'}
+                      </span>
                     </button>
                   )}
 
@@ -331,7 +335,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             <div className="bg-rose-700 text-white p-4 flex items-center justify-between">
               <h4 className="font-bold text-sm flex items-center gap-2">
                 <Ban className="w-4 h-4" />
-                <span>Declare Block Reason (काम क्यों रोका या मना किया)</span>
+                <span>{language === 'hi' ? 'कार्य रोकने / असमर्थता का कारण दर्ज करें' : language === 'te' ? 'పని నిలిపివేతకు కారణాన్ని తెలపండి' : 'Declare Block Reason'}</span>
               </h4>
               <button onClick={() => setSelectedTaskToBlock(null)}>
                 <X className="w-5 h-5 text-white/80 hover:text-white" />
@@ -346,7 +350,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">
-                  Reason for Inability / Delay (जैसे: छुट्टी पर हैं / भारी बारिश / मशीनरी अनुपलब्ध)
+                  {language === 'hi' ? 'असमर्थता अथवा देरी का कारण' : language === 'te' ? 'ఆలస్యానికి లేదా నిలిపివేతకు కారణం' : 'Reason for Inability / Delay'}
                 </label>
                 <textarea
                   required
@@ -386,7 +390,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             <div className="bg-[#0047ab] text-white p-4 flex items-center justify-between">
               <h4 className="font-bold text-sm flex items-center gap-2">
                 <Camera className="w-4 h-4" />
-                <span>Upload After-Work Photo Proof (काम खत्म होने का फोटो)</span>
+                <span>{language === 'hi' ? 'कार्य समाप्ति का फोटो प्रमाण अपलोड करें' : language === 'te' ? 'పని పూర్తయిన ఫోటో సాక్ష్యాన్ని అప్‌లోడ్ చేయండి' : 'Upload After-Work Photo Proof'}</span>
               </h4>
               <button onClick={() => setSelectedTaskToComplete(null)}>
                 <X className="w-5 h-5 text-white/80 hover:text-white" />

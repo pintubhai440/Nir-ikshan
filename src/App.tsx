@@ -17,7 +17,9 @@ import {
   INITIAL_OFFICER_CONTACTS, 
   INITIAL_CITIZEN_COMPLAINTS 
 } from './data/nirikshanData';
-import { RoleSelectorBar } from './components/RoleSelectorBar';
+import { NirikshanHeader } from './components/NirikshanHeader';
+import { NirikshanSlideDrawer } from './components/NirikshanSlideDrawer';
+import { OtpLoginModal } from './components/OtpLoginModal';
 import { MainPortalDashboard } from './components/MainPortalDashboard';
 import { CitizenDashboard } from './components/CitizenDashboard';
 import { NodalOfficerDashboard } from './components/NodalOfficerDashboard';
@@ -27,9 +29,11 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { LodgeComplaintModal } from './components/LodgeComplaintModal';
 import { OfficerDirectoryModal } from './components/OfficerDirectoryModal';
 import { AuthModal } from './components/AuthModal';
-import { Droplets, Phone, AlertTriangle, ShieldCheck, Globe } from 'lucide-react';
+import { useLanguage } from './context/LanguageContext';
+import { Droplets, Phone, AlertTriangle, ShieldCheck, Globe, Menu, Layers } from 'lucide-react';
 
 export default function App() {
+  const { t, language } = useLanguage();
   // Default to overview landing page (national map and executive command, not user data)
   const [currentRole, setCurrentRole] = useState<UserRoleType>('overview');
 
@@ -59,15 +63,39 @@ export default function App() {
 
   const [officers] = useState<OfficerContact[]>(INITIAL_OFFICER_CONTACTS);
 
+  // User Authentication State (from Mobile OTP Login)
+  const [currentUser, setCurrentUser] = useState<{ name: string; phone: string } | null>(() => {
+    try {
+      const u = localStorage.getItem('nir_user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    try {
+      return Boolean(localStorage.getItem('nir_user'));
+    } catch {
+      return false;
+    }
+  });
+
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'hi' | 'te'>('en');
+  const [selectedNodalDistrict, setSelectedNodalDistrict] = useState<string>('Vizianagaram');
+
   // Auth states for the protected roles
   const [authenticatedRoles, setAuthenticatedRoles] = useState<Record<UserRoleType, boolean>>({
     overview: true,
     user: true,
-    admin: false,
-    nodal_vizianagaram: false,
-    nodal_parvathipuram: false,
-    inspector: false,
-    engineer: false,
+    admin: true,
+    nodal_vizianagaram: true,
+    nodal_parvathipuram: true,
+    nodal_visakhapatnam: true,
+    inspector: true,
+    engineer: true,
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -86,17 +114,25 @@ export default function App() {
 
   // Role selection logic with auth gate
   const handleSelectRole = (role: UserRoleType) => {
-    if (role === 'overview' || role === 'user') {
-      setCurrentRole(role);
+    // If not logged in and choosing any protected dashboard, prompt OTP login modal
+    if (role !== 'overview' && role !== 'user' && !isLoggedIn) {
+      setIsOtpModalOpen(true);
       return;
     }
+    setCurrentRole(role);
+  };
 
-    if (authenticatedRoles[role]) {
-      setCurrentRole(role);
-    } else {
-      setPendingAuthRole(role);
-      setIsAuthModalOpen(true);
-    }
+  const handleOtpLoginSuccess = (userData: { name: string; phone: string }) => {
+    setCurrentUser(userData);
+    setIsLoggedIn(true);
+    localStorage.setItem('nir_user', JSON.stringify(userData));
+  };
+
+  const handleUserLogout = () => {
+    setCurrentUser(null);
+    setIsLoggedIn(false);
+    localStorage.removeItem('nir_user');
+    setCurrentRole('overview');
   };
 
   const handleLoginSuccess = (role: UserRoleType) => {
@@ -271,82 +307,53 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif] w-full">
-      {/* Topmost Official Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs w-full">
-        <div className="bg-[#0b1b36] text-white text-[11px] px-3 sm:px-6 py-1.5 flex items-center justify-between border-b border-blue-900/60 font-medium">
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-            <span className="text-sky-200 text-[10px] sm:text-[11px]">
-              GOVT. OF ANDHRA PRADESH & NATIONAL WATER INFORMATICS • ALL INDIA WATER GRID
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] text-blue-300 font-mono hidden md:inline">
-              SFIC 2026 WATER INTEGRITY NODE
-            </span>
-            <button
-              onClick={() => setIsDirectoryModalOpen(true)}
-              className="text-[10px] font-bold text-amber-300 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <Phone className="w-3 h-3" />
-              <span>Helpline Directory</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Main Branding Bar */}
-        <div className="px-3 sm:px-6 py-3 flex items-center justify-between gap-3 w-full">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentRole('overview')}>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0047ab] via-[#0284c7] to-[#10b981] flex items-center justify-center text-white shadow-md shadow-blue-500/25 shrink-0">
-              <Droplets className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#0b1b36]">
-                  Nir-ikshan <span className="text-xs font-semibold text-sky-600 font-sans">(नीर-ईक्षण)</span>
-                </h1>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200 hidden sm:inline">
-                  National Micro-Watershed Grid
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
-                Geospatial Hydrological Surveillance, Citizen Grievance Triage & Remedial Engineering Engine
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsLodgeModalOpen(true)}
-              className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer animate-pulse"
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Lodge Complain</span>
-            </button>
-
-            <button
-              onClick={() => setIsDirectoryModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-            >
-              <Phone className="w-3.5 h-3.5 text-[#0047ab]" />
-              <span>Officers</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Top Navigation Bar with Language Toggle & Login / Hamburger Button */}
+      <NirikshanHeader
+        currentRole={currentRole}
+        onSelectRole={handleSelectRole}
+        isLoggedIn={isLoggedIn}
+        currentUser={currentUser}
+        onOpenLoginModal={() => setIsOtpModalOpen(true)}
+        onOpenDrawer={() => setIsDrawerOpen(true)}
+      />
 
       {/* Main Dashboard Body Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-6">
-        {/* PERMANENT 5-ROLE SELECTOR RIGHT ON THE DASHBOARD (NO THREE DOTS) */}
-        <RoleSelectorBar
-          currentRole={currentRole}
-          onSelectRole={handleSelectRole}
-          authenticatedRoles={authenticatedRoles}
-          onLogoutRole={handleLogoutRole}
-          onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
-          onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
-        />
+        {/* Sleek Breadcrumb Bar when viewing any sub-dashboard */}
+        {currentRole !== 'overview' && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2 text-xs flex-wrap">
+              <button 
+                onClick={() => setCurrentRole('overview')}
+                className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>{t('breadcrumbPortalHome')}</span>
+              </button>
+              <span className="text-slate-300">/</span>
+              <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>
+                  {currentRole === 'user' ? t('breadcrumbCitizen') :
+                   currentRole === 'admin' ? t('breadcrumbAdmin') :
+                   currentRole === 'nodal_vizianagaram' ? t('breadcrumbNodalVzm') :
+                   currentRole === 'nodal_parvathipuram' ? t('breadcrumbNodalPvm') :
+                   currentRole === 'nodal_visakhapatnam' ? t('breadcrumbNodalVskp') :
+                   currentRole === 'inspector' ? t('breadcrumbInspector') :
+                   t('breadcrumbEngineer')}
+                </span>
+              </span>
+            </div>
+
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            >
+              <Menu className="w-3.5 h-3.5 text-[#00B4D8]" />
+              <span>{t('switchPortal')}</span>
+            </button>
+          </div>
+        )}
 
         {/* 1. PORTAL HOME / OVERVIEW (DEFAULT ON FIRST VISIT - NO CITIZEN COMPLAINT CARDS HERE) */}
         {currentRole === 'overview' && (
@@ -404,6 +411,18 @@ export default function App() {
           />
         )}
 
+        {/* 6. NODAL OFFICER - VISAKHAPATNAM */}
+        {currentRole === 'nodal_visakhapatnam' && (
+          <NodalOfficerDashboard
+            district="Visakhapatnam"
+            complaints={complaints}
+            waterBodies={waterBodies}
+            officers={officers}
+            onAssignInspector={handleAssignInspector}
+            onAssignEngineer={handleAssignEngineer}
+          />
+        )}
+
         {/* 6. FIELD INSPECTOR MOBILE WORKSTATION */}
         {currentRole === 'inspector' && (
           <InspectorDashboard
@@ -436,10 +455,10 @@ export default function App() {
               </div>
               <div>
                 <h4 className="text-white font-bold text-sm">
-                  Nir-ikshan (नीर-ईक्षण) — National & Andhra Pradesh Water Surveillance
+                  {t('footerTitle')}
                 </h4>
                 <p className="text-blue-300 text-[11px]">
-                  All India Water Grid • Vizianagaram & Parvathipuram Manyam Circles • Water Resources Dept.
+                  {t('footerSubtitle')}
                 </p>
               </div>
             </div>
@@ -449,16 +468,16 @@ export default function App() {
               className="bg-white/10 hover:bg-white/20 text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-white/15"
             >
               <Phone className="w-3.5 h-3.5 text-amber-300" />
-              <span>Verified Officer Contacts</span>
+              <span>{t('verifiedOfficerContacts')}</span>
             </button>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 border-t border-blue-900/60 pt-3">
             <div>
-              National Grid Portals: Overview • Normal User • State Admin • Vizianagaram Nodal • Parvathipuram Nodal • Field Inspector • Action Worker
+              {t('footerPortalsList')}
             </div>
             <div className="font-mono text-emerald-400">
-              Staff Credentials: admin@nir.com / 1234
+              {t('footerStaffCredentials')}
             </div>
           </div>
         </div>
@@ -476,6 +495,27 @@ export default function App() {
         isOpen={isDirectoryModalOpen}
         onClose={() => setIsDirectoryModalOpen(false)}
         officers={officers}
+      />
+
+      {/* Slide-out Navigation Drawer (Hamburger Menu - Image 4 & 5) */}
+      <NirikshanSlideDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        currentRole={currentRole}
+        onSelectRole={handleSelectRole}
+        currentUser={currentUser}
+        onLogout={handleUserLogout}
+        onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
+        onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
+        selectedNodalDistrict={selectedNodalDistrict}
+        onSelectNodalDistrict={setSelectedNodalDistrict}
+      />
+
+      {/* Citizen Mobile OTP Login Modal (Image 3 -> Login Page Flow) */}
+      <OtpLoginModal
+        isOpen={isOtpModalOpen}
+        onClose={() => setIsOtpModalOpen(false)}
+        onLoginSuccess={handleOtpLoginSuccess}
       />
 
       {/* Authentication Gate Modal (admin@nir.com / 1234) */}

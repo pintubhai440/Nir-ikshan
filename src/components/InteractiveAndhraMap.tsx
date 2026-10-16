@@ -43,6 +43,7 @@ import { VisakhapatnamCadastralMapSvg, VisakhapatnamMandalData } from './Visakha
 import { VISAKHAPATNAM_ALL_MANDAL_WATER_BODIES } from '../data/visakhapatnamMandalsWaterData';
 import { AllDistrictsCombinedCadastralMapSvg } from './AllDistrictsCombinedCadastralMapSvg';
 import { AP_MANDAL_WISE_RAINFALL_2026 } from '../data/apMandalWiseRainfall2026';
+import { useLanguage } from '../context/LanguageContext';
 import { AP_GROUNDWATER_WATER_BODIES, AP_GROUNDWATER_DTWL_2026, APGroundwaterDtwlRecord } from '../data/apGroundwaterDtwl2026';
 import { APGroundwaterTelemetryModal } from './APGroundwaterTelemetryModal';
 
@@ -77,10 +78,12 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
   onSelectWaterBody,
   onLodgeComplaint,
 }) => {
+  const { t, language } = useLanguage();
   // District selector: Vizianagaram | Visakhapatnam | Parvathipuram Manyam | all
   const [selectedDistrict, setSelectedDistrict] = useState<string>(() => {
     if (currentRole === 'nodal_vizianagaram') return 'Vizianagaram';
     if (currentRole === 'nodal_parvathipuram') return 'Parvathipuram Manyam';
+    if (currentRole === 'nodal_visakhapatnam') return 'Visakhapatnam';
     return districtFilter !== 'all' ? districtFilter : 'all';
   });
 
@@ -279,6 +282,8 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
       ? 'Vizianagaram'
       : currentRole === 'nodal_parvathipuram'
       ? 'Parvathipuram Manyam'
+      : currentRole === 'nodal_visakhapatnam'
+      ? 'Visakhapatnam'
       : selectedDistrict;
 
   // Synchronize active water body on district change
@@ -346,8 +351,17 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
 
     // Dataset Endpoint Filter
     if (activeDatasetTab !== 'all') {
-      const isMatch = wb.datasetType === activeDatasetTab || 
-        (activeDatasetTab === 'reservoir' && wb.type === 'Reservoir');
+      const isMatch = 
+        wb.datasetType === activeDatasetTab || 
+        (activeDatasetTab === 'reservoir' && (wb.type === 'Reservoir' || wb.datasetType === 'basin_reservoir')) ||
+        (activeDatasetTab === 'basin_reservoir' && (wb.type === 'Reservoir' || wb.datasetType === 'reservoir')) ||
+        (activeDatasetTab === 'river_level' && (wb.type === 'River' || wb.datasetType === 'basin_river_level')) ||
+        (activeDatasetTab === 'basin_river_level' && (wb.type === 'River' || wb.datasetType === 'river_level')) ||
+        (activeDatasetTab === 'river_discharge' && (wb.datasetType === 'basin_river_discharge' || wb.liveTelemetry?.dischargeCusecs !== undefined)) ||
+        (activeDatasetTab === 'basin_river_discharge' && (wb.datasetType === 'river_discharge' || wb.liveTelemetry?.dischargeCusecs !== undefined)) ||
+        (activeDatasetTab === 'rainfall' && (wb.type === 'Rainfall Station' || wb.datasetType === 'basin_rainfall')) ||
+        (activeDatasetTab === 'basin_rainfall' && (wb.type === 'Rainfall Station' || wb.datasetType === 'rainfall')) ||
+        (activeDatasetTab === 'groundwater' && (wb.type === 'Groundwater Well' || wb.liveTelemetry?.depthToWaterM_bgl !== undefined));
       if (!isMatch) return false;
     }
 
@@ -453,9 +467,17 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
           stroke: '#334155',
           pulse: 'rgba(100, 116, 139, 0.55)',
           badge: 'bg-slate-200 text-slate-800 border-slate-400 font-bold',
-          flagText: '1. EXTINCT (SOOKH KAR MIT GAYA - GREY)',
+          flagText: language === 'hi' 
+            ? '1. विलुप्त जलाशय (सूख कर मिट गया - ग्रे)' 
+            : language === 'te' 
+            ? '1. అంతరించిన జలాశయం (ఎండిపోయినది - గ్రే)' 
+            : '1. EXTINCT BED (COMPLETELY DRIED - GREY)',
           flagBadge: 'bg-slate-700 text-white font-extrabold',
-          label: '1. Extinct (Sookh Kar Mit Gaya - Grey)',
+          label: language === 'hi' 
+            ? '1. विलुप्त जलाशय (सूख कर मिट गया)' 
+            : language === 'te' 
+            ? '1. అంతరించిన జలాశయం (ఎండిపోయినది)' 
+            : '1. Extinct (Completely Dried - Grey)',
           tag: '1. Extinct (Grey)',
         };
       case 'red':
@@ -555,15 +577,15 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
               <span>
                 {effectiveDistrict === 'Vizianagaram' 
-                  ? 'Vizianagaram District Water Surveillance Map (విజయనగరం జల పర్యవేక్షణ)' 
+                  ? t('vzmDistrictTitle')
                   : effectiveDistrict === 'Parvathipuram Manyam' 
-                  ? 'Parvathipuram Manyam District Water Surveillance Map (పార్వతీపురం మన్యం జల పర్యవేక్షణ)' 
+                  ? t('pvmDistrictTitle')
                   : effectiveDistrict === 'Visakhapatnam'
-                  ? 'Visakhapatnam District Water Surveillance Map (విశాఖపట్నం జల పర్యవేక్షణ)'
-                  : 'National Water Informatics Centre Surveillance Grid'}
+                  ? t('vskpDistrictTitle')
+                  : t('stateGovernanceTitle')}
               </span>
               <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-[#0047ab] border border-blue-200">
-                {effectiveDistrict === 'all' ? 'ALL 3 DISTRICTS' : effectiveDistrict.toUpperCase()}
+                {effectiveDistrict === 'all' ? t('allDistricts') : effectiveDistrict.toUpperCase()}
               </span>
             </h3>
           </div>
@@ -728,10 +750,10 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
                   ? 'bg-slate-700 text-white shadow-xs' 
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="1. Extinct / Sookh Kar Mit Gaya (Grey Colour)"
+              title={language === 'hi' ? '1. विलुप्त जलाशय (सूख कर मिट गया)' : language === 'te' ? '1. అంతరించిన జలాశయం (ఎండిపోయినది)' : '1. Extinct Bed (Completely Dried Up)'}
             >
               <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-              <span>1. Extinct</span>
+              <span>{language === 'hi' ? '1. विलुप्त' : language === 'te' ? '1. అంతరించిన' : '1. Extinct'}</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${viewFilter === 'extinct' ? 'bg-white text-slate-800 font-bold' : 'bg-slate-200 text-slate-700'}`}>
                 {extinctCount}
               </span>
@@ -809,23 +831,23 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-slate-200 text-slate-800 font-bold border border-slate-300">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-            <span>1. Extinct (Grey) – Sookh Kar Mit Gaya</span>
+            <span>1. {t('statusGreyTitle')} – {t('statusGreyDesc')}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-rose-100 text-rose-800 font-bold border border-rose-300">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
-            <span>2. Danger Zone (Red) – Critical Hazard / Silt</span>
+            <span>2. {t('statusRedTitle')} – {t('statusRedDesc')}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-            <span>3. Good Condition (Green) – Bahut Achha</span>
+            <span>3. {t('statusGreenTitle')} – {t('statusGreenDesc')}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-900 font-bold border border-amber-300">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            <span>4. Medium (Yellow) – Moderate Stress</span>
+            <span>4. {t('statusYellowTitle')} – {t('statusYellowDesc')}</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-800 font-bold border border-sky-300">
             <span className="w-2.5 h-2.5 rounded-full bg-sky-600"></span>
-            <span>5. Normal (Blue) – Baseline Inflow</span>
+            <span>5. {t('statusBlueTitle')} – {t('statusBlueDesc')}</span>
           </span>
         </div>
       </div>
@@ -833,8 +855,7 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
       {/* ============================================================== */}
       {/* 2. ALL 9 INDIA-WRIS ENDPOINTS INTERACTIVE LAYER FILTER BAR      */}
       {/* ============================================================== */}
-      {currentRole !== 'user' && effectiveDistrict !== 'Vizianagaram' && (
-        <div className="bg-slate-900 border-b border-slate-800 p-2.5 px-3 sm:px-4 text-xs overflow-x-auto select-none">
+      <div className="bg-slate-900 border-b border-slate-800 p-2.5 px-3 sm:px-4 text-xs overflow-x-auto select-none">
           <div className="flex items-center gap-1.5 min-w-max">
             <span className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 mr-1">
               <Filter className="w-3 h-3 text-sky-400" />
@@ -962,7 +983,6 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
             </button>
           </div>
         </div>
-      )}
 
       {/* ============================================================== */}
       {/* 3. MAP CANVAS WITH NO OVERLAPPING LABELS & CLEAN WATER NETWORK */}
@@ -1268,7 +1288,7 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
                 ? rawWbis.estimatedVolumeMCM
                 : isGroundwater ? 1.8 : activeWaterBody.liveTelemetry?.storageMCM || Math.round((activeWaterBody.waterLevelPercent * 0.3) * 10) / 10,
               isExtinct: activeWaterBody.statusColor === 'grey' || rawWbis?.isExtinct || false,
-              extinctionReason: rawWbis?.extinctionReason || (activeWaterBody.statusColor === 'grey' ? 'Talab sookh kar mit gaya: severe siltation deposition, unauthorized construction encroachment, and feeder canal diversion.' : undefined),
+              extinctionReason: rawWbis?.extinctionReason || (activeWaterBody.statusColor === 'grey' ? (language === 'hi' ? 'जलाशय सूख कर मिट गया: अत्यधिक गाद भराव, अनधिकृत निर्माण अतिक्रमण और पोषक नहर का मार्ग परिवर्तन।' : language === 'te' ? 'జలాశయం పూర్తిగా ఎండిపోయి కనుమరుగైంది: తీవ్ర పూడిక నిల్వ, అక్రమ నిర్మాణ ఆక్రమణలు మరియు ఫీడర్ కాలువ మళ్లింపు.' : 'Water body completely dried and extinct: severe siltation deposition, unauthorized construction encroachment, and feeder canal diversion.') : undefined),
             };
 
             const isExtinct = activeWaterBody.statusColor === 'grey' || wbis.isExtinct;
@@ -1357,11 +1377,19 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
                     <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5 animate-pulse" />
                     <div>
                       <strong className="text-rose-100 font-bold block uppercase tracking-wide">
-                        ⚠️ ISRO SATELLITE EXTINCTION DOSSIER (SOOKH KAR MIT GAYA - GREY STATUS):
+                        {language === 'hi'
+                          ? '⚠️ इसरो उपग्रह विलुप्त जलाशय डॉसियर (पूर्णतः सूख कर मिट गया - ग्रे स्थिति):'
+                          : language === 'te'
+                          ? '⚠️ ఇస్రో శాటిలైట్ అంతరించిన జలాశయం నివేదిక (పూర్తిగా ఎండిపోయినది - గ్రే స్థితి):'
+                          : '⚠️ ISRO SATELLITE EXTINCTION DOSSIER (COMPLETELY DRIED / EXTINCT BED - GREY STATUS):'}
                       </strong>
                       <p className="mt-1 text-rose-200 leading-relaxed font-normal">
-                        ISRO Resourcesat-2A optical telemetry aur spectral multi-year comparisons ke mutabiq yeh talab/lake <strong>poora sookh kar mit chuka hai</strong>. 
-                        {wbis.extinctionReason || ' Water spread area is 0.0 Ha (lost from historical baseline). Heavy silt deposition, construction debris, or catchment diversion has permanently erased water retention.'}
+                        {language === 'hi'
+                          ? 'इसरो रिसोर्ससैट-2A ऑप्टिकल टेलीमेट्री और वर्णक्रमीय बहु-वर्षीय विश्लेषण के अनुसार यह जल निकाय पूर्णतः सूख कर मिट चुका है।'
+                          : language === 'te'
+                          ? 'ఇస్రో రిసోర్స్‌శాట్-2A ఆప్టికల్ టెలిమెట్రీ మరియు శాటిలైట్ విశ్లేషణ ప్రకారం ఈ జలాశయం పూర్తిగా ఎండిపోయి కనుమరుగైంది.'
+                          : 'According to ISRO Resourcesat-2A optical telemetry and spectral multi-year comparisons, this water body has completely dried up and ceased to retain surface water.'}
+                        {' ' + (wbis.extinctionReason || (language === 'hi' ? 'जल फैलाव 0.0 हेक्टेयर है। अत्यधिक गाद अथवा निर्माण मलबे के कारण जल संचयन समाप्त हो गया है।' : language === 'te' ? 'నీటి విస్తీర్ణం 0.0 హెక్టార్లు. అధిక పూడిక లేదా వ్యర్థాల వల్ల నీటి నిల్వ పూర్తిగా నశించింది.' : 'Water spread area is 0.0 Ha (lost from historical baseline). Heavy silt deposition, construction debris, or catchment diversion has permanently erased water retention.'))}
                       </p>
                       <div className="mt-2 flex items-center gap-2 font-mono text-[11px] text-rose-300">
                         <span>NDWI Score: <strong>{wbis.ndwiScore}</strong> (Zero liquid water)</span>
@@ -1463,7 +1491,9 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
                         isGroundwater ? 'bg-emerald-700 text-white' :
                         wbis.ndwiScore > 0.2 ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
                       }`}>
-                        {isExtinct ? 'SOOKH KAR MIT GAYA' : isGroundwater ? 'PRISTINE SPRING HYDROLOGY' : wbis.ndwiScore > 0.2 ? 'SURFACE WATER' : 'DEPLETION'}
+                        {isExtinct 
+                          ? (language === 'hi' ? 'विलुप्त जलाशय (सूख कर मिट गया)' : language === 'te' ? 'అంతరించిన జలాశయం (ఎండిపోయినది)' : 'EXTINCT WATER BED') 
+                          : isGroundwater ? 'PRISTINE SPRING HYDROLOGY' : wbis.ndwiScore > 0.2 ? 'SURFACE WATER' : 'DEPLETION'}
                       </span>
                     </div>
 
@@ -1483,7 +1513,7 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
                       </div>
                       <div className="flex justify-between text-[9px] font-mono text-slate-400 pt-0.5">
                         <span>-1.0 (Built-up)</span>
-                        <span>-0.2 (Sookh Gaya)</span>
+                        <span>-0.2 ({language === 'hi' ? 'सूखा तल' : language === 'te' ? 'ఎండిన' : 'Extinct Bed'})</span>
                         <span>0.0 (Marsh)</span>
                         <span>+0.3 (Active Recharge)</span>
                         <span>+1.0 (Pristine Spring)</span>

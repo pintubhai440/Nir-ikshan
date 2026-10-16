@@ -125,7 +125,7 @@ export const RoleSelectorBar: React.FC<RoleSelectorBarProps> = ({
             className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer animate-pulse"
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Lodge Complain (शिकायत दर्ज करें)</span>
+            <span>Lodge Complaint</span>
           </button>
 
           <button

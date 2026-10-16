@@ -162,7 +162,7 @@ export const ReportEndangeredModal: React.FC<ReportEndangeredModalProps> = ({
                 <Flame className="w-4 h-4 animate-pulse" />
               </span>
               <span className="text-[10px] font-mono tracking-widest text-rose-200 uppercase font-bold">
-                CITIZEN ENDANGERED WATER ZONE COMPLAINT (संकटग्रस्त जल क्षेत्र शिकायत)
+                CITIZEN ENDANGERED WATER ZONE COMPLAINT
               </span>
             </div>
             <h2 className="text-lg font-bold text-white tracking-tight">
@@ -260,12 +260,12 @@ export const ReportEndangeredModal: React.FC<ReportEndangeredModalProps> = ({
               onChange={(e) => setHazardType(e.target.value as any)}
               className="w-full text-xs text-slate-800 font-semibold bg-white border border-slate-300 rounded-lg p-2.5 focus:ring-1 focus:ring-rose-500"
             >
-              <option value="Check Dam / Bund Breach Risk">Check Dam / Embankment Breach Hazard (बाढ़/बंधा टूटने का खतरा)</option>
-              <option value="Critical Dry Borewell / Well Collapse">Critical Dry Borewell / Water Table Collapse (बोरवेल सूखना/जल संकट)</option>
-              <option value="Contaminated Toxic Water Influx">Contaminated Toxic Water / Industrial Effluent (जल प्रदूषण/अपशिष्ट प्रवाह)</option>
-              <option value="Illegal Deep Drilling Overdraft">Illegal Commercial Borewell Rigs (अवैध गहरा खनन)</option>
-              <option value="Drying Up of Community Reservoir">Drying Up of Traditional Cheruvu / Tank (तालाब सूखना)</option>
-              <option value="Encroached Water Body / Silt Choke">Encroached Feeder Channel / Silt Choke (नालों पर अतिक्रमण/सिल्ट)</option>
+              <option value="Check Dam / Bund Breach Risk">Check Dam / Embankment Breach Hazard</option>
+              <option value="Critical Dry Borewell / Well Collapse">Critical Dry Borewell / Water Table Collapse</option>
+              <option value="Contaminated Toxic Water Influx">Contaminated Toxic Water / Industrial Effluent</option>
+              <option value="Illegal Deep Drilling Overdraft">Illegal Commercial Borewell Rigs</option>
+              <option value="Drying Up of Community Reservoir">Drying Up of Traditional Cheruvu / Tank</option>
+              <option value="Encroached Water Body / Silt Choke">Encroached Feeder Channel / Silt Choke</option>
             </select>
           </div>
 
@@ -372,7 +372,7 @@ export const ReportEndangeredModal: React.FC<ReportEndangeredModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-slate-800 block mb-1">
-                Your Name / Reporter (शिकायतकर्ता का नाम)
+                Your Name / Reporter
               </label>
               <input
                 type="text"

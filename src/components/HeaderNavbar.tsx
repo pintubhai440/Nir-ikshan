@@ -102,7 +102,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-extrabold tracking-tight text-[#1b2a4a]">
-                JAL DRISHTI <span className="text-sm font-semibold text-sky-600 font-sans">(जल दृष्टि)</span>
+                Nir-ikshan
               </h1>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-[#0047ab] px-2 py-0.5 rounded border border-sky-200">
                 Micro-Watershed Ledger

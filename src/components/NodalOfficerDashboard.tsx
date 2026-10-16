@@ -16,9 +16,10 @@ import {
   FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NodalOfficerDashboardProps {
-  district: 'Vizianagaram' | 'Parvathipuram Manyam';
+  district: 'Vizianagaram' | 'Parvathipuram Manyam' | 'Visakhapatnam' | string;
   complaints: CitizenComplaint[];
   waterBodies: WaterBody[];
   officers: OfficerContact[];
@@ -34,6 +35,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
   onAssignInspector,
   onAssignEngineer,
 }) => {
+  const { t, language } = useLanguage();
   const [selectedComplaintForInspector, setSelectedComplaintForInspector] = useState<CitizenComplaint | null>(null);
   const [selectedComplaintForEngineer, setSelectedComplaintForEngineer] = useState<CitizenComplaint | null>(null);
 
@@ -135,7 +137,13 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
       <InteractiveAndhraMap
         waterBodies={districtWaterBodies}
         complaints={districtComplaints}
-        currentRole={district === 'Vizianagaram' ? 'nodal_vizianagaram' : 'nodal_parvathipuram'}
+        currentRole={
+          district === 'Vizianagaram' 
+            ? 'nodal_vizianagaram' 
+            : district === 'Visakhapatnam'
+            ? 'nodal_visakhapatnam'
+            : 'nodal_parvathipuram'
+        }
         districtFilter={district}
       />
 
@@ -243,7 +251,9 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     className="w-full py-2 bg-[#0047ab] hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <UserCheck className="w-4 h-4" />
-                    <span>Assign Field Inspector (इन्स्पेक्टर नियुक्त करें)</span>
+                    <span>
+                      {language === 'hi' ? 'फील्ड इंस्पेक्टर नियुक्त करें' : language === 'te' ? 'ఫీల్డ్ ఇన్స్పెక్టర్‌ను కేటాయించండి' : 'Assign Field Inspector'}
+                    </span>
                   </button>
                 )}
 

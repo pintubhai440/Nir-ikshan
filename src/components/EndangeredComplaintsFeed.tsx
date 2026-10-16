@@ -80,7 +80,7 @@ export const EndangeredComplaintsFeed: React.FC<EndangeredComplaintsFeedProps> =
             <span className="p-2 rounded-lg bg-rose-100 text-rose-700">
               <Flame className="w-5 h-5" />
             </span>
-            <span>Citizen Endangered Water Zone Complaints (संकटग्रस्त जल क्षेत्र शिकायत पंजी)</span>
+            <span>Citizen Endangered Water Zone Complaints</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium">
             Crowdsourced community surveillance: Citizens upload screenshots and photos of dried borewells, breached bunds, and toxic influx.

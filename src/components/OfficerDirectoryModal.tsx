@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { OfficerContact } from '../types/nirikshan';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   Users, 
   Phone, 
@@ -24,6 +25,7 @@ export const OfficerDirectoryModal: React.FC<OfficerDirectoryModalProps> = ({
   onClose,
   officers,
 }) => {
+  const { language } = useLanguage();
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterDistrict, setFilterDistrict] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,14 +54,14 @@ export const OfficerDirectoryModal: React.FC<OfficerDirectoryModalProps> = ({
                 <Users className="w-5 h-5 text-sky-300" />
               </span>
               <span className="text-[11px] font-mono tracking-widest text-sky-200 uppercase font-bold">
-                NIR-IKSHAN VERIFIED DIRECTORY • ANDHRA PRADESH
+                {language === 'hi' ? 'नीर-ईक्षण सत्यापित डायरेक्टरी • आंध्र प्रदेश' : language === 'te' ? 'నీర్-ఈక్షణ్ ధృవీకరించిన డైరెక్టరీ • ఆంధ్రప్రదేశ్' : 'NIR-IKSHAN VERIFIED DIRECTORY • ANDHRA PRADESH'}
               </span>
             </div>
             <h2 className="text-lg font-bold text-white tracking-tight">
-              Water Governance Officers & Field Staff Directory
+              {language === 'hi' ? 'जल प्रशासन अधिकारी एवं फील्ड स्टाफ डायरेक्टरी' : language === 'te' ? 'జల పాలనా అధికారులు & ఫీల్డ్ సిబ్బంది డైరెక్టరీ' : 'Water Governance Officers & Field Staff Directory'}
             </h2>
             <p className="text-xs text-sky-200">
-              Direct contact coordinates for Nodal Officers, Senior Field Inspectors, and Action Engineers in Vizianagaram & Parvathipuram Manyam.
+              {language === 'hi' ? 'विजयनगरम एवं पार्वतीपुरम मान्यम के नोडल अधिकारियों, वरिष्ठ फील्ड निरीक्षकों एवं एक्शन इंजीनियरों के सीधे संपर्क सूत्र।' : language === 'te' ? 'విజయనగరం మరియు పార్వతీపురం మన్యం నోడల్ అధికారులు, సీనియర్ ఫీల్డ్ ఇన్స్పెక్టర్లు & యాక్షన్ ఇంజనీర్ల ప్రత్యక్ష సంప్రదింపు వివరాలు.' : 'Direct contact coordinates for Nodal Officers, Senior Field Inspectors, and Action Engineers in Vizianagaram & Parvathipuram Manyam.'}
             </p>
           </div>
 
@@ -77,7 +79,7 @@ export const OfficerDirectoryModal: React.FC<OfficerDirectoryModalProps> = ({
             <Search className="w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by officer name, designation, phone..."
+              placeholder={language === 'hi' ? 'अधिकारी का नाम, पद या फोन से खोजें...' : language === 'te' ? 'అధికారి పేరు, హోదా లేదా ఫోన్ ద్వారా శోధించండి...' : 'Search by officer name, designation, phone...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="text-xs w-full border-none focus:outline-none placeholder:text-slate-400"
@@ -90,10 +92,10 @@ export const OfficerDirectoryModal: React.FC<OfficerDirectoryModalProps> = ({
               onChange={(e) => setFilterDistrict(e.target.value)}
               className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700"
             >
-              <option value="all">All Districts</option>
+              <option value="all">{language === 'hi' ? 'सभी जिले' : language === 'te' ? 'అన్ని జిల్లాలు' : 'All Districts'}</option>
               <option value="Vizianagaram">Vizianagaram</option>
               <option value="Parvathipuram Manyam">Parvathipuram Manyam</option>
-              <option value="State Level (AP)">State Level (AP)</option>
+              <option value="State Level (AP)">{language === 'hi' ? 'राज्य स्तर (आंध्र प्रदेश)' : language === 'te' ? 'రాష్ట్ర స్థాయి (ఆంధ్రప్రదేశ్)' : 'State Level (AP)'}</option>
             </select>
 
             <select
@@ -101,11 +103,11 @@ export const OfficerDirectoryModal: React.FC<OfficerDirectoryModalProps> = ({
               onChange={(e) => setFilterRole(e.target.value)}
               className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700"
             >
-              <option value="all">All Roles</option>
-              <option value="Nodal Officer">Nodal Officers</option>
-              <option value="Inspector">Field Inspectors</option>
-              <option value="Action Engineer">Action Engineers</option>
-              <option value="District Collectorate">District Collectorate</option>
+              <option value="all">{language === 'hi' ? 'सभी पद' : language === 'te' ? 'అన్ని పాత్రలు' : 'All Roles'}</option>
+              <option value="Nodal Officer">{language === 'hi' ? 'नोडल अधिकारी' : language === 'te' ? 'నోడల్ అధికారులు' : 'Nodal Officers'}</option>
+              <option value="Inspector">{language === 'hi' ? 'फील्ड इंस्पेक्टर' : language === 'te' ? 'ఫీల్డ్ ఇన్స్పెక్టర్లు' : 'Field Inspectors'}</option>
+              <option value="Action Engineer">{language === 'hi' ? 'एक्शन इंजीनियर' : language === 'te' ? 'యాక్షన్ ఇంజనీర్లు' : 'Action Engineers'}</option>
+              <option value="District Collectorate">{language === 'hi' ? 'जिला कलेक्ट्रेट' : language === 'te' ? 'జిల్లా కలెక్టరేట్' : 'District Collectorate'}</option>
             </select>
           </div>
         </div>
