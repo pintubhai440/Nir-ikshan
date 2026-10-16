@@ -8,7 +8,7 @@ import {
   User, 
   Building2, 
   CheckCircle2, 
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 
 interface MainPortalDashboardProps {
@@ -26,14 +26,10 @@ export const MainPortalDashboard: React.FC<MainPortalDashboardProps> = ({
   onOpenLodgeModal,
 }) => {
   const { t } = useLanguage();
-  const greenCount = waterBodies.filter((w) => w.statusColor === 'green').length;
-  const blueCount = waterBodies.filter((w) => w.statusColor === 'blue').length;
-  const yellowCount = waterBodies.filter((w) => w.statusColor === 'yellow').length;
-  const redCount = waterBodies.filter((w) => w.statusColor === 'red').length;
-  const greyCount = waterBodies.filter((w) => w.statusColor === 'grey').length;
 
   return (
     <div className="space-y-6">
+      {/* Hero Welcome Banner */}
       <div className="bg-gradient-to-r from-[#03045E] via-[#0077B6] to-[#00B4D8] text-white rounded-3xl p-6 sm:p-7 shadow-lg border border-white/20 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative overflow-hidden">
         {/* Glow ambient background accent */}
         <div className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-blue-500/15 blur-3xl pointer-events-none"></div>
@@ -94,69 +90,6 @@ export const MainPortalDashboard: React.FC<MainPortalDashboardProps> = ({
         </div>
       </div>
 
-      {/* 5-Color Health Overview Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-        {/* Green */}
-        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
-              🟢 {t('statusGreenTitle')}
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-900 mt-1">{greenCount}</div>
-          <p className="text-[11px] text-emerald-700 mt-0.5 font-medium">{t('statusGreenDesc')}</p>
-        </div>
-
-        {/* Blue */}
-        <div className="bg-sky-50 border border-sky-200 p-4 rounded-2xl shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-sky-800 uppercase tracking-wider">
-              🔵 {t('statusBlueTitle')}
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-sky-900 mt-1">{blueCount}</div>
-          <p className="text-[11px] text-sky-700 mt-0.5 font-medium">{t('statusBlueDesc')}</p>
-        </div>
-
-        {/* Yellow */}
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">
-              🟡 {t('statusYellowTitle')}
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-amber-900 mt-1">{yellowCount}</div>
-          <p className="text-[11px] text-amber-700 mt-0.5 font-medium">{t('statusYellowDesc')}</p>
-        </div>
-
-        {/* Red */}
-        <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-rose-800 uppercase tracking-wider">
-              🔴 {t('statusRedTitle')}
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-rose-900 mt-1">{redCount}</div>
-          <p className="text-[11px] text-rose-700 mt-0.5 font-medium">{t('statusRedDesc')}</p>
-        </div>
-
-        {/* Grey */}
-        <div className="bg-slate-100 border border-slate-300 p-4 rounded-2xl shadow-2xs col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
-              ⚪ {t('statusGreyTitle')}
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">{greyCount}</div>
-          <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{t('statusGreyDesc')}</p>
-        </div>
-      </div>
-
       {/* PRIMARY MAP: ALL-INDIA NATIONAL WATER GRID */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1">
@@ -194,6 +127,8 @@ export const MainPortalDashboard: React.FC<MainPortalDashboardProps> = ({
           waterBodies={waterBodies}
           complaints={complaints}
           currentRole="admin"
+          initialStatusFilter="all"
+          onStatusFilterChange={() => {}}
           onLodgeComplaint={onOpenLodgeModal}
         />
       </div>

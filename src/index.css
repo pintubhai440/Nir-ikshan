@@ -4,7 +4,7 @@
 /* Leaflet GIS Custom Styles for Nir-ikshan */
 .leaflet-container {
   font-family: 'Plus Jakarta Sans', sans-serif !important;
-  background-color: #020617 !important;
+  background-color: #e2e8f0 !important;
 }
 
 .leaflet-popup-content-wrapper {
@@ -12,7 +12,7 @@
   color: #0f172a !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 16px !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
   padding: 4px !important;
 }
 
@@ -20,25 +20,32 @@
   background: #ffffff !important;
 }
 
+.leaflet-control-zoom {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
 .leaflet-control-zoom a {
-  background-color: rgba(15, 23, 42, 0.9) !important;
-  color: #ffffff !important;
-  border-color: #334155 !important;
-  backdrop-filter: blur(8px) !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: #2563eb !important;
+  background-color: #0284c7 !important;
   color: #ffffff !important;
 }
 
 .leaflet-control-attribution {
-  background: rgba(15, 23, 42, 0.8) !important;
-  color: #94a3b8 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #475569 !important;
   font-size: 10px !important;
   backdrop-filter: blur(4px) !important;
+  border-top-left-radius: 8px;
 }
 
 .leaflet-control-attribution a {
-  color: #38bdf8 !important;
+  color: #0284c7 !important;
 }

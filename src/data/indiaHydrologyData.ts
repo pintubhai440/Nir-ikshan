@@ -3204,7 +3204,7 @@ const RAW_NATIONAL_STATIONS: HydrologicalStation[] = [
     "category": "reservoir",
     "state": "Rajasthan",
     "district": "Banswara",
-    "basin": "Tapi Basin",
+    "basin": "Mahi Basin",
     "agency": "CWC",
     "lat": 23.63,
     "lng": 74.53,
@@ -3215,6 +3215,9 @@ const RAW_NATIONAL_STATIONS: HydrologicalStation[] = [
     "currentLiveStorageMCM": 1895,
     "storagePercentage": 92,
     "waterLevelM": 280.8,
+    "fullReservoirLevelM": 281.5,
+    "warningLevelM": 280.0,
+    "dangerLevelM": 281.5,
     "waterQualityTdsPpm": 160
   },
   {

@@ -56,15 +56,23 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // 5 Status Cards
     statusGreenTitle: 'PRISTINE / RECHARGED',
-    statusGreenDesc: 'Recharge Abundant',
+    statusGreenDesc: 'Recharge Abundant / Full Storage',
     statusBlueTitle: 'NORMAL',
-    statusBlueDesc: 'Acceptable Quality',
-    statusYellowTitle: 'MIDDLE PROBLEM',
-    statusYellowDesc: 'Moderate Silt / Waste',
-    statusRedTitle: 'DANGER ZONE',
-    statusRedDesc: 'Severe Hazard / Breach',
-    statusGreyTitle: 'EXTINCT BED',
-    statusGreyDesc: 'Completely Dried / Lost',
+    statusBlueDesc: 'Acceptable Quality / Stable Flow',
+    statusYellowTitle: 'MODERATE ALERT',
+    statusYellowDesc: 'Moderate Silt / Water Stress',
+    statusRedTitle: 'CRITICAL / DANGER',
+    statusRedDesc: 'Severe Hazard / Critical Stress',
+    statusGreyTitle: 'EXTINCT / DRIED BED',
+    statusGreyDesc: 'Completely Dried / Encroached',
+
+    // Scope Selector
+    scopeAllIndia: 'All-India Water Grid',
+    scopeAndhraPradesh: 'Andhra Pradesh Grid',
+    scopeMicroWatersheds: 'Focal Catchments',
+    telemetryStations: 'Telemetry Stations',
+    activeFilterNotice: 'Active Status Filter',
+    clearFilter: 'Show All Stations',
 
     // Map section
     nationalMapTitle: 'National Water Grid & River Basins of India',
@@ -94,9 +102,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     filterAll: 'All',
     filterPristine: 'Pristine (Recharged)',
     filterNormal: 'Normal',
-    filterMiddleProblem: 'Middle Problem',
-    filterDanger: 'Danger Zone',
-    filterExtinct: 'Extinct Bed',
+    filterMiddleProblem: 'Moderate Alert',
+    filterDanger: 'Critical / Danger',
+    filterExtinct: 'Extinct / Dried Bed',
 
     // Citizen Dashboard
     citizenHeroTag: 'PUBLIC WATER SURVEILLANCE & GRIEVANCE REDRESSAL',
@@ -220,15 +228,23 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // 5 Status Cards
     statusGreenTitle: 'उत्कृष्ट / पुनर्भरण',
-    statusGreenDesc: 'प्रचुर जल पुनर्भरण',
+    statusGreenDesc: 'प्रचुर जल पुनर्भरण व स्वच्छ स्थिति',
     statusBlueTitle: 'सामान्य',
-    statusBlueDesc: 'स्वीकार्य गुणवत्ता',
-    statusYellowTitle: 'मध्यम समस्या',
-    statusYellowDesc: 'मध्यम गाद व कचरा',
-    statusRedTitle: 'खतरे का क्षेत्र',
-    statusRedDesc: 'गंभीर संकट व प्रदूषण',
-    statusGreyTitle: 'विलुप्त जलाशय',
-    statusGreyDesc: 'सूख कर मिट गया',
+    statusBlueDesc: 'स्वीकार्य गुणवत्ता व स्थिर प्रवाह',
+    statusYellowTitle: 'मध्यम संकट / चेतावनी',
+    statusYellowDesc: 'मध्यम गाद / जल भराव / कमी',
+    statusRedTitle: 'गंभीर संकट / डेंजर ज़ोन',
+    statusRedDesc: 'गंभीर ख़तरा / बांध जलस्तर संकट',
+    statusGreyTitle: 'विलुप्त / सूखा तल',
+    statusGreyDesc: 'सूख कर मिट गया / अतिक्रमण',
+
+    // Scope Selector
+    scopeAllIndia: 'अखिल भारतीय जल ग्रिड',
+    scopeAndhraPradesh: 'आंध्र प्रदेश राज्य ग्रिड',
+    scopeMicroWatersheds: 'प्रमुख जलग्रहण क्षेत्र',
+    telemetryStations: 'टेलीमेट्री स्टेशन',
+    activeFilterNotice: 'सक्रिय स्थिति फ़िल्टर',
+    clearFilter: 'सभी स्टेशन दिखाएं',
 
     // Map section
     nationalMapTitle: 'राष्ट्रीय जल ग्रिड एवं भारत के नदी बेसिन',
@@ -258,9 +274,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     filterAll: 'सभी',
     filterPristine: 'उत्कृष्ट (पुनर्भरण)',
     filterNormal: 'सामान्य',
-    filterMiddleProblem: 'मध्यम समस्या',
-    filterDanger: 'खतरे का क्षेत्र',
-    filterExtinct: 'विलुप्त जलाशय',
+    filterMiddleProblem: 'मध्यम संकट / चेतावनी',
+    filterDanger: 'गंभीर संकट / डेंजर ज़ोन',
+    filterExtinct: 'विलुप्त / सूखा तल',
 
     // Citizen Dashboard
     citizenHeroTag: 'सार्वजनिक जल निगरानी एवं शिकायत निवारण',
@@ -384,15 +400,23 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // 5 Status Cards
     statusGreenTitle: 'అద్భుతమైన / రీఛార్జ్',
-    statusGreenDesc: 'సమృద్ధిగా రీఛార్జ్',
+    statusGreenDesc: 'సమృద్ధిగా నీటి నిల్వ / రీఛార్జ్',
     statusBlueTitle: 'సాధారణ',
-    statusBlueDesc: 'ఆమోదయోగ్య నాణ్యత',
-    statusYellowTitle: 'మధ్యస్థ సమస్య',
-    statusYellowDesc: 'మధ్యస్థ పూడిక మరియు వ్యర్థాలు',
-    statusRedTitle: 'ప్రమాదకర ప్రాంతం',
-    statusRedDesc: 'తీవ్రమైన ప్రమాదం మరియు కాలుష్యం',
-    statusGreyTitle: 'అంతరించిన జలాశయం',
-    statusGreyDesc: 'ఎండిపోయిన / కనుమరుగైన',
+    statusBlueDesc: 'ఆమోదయోగ్య నాణ్యత / స్థిర ప్రవాహం',
+    statusYellowTitle: 'మధ్యస్థ హెచ్చరిక / ఒత్తిడి',
+    statusYellowDesc: 'మితమైన పూడిక / నీటి కొరత',
+    statusRedTitle: 'తీవ్రమైన ప్రమాదం / అత్యవసరం',
+    statusRedDesc: 'తీవ్రమైన సంక్షోభం / డెంజర్ మార్క్',
+    statusGreyTitle: 'ఎండిపోయిన / కనుమరుగైన చెరువు',
+    statusGreyDesc: 'పూర్తిగా ఎండిపోయిన / ఆక్రమణ',
+
+    // Scope Selector
+    scopeAllIndia: 'అఖిల భారత జల గ్రిడ్',
+    scopeAndhraPradesh: 'ఆంధ్రప్రదేశ్ రాష్ట్ర గ్రిడ్',
+    scopeMicroWatersheds: 'ప్రధాన పరీవాహక ప్రాంతాలు',
+    telemetryStations: 'టెలిమెట్రీ స్టేషన్లు',
+    activeFilterNotice: 'క్రియాశీల స్థితి ఫిల్టర్',
+    clearFilter: 'అన్ని స్టేషన్లను చూపించు',
 
     // Map section
     nationalMapTitle: 'జాతీయ జల గ్రిడ్ & భారతదేశ నదీ పరీవాహక ప్రాంతాలు',
@@ -422,9 +446,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     filterAll: 'అన్నీ',
     filterPristine: 'అద్భుతమైన (రీఛార్జ్)',
     filterNormal: 'సాధారణ',
-    filterMiddleProblem: 'మధ్యస్థ సమస్య',
-    filterDanger: 'ప్రమాదకర ప్రాంతం',
-    filterExtinct: 'అంతరించిన జలాశయం',
+    filterMiddleProblem: 'మధ్యస్థ హెచ్చరిక / ఒత్తిడి',
+    filterDanger: 'తీవ్రమైన ప్రమాదం / అత్యవసరం',
+    filterExtinct: 'ఎండిపోయిన / కనుమరుగైన చెరువు',
 
     // Citizen Dashboard
     citizenHeroTag: 'ప్రజా జల నిఘా & ఫిర్యాదుల పరిష్కారం',
