@@ -346,6 +346,7 @@ export interface LiveStationTelemetry {
   waterSpreadHa?: number;
   baselineSpreadHa?: number;
   agency?: string;
+  basin?: string;
   isLiveVerified?: boolean;
   verificationSource?: string;
   verificationNote?: string;
@@ -425,9 +426,6 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   // Flashcard State: Persistent station card (closes ONLY on [X] click)
   const [flashStation, setFlashStation] = useState<HydrologicalStation | null>(null);
 
-  // 100% Real Live Rain Radar Layer (RainViewer Doppler Global/India API)
-  const [showRainRadar, setShowRainRadar] = useState<boolean>(false);
-  const rainRadarLayerRef = useRef<L.TileLayer | null>(null);
 
   // 100% Real Live Catchment Telemetry State (Open-Meteo High-Resolution Grid)
   const [realTimeTelemetry, setRealTimeTelemetry] = useState<RealTimeCatchmentTelemetry | null>(null);
@@ -586,6 +584,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           }
           return resolved;
         })(),
+        basin: data.basin || st.basin,
         isLiveVerified: data.isLiveVerified !== undefined ? data.isLiveVerified : Boolean(st.isLiveVerified),
         verificationSource: data.verificationSource || st.verificationSource || (
           st.category === 'groundwater' 
@@ -652,36 +651,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     }
   }, [flashStation, fetchLiveCatchmentTelemetry, fetchLiveStationTelemetry]);
 
-  // Real-Time Doppler Rain Radar Layer Effect
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
 
-    if (rainRadarLayerRef.current) {
-      map.removeLayer(rainRadarLayerRef.current);
-      rainRadarLayerRef.current = null;
-    }
-
-    if (showRainRadar) {
-      fetch('https://api.rainviewer.com/public/weather-maps.json')
-        .then((res) => res.json())
-        .then((data) => {
-          if (!mapInstanceRef.current) return;
-          const pastFrames = data?.radar?.past;
-          if (pastFrames && pastFrames.length > 0) {
-            const latest = pastFrames[pastFrames.length - 1];
-            const radarUrl = `https://tilecache.rainviewer.com${latest.path}/256/{z}/{x}/{y}/2/1_1.png`;
-            rainRadarLayerRef.current = L.tileLayer(radarUrl, {
-              maxZoom: 18,
-              opacity: 0.70,
-              zIndex: 400,
-              attribution: '&copy; <a href="https://rainviewer.com">RainViewer</a> Live Doppler Radar',
-            }).addTo(mapInstanceRef.current);
-          }
-        })
-        .catch((err) => console.error('RainViewer load error:', err));
-    }
-  }, [showRainRadar]);
 
   // Synchronize external status filter from homepage 5-color cards
   useEffect(() => {
@@ -1164,41 +1134,6 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             )}
           </div>
 
-          {/* Middle-Right: Real-Time Live Rain Doppler Radar Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowRainRadar((prev) => !prev)}
-            className={`px-3.5 py-2.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 border ${
-              showRainRadar
-                ? 'bg-emerald-600 text-white border-emerald-500 shadow-md ring-2 ring-emerald-300'
-                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs hover:border-slate-300'
-            }`}
-            title={
-              language === 'hi'
-                ? 'लाइव मौसम वर्षा डॉप्लर रडार चालू/बंद करें (RainViewer Live Doppler)'
-                : 'Toggle Real-Time Weather Rain Doppler Radar (RainViewer Live API)'
-            }
-          >
-            <span className="relative flex h-2 w-2">
-              {showRainRadar && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${
-                  showRainRadar ? 'bg-white' : 'bg-emerald-500'
-                }`}
-              ></span>
-            </span>
-            <CloudRain className={`w-4 h-4 ${showRainRadar ? 'text-white' : 'text-sky-600'}`} />
-            <span>{language === 'hi' ? 'लाइव वर्षा रडार' : 'Live Rain Radar'}</span>
-            <span
-              className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono uppercase ${
-                showRainRadar ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-              }`}
-            >
-              {showRainRadar ? (language === 'hi' ? 'सक्रिय' : 'ON') : (language === 'hi' ? 'बंद' : 'OFF')}
-            </span>
-          </button>
 
           {/* Right: Modern Filter & Display Settings Button (Directly beside GPS) */}
           <button
@@ -1252,7 +1187,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                 <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5 flex-wrap">
                   <span>{flashStation.district}, {flashStation.state}</span>
                   <span>•</span>
-                  <span className="text-slate-700 font-semibold">{flashStation.basin}</span>
+                  <span className="text-slate-700 font-semibold">{stationTelemetry?.basin || flashStation.basin}</span>
                   <span>•</span>
                   <span className="text-blue-600 font-mono text-[10px]">📍 {flashStation.lat.toFixed(4)}°N, {flashStation.lng.toFixed(4)}°E</span>
                 </div>
@@ -1503,11 +1438,18 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                         <span className="text-[10px] text-slate-500 font-bold block">
                           {language === 'hi' ? 'जल स्तर' : 'WATER LEVEL'}
                         </span>
-                        <span className="text-sm font-black text-slate-800 font-mono">
-                          {effectiveWaterLevel ? `${effectiveWaterLevel.toFixed(2)} m` : '--'}
-                        </span>
+                        <div className="flex items-baseline gap-1 flex-wrap">
+                          <span className="text-sm font-black text-slate-800 font-mono">
+                            {effectiveWaterLevel ? `${effectiveWaterLevel.toFixed(2)} m` : '--'}
+                          </span>
+                          {effectiveWaterLevel && (
+                            <span className="text-[10px] font-semibold text-slate-500 font-mono">
+                              ({(effectiveWaterLevel * 3.28084).toFixed(1)} ft)
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-slate-500 block">
-                          {language === 'hi' ? 'FRL स्तर' : 'FRL Level'}: {effectiveFRL ? `${effectiveFRL.toFixed(2)} m` : '--'}
+                          {language === 'hi' ? 'FRL स्तर' : 'FRL Level'}: {effectiveFRL ? `${effectiveFRL.toFixed(2)} m (${Math.round(effectiveFRL * 3.28084)} ft)` : '--'}
                         </span>
                       </div>
 
@@ -1520,7 +1462,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                               {language === 'hi' ? 'सुरक्षित जलस्तर मार्जिन (Buffer to FRL):' : 'Clearance Buffer to FRL:'}
                             </span>
                             <span className="font-mono text-emerald-700 font-bold">
-                              {bufferMargin.toFixed(2)} m {language === 'hi' ? 'नीचे (सुरक्षित)' : 'below Full Crest'}
+                              {bufferMargin.toFixed(2)} m ({(bufferMargin * 3.28084).toFixed(1)} ft) {language === 'hi' ? 'नीचे (सुरक्षित)' : 'below Full Crest'}
                             </span>
                           </div>
                           <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden flex">
@@ -1535,10 +1477,10 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                               style={{ width: `${Math.min(100, Math.max(5, effectiveStoragePct || 70))}%` }}
                             />
                           </div>
-                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-                            <span>{language === 'hi' ? 'वर्तमान' : 'Current'}: {effectiveWaterLevel.toFixed(2)} m</span>
-                            <span className="text-amber-700 font-semibold">{language === 'hi' ? 'चेतावनी स्तर' : 'Warning'}: {effectiveWarning ? `${effectiveWarning.toFixed(2)} m` : effectiveFRL ? `${(effectiveFRL - 1.52).toFixed(2)} m` : '--'}</span>
-                            <span className="text-slate-700 font-semibold">{language === 'hi' ? 'अधिकतम FRL' : 'FRL'}: {effectiveFRL.toFixed(2)} m</span>
+                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono flex-wrap gap-1">
+                            <span>{language === 'hi' ? 'वर्तमान' : 'Current'}: {effectiveWaterLevel.toFixed(2)} m ({(effectiveWaterLevel * 3.28084).toFixed(1)} ft)</span>
+                            <span className="text-amber-700 font-semibold">{language === 'hi' ? 'चेतावनी स्तर' : 'Warning'}: {effectiveWarning ? `${effectiveWarning.toFixed(2)} m (${Math.round(effectiveWarning * 3.28084)} ft)` : effectiveFRL ? `${(effectiveFRL - 1.52).toFixed(2)} m` : '--'}</span>
+                            <span className="text-slate-700 font-semibold">{language === 'hi' ? 'अधिकतम FRL' : 'FRL'}: {effectiveFRL.toFixed(2)} m ({Math.round(effectiveFRL * 3.28084)} ft)</span>
                           </div>
                         </div>
                       )}
@@ -1640,6 +1582,16 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                           </span>
                           <span className="font-mono font-bold text-slate-800">
                             {Math.abs(effectivePreMonsoon).toFixed(2)} mbgl
+                          </span>
+                        </div>
+                      )}
+                      {(stationTelemetry?.aquiferZone || (flashStation as any).aquiferZone) && (
+                        <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 col-span-2 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-600 font-medium">
+                            {language === 'hi' ? 'हाइड्रोलॉजिकल शैल परत:' : 'Aquifer Formation:'}
+                          </span>
+                          <span className="font-semibold text-slate-800">
+                            {stationTelemetry?.aquiferZone || (flashStation as any).aquiferZone}
                           </span>
                         </div>
                       )}
