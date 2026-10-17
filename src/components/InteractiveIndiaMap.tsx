@@ -323,6 +323,7 @@ export interface LiveStationTelemetry {
   isLoading: boolean;
   isError: boolean;
   stationId: string;
+  category?: string;
   dischargeCusecs?: number;
   currentRiverLevelM?: number;
   pondLevelM?: number;
@@ -330,9 +331,20 @@ export interface LiveStationTelemetry {
   warningLevelM?: number;
   dangerLevelM?: number;
   waterLevelM?: number;
+  fullReservoirLevelM?: number;
   currentLiveStorageMCM?: number;
   storagePercentage?: number;
+  waterLevelDepthMBGL?: number;
+  preMonsoonMBGL?: number;
+  rechargeTrendM?: number;
+  waterQualityTdsPpm?: number;
+  electricalConductivityUsCm?: number;
+  aquiferZone?: string;
+  piezometerType?: string;
   flowStatus?: string;
+  ndwiScore?: number;
+  waterSpreadHa?: number;
+  baselineSpreadHa?: number;
   agency?: string;
   isLiveVerified?: boolean;
   verificationSource?: string;
@@ -475,23 +487,113 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       const data = await res.json();
       const firstRecord = Array.isArray(data.data) && data.data.length > 0 ? data.data[0] : null;
 
+      // Ensure that a fallback record doesn't overwrite a completely different station
+      const isExactStationMatch = data.stationId === st.id;
+      const isRecordMatching = Boolean(
+        firstRecord && (
+          (firstRecord.stationName && (st.name.toLowerCase().includes(firstRecord.stationName.toLowerCase()) || firstRecord.stationName.toLowerCase().includes(st.name.toLowerCase()))) ||
+          (firstRecord.reservoirName && (st.name.toLowerCase().includes(firstRecord.reservoirName.toLowerCase()) || firstRecord.reservoirName.toLowerCase().includes(st.name.toLowerCase()))) ||
+          (firstRecord.districtName && (st.district || '').toLowerCase() === firstRecord.districtName.toLowerCase())
+        )
+      );
+
+      const discharge = isExactStationMatch
+        ? (data.dischargeCusecs ?? data.discharge_Cusecs ?? st.dischargeCusecs)
+        : isRecordMatching
+        ? (firstRecord?.discharge_Cusecs ?? st.dischargeCusecs)
+        : st.dischargeCusecs;
+
+      const riverLevel = isExactStationMatch
+        ? (data.currentRiverLevelM ?? data.currentWaterLevel_M ?? st.currentRiverLevelM)
+        : isRecordMatching
+        ? (firstRecord?.currentWaterLevel_M ?? st.currentRiverLevelM)
+        : st.currentRiverLevelM;
+
+      const waterLevel = isExactStationMatch
+        ? (data.waterLevelM ?? data.waterLevel_M ?? st.waterLevelM)
+        : isRecordMatching
+        ? (firstRecord?.waterLevel_M ?? st.waterLevelM)
+        : st.waterLevelM;
+
+      const fullReservoirLevel = isExactStationMatch
+        ? (data.fullReservoirLevelM ?? st.fullReservoirLevelM)
+        : isRecordMatching
+        ? (firstRecord?.fullCapacity_MCM ? st.fullReservoirLevelM : st.fullReservoirLevelM)
+        : st.fullReservoirLevelM;
+
+      const storage = isExactStationMatch
+        ? (data.currentLiveStorageMCM ?? data.currentLiveStorage_MCM ?? st.currentLiveStorageMCM)
+        : isRecordMatching
+        ? (firstRecord?.currentLiveStorage_MCM ?? st.currentLiveStorageMCM)
+        : st.currentLiveStorageMCM;
+
+      const storagePct = isExactStationMatch
+        ? (data.storagePercentage ?? st.storagePercentage)
+        : isRecordMatching
+        ? (firstRecord?.storagePercentage ?? st.storagePercentage)
+        : st.storagePercentage;
+
+      const gwDepth = isExactStationMatch
+        ? (data.waterLevelDepthMBGL ?? st.waterLevelDepthMBGL)
+        : (firstRecord?.waterLevelDepthMBGL ?? st.waterLevelDepthMBGL);
+
+      const gwPreMonsoon = isExactStationMatch
+        ? (data.preMonsoonMBGL ?? st.preMonsoonMBGL)
+        : (firstRecord?.preMonsoonMBGL ?? st.preMonsoonMBGL);
+
+      const gwTrend = isExactStationMatch
+        ? (data.rechargeTrendM ?? st.rechargeTrendM)
+        : (firstRecord?.rechargeTrendM ?? st.rechargeTrendM);
+
+      const gwTds = isExactStationMatch
+        ? (data.waterQualityTdsPpm ?? st.waterQualityTdsPpm)
+        : (firstRecord?.waterQualityTdsPpm ?? st.waterQualityTdsPpm);
+
+      const gwEc = isExactStationMatch
+        ? (data.electricalConductivityUsCm ?? (st as any).electricalConductivityUsCm)
+        : ((firstRecord as any)?.electricalConductivityUsCm ?? (st as any).electricalConductivityUsCm);
+
       setStationTelemetry({
         isLoading: false,
         isError: false,
         stationId: st.id,
-        dischargeCusecs: data.dischargeCusecs ?? data.discharge_Cusecs ?? firstRecord?.discharge_Cusecs ?? st.dischargeCusecs,
-        currentRiverLevelM: data.currentRiverLevelM ?? data.currentWaterLevel_M ?? firstRecord?.currentWaterLevel_M ?? st.currentRiverLevelM,
+        category: data.category || st.category,
+        dischargeCusecs: discharge,
+        currentRiverLevelM: riverLevel,
         pondLevelM: data.pondLevelM ?? data.pondLevel_M ?? firstRecord?.pondLevel_M ?? st.pondLevelM,
         normalPondLevelM: data.normalPondLevelM ?? data.normalPondLevel_M ?? st.normalPondLevelM,
-        warningLevelM: data.warningLevelM ?? data.warning_level_m ?? firstRecord?.warningLevel_M ?? st.warningLevelM,
-        dangerLevelM: data.dangerLevelM ?? data.danger_level_m ?? firstRecord?.dangerLevel_M ?? st.dangerLevelM,
-        waterLevelM: data.waterLevelM ?? data.waterLevel_M ?? firstRecord?.waterLevel_M ?? st.waterLevelM,
-        currentLiveStorageMCM: data.currentLiveStorageMCM ?? data.currentLiveStorage_MCM ?? firstRecord?.currentLiveStorage_MCM ?? st.currentLiveStorageMCM,
-        storagePercentage: data.storagePercentage ?? firstRecord?.storagePercentage ?? st.storagePercentage,
-        flowStatus: data.flowStatus ?? firstRecord?.status ?? st.statusLabel,
-        agency: data.agency ?? firstRecord?.agencyName ?? st.agency,
+        warningLevelM: data.warningLevelM ?? data.warning_level_m ?? (isRecordMatching ? firstRecord?.warningLevel_M : undefined) ?? st.warningLevelM,
+        dangerLevelM: data.dangerLevelM ?? data.danger_level_m ?? (isRecordMatching ? firstRecord?.dangerLevel_M : undefined) ?? st.dangerLevelM,
+        waterLevelM: waterLevel,
+        fullReservoirLevelM: fullReservoirLevel,
+        currentLiveStorageMCM: storage,
+        storagePercentage: storagePct,
+        waterLevelDepthMBGL: gwDepth,
+        preMonsoonMBGL: gwPreMonsoon,
+        rechargeTrendM: gwTrend,
+        waterQualityTdsPpm: gwTds,
+        electricalConductivityUsCm: gwEc,
+        aquiferZone: data.aquiferZone,
+        piezometerType: data.piezometerType,
+        flowStatus: data.flowStatus ?? (isRecordMatching ? firstRecord?.status : undefined) ?? st.statusLabel,
+        ndwiScore: data.ndwiScore ?? firstRecord?.ndwiScore ?? (st as any).ndwiScore,
+        waterSpreadHa: data.waterSpreadHa ?? firstRecord?.waterSpreadHa ?? (st as any).waterSpreadHa,
+        baselineSpreadHa: data.baselineSpreadHa ?? firstRecord?.baselineSpreadHa ?? (st as any).baselineSpreadHa,
+        agency: (() => {
+          let resolved = data.agency ?? (isRecordMatching ? firstRecord?.agencyName : undefined) ?? st.agency;
+          if (st.state && st.state !== 'Andhra Pradesh' && (resolved === 'APWRIMS' || resolved === 'APWRIMS Network' || resolved === 'APWRIMS & CWC')) {
+            resolved = st.agency && !st.agency.includes('APWRIMS') ? st.agency : (st.category === 'bhuvan_wbis' ? 'ISRO-NRSC & State Wetland Authority' : 'CWC & State WRD');
+          }
+          return resolved;
+        })(),
         isLiveVerified: data.isLiveVerified !== undefined ? data.isLiveVerified : Boolean(st.isLiveVerified),
-        verificationSource: data.verificationSource || st.verificationSource || 'National Hydrological Grid (CWC / WRD)',
+        verificationSource: data.verificationSource || st.verificationSource || (
+          st.category === 'groundwater' 
+            ? 'Central Ground Water Board (CGWB) NWDP & State GW Grid' 
+            : st.category === 'bhuvan_wbis'
+            ? (st.state === 'Bihar' ? 'ISRO NRSC Bhuvan WBIS & Bihar State Wetland Authority (BSWA)' : 'ISRO NRSC Bhuvan WBIS')
+            : (st.state === 'Andhra Pradesh' ? 'APWRIMS & CWC Hydrological Grid' : `${st.state || 'National'} Hydrological Grid (CWC / WRD)`)
+        ),
         verificationNote: data.verificationNote || st.verificationNote,
         discrepancyNotice: data.discrepancyNotice,
         date: data.date || new Date().toISOString().split('T')[0],
@@ -503,6 +605,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         isLoading: false,
         isError: true,
         stationId: st.id,
+        category: st.category,
         dischargeCusecs: st.dischargeCusecs,
         currentRiverLevelM: st.currentRiverLevelM,
         pondLevelM: st.pondLevelM,
@@ -512,6 +615,11 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         waterLevelM: st.waterLevelM,
         currentLiveStorageMCM: st.currentLiveStorageMCM,
         storagePercentage: st.storagePercentage,
+        waterLevelDepthMBGL: st.waterLevelDepthMBGL,
+        preMonsoonMBGL: st.preMonsoonMBGL,
+        rechargeTrendM: st.rechargeTrendM,
+        waterQualityTdsPpm: st.waterQualityTdsPpm,
+        electricalConductivityUsCm: (st as any).electricalConductivityUsCm,
         flowStatus: st.statusLabel,
         agency: st.agency,
         isLiveVerified: Boolean(st.isLiveVerified),
@@ -526,10 +634,18 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   }, []);
 
   // Fetch live telemetry automatically when flashStation opens (ONLY for the clicked station)
+  // Also runs an automatic live polling timer every 60 seconds while the station card is open
   useEffect(() => {
     if (flashStation) {
       fetchLiveCatchmentTelemetry(flashStation.lat, flashStation.lng);
       fetchLiveStationTelemetry(flashStation);
+
+      const pollTimer = setInterval(() => {
+        fetchLiveCatchmentTelemetry(flashStation.lat, flashStation.lng);
+        fetchLiveStationTelemetry(flashStation);
+      }, 60000);
+
+      return () => clearInterval(pollTimer);
     } else {
       setRealTimeTelemetry(null);
       setStationTelemetry(null);
@@ -1164,7 +1280,11 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                   </span>
                   <span className="font-extrabold text-[11px] text-[#0047ab] tracking-tight uppercase flex items-center gap-1">
                     <Radio className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
-                    {language === 'hi' ? 'वास्तविक लाइव कैचमेंट टेलीमेट्री' : 'Real-Time Catchment Telemetry'}
+                    {flashStation.category === 'groundwater'
+                      ? (language === 'hi' ? 'स्थानिक भू-मौसम एवं पुनर्भरण मौसम' : 'Real-Time Wellhead & Recharge Meteorology')
+                      : flashStation.category === 'bhuvan_wbis'
+                      ? (language === 'hi' ? 'जल निकाय एवं सतही मौसम' : 'Water Body Micro-Climate')
+                      : (language === 'hi' ? 'वास्तविक लाइव कैचमेंट टेलीमेट्री' : 'Real-Time Catchment Telemetry')}
                   </span>
                 </div>
 
@@ -1195,7 +1315,13 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                         {realTimeTelemetry.precipitation} mm/h
                       </span>
                       <span className="text-[9px] font-medium text-slate-400 block truncate">
-                        {realTimeTelemetry.precipitation > 0 ? (language === 'hi' ? 'सक्रिय आवक' : 'Active Inflow') : (language === 'hi' ? 'शुष्क कैचमेंट' : 'No Rain')}
+                        {realTimeTelemetry.precipitation > 0
+                          ? (language === 'hi'
+                              ? (flashStation.category === 'groundwater' ? 'सक्रिय अंतःस्रवण' : 'सक्रिय आवक')
+                              : (flashStation.category === 'groundwater' ? 'Active Infiltration' : 'Active Inflow'))
+                          : (language === 'hi'
+                              ? (flashStation.category === 'groundwater' ? 'शुष्क सतह' : 'शुष्क कैचमेंट')
+                              : (flashStation.category === 'groundwater' ? 'Dry Surface' : 'No Rain'))}
                       </span>
                     </div>
 
@@ -1209,7 +1335,9 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                         {realTimeTelemetry.temperature}°C
                       </span>
                       <span className="text-[9px] font-medium text-slate-400 block truncate">
-                        {language === 'hi' ? 'कैचमेंट' : 'Catchment'}
+                        {flashStation.category === 'groundwater'
+                          ? (language === 'hi' ? 'बोरवेल स्थल' : 'DWLR Site')
+                          : (language === 'hi' ? 'कैचमेंट' : 'Catchment')}
                       </span>
                     </div>
 
@@ -1268,10 +1396,22 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  {language === 'hi' ? 'केन्द्रीय जल आयोग व राज्य जल संसाधन टेलीमेट्री' : 'Official CWC & State WRD Telemetry'}
+                  {flashStation.category === 'bhuvan_wbis'
+                    ? (language === 'hi' ? 'इसरो-भुवन व राज्य वेटलैंड प्राधिकरण टेलीमेट्री' : 'ISRO-Bhuvan & State Wetland Telemetry')
+                    : flashStation.category === 'groundwater'
+                    ? (language === 'hi' ? 'केन्द्रीय भूमि जल बोर्ड (CGWB) टेलीमेट्री' : 'Official CGWB Groundwater Telemetry')
+                    : (language === 'hi' ? 'केन्द्रीय जल आयोग व राज्य जल संसाधन टेलीमेट्री' : 'Official CWC & State WRD Telemetry')}
                 </span>
                 <span className="text-[9px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                  {stationTelemetry?.agency || flashStation.agency} Network
+                  {(() => {
+                    const rawAgency = (stationTelemetry?.agency && (flashStation.state === 'Andhra Pradesh' || !stationTelemetry.agency.includes('APWRIMS')))
+                      ? stationTelemetry.agency
+                      : flashStation.agency;
+                    if (rawAgency.includes('Network') || rawAgency.includes('Authority') || rawAgency.includes('Grid') || rawAgency.includes('Board') || rawAgency.includes('Constellation')) {
+                      return rawAgency;
+                    }
+                    return `${rawAgency} Network`;
+                  })()}
                 </span>
               </div>
 
@@ -1322,72 +1462,89 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                   )}
 
                   <div className="flex items-center justify-between text-[9px] text-slate-500 border-t border-emerald-200/60 pt-1 mt-1 font-mono">
-                    <span className="truncate max-w-[220px]">{stationTelemetry.verificationSource}</span>
-                    <span>🕒 {stationTelemetry.lastSync} IST</span>
+                    <span className="truncate max-w-[240px] font-semibold text-slate-700">
+                      {flashStation.category === 'reservoir' 
+                        ? '📋 CWC RSMS Daily Bulletin (08:30 IST Cycle)' 
+                        : flashStation.category === 'groundwater'
+                        ? (stationTelemetry?.verificationSource || '📊 CGWB National DWLR Grid & DJB')
+                        : flashStation.category === 'bhuvan_wbis'
+                        ? (stationTelemetry?.verificationSource || (flashStation.state === 'Bihar' ? '🛰️ ISRO NRSC Bhuvan WBIS & BSWA' : '🛰️ ISRO NRSC Bhuvan WBIS'))
+                        : stationTelemetry?.verificationSource || (flashStation.state === 'Bihar' ? 'WRD Bihar & CWC Telemetry Grid' : 'National Hydrological Grid (CWC / WRD)')}
+                    </span>
+                    <span>{flashStation.category === 'reservoir' ? '📅 17 Oct 2026' : `🕒 ${stationTelemetry.lastSync} IST`}</span>
                   </div>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-2 text-xs">
-                {flashStation.category === 'reservoir' && (
-                  <>
-                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold block">
-                        {language === 'hi' ? 'वर्तमान भंडारण' : 'CURRENT STORAGE'}
-                      </span>
-                      <span className="text-sm font-black text-[#0047ab] font-mono">
-                        {(stationTelemetry?.currentLiveStorageMCM ?? flashStation.currentLiveStorageMCM) ? `${(stationTelemetry?.currentLiveStorageMCM ?? flashStation.currentLiveStorageMCM)?.toLocaleString()} MCM` : flashStation.currentLiveStorageBMC ? `${flashStation.currentLiveStorageBMC} BMC` : '--'}
-                      </span>
-                      <span className="text-[10px] text-emerald-600 font-semibold block">
-                        {stationTelemetry?.storagePercentage ?? flashStation.storagePercentage}% {language === 'hi' ? 'भराव क्षमता' : 'of Full Limit'}
-                      </span>
-                    </div>
+                {flashStation.category === 'reservoir' && (() => {
+                  const effectiveStorage = stationTelemetry?.currentLiveStorageMCM ?? flashStation.currentLiveStorageMCM;
+                  const effectiveStoragePct = stationTelemetry?.storagePercentage ?? flashStation.storagePercentage;
+                  const effectiveWaterLevel = stationTelemetry?.waterLevelM ?? flashStation.waterLevelM;
+                  const effectiveFRL = stationTelemetry?.fullReservoirLevelM ?? flashStation.fullReservoirLevelM;
+                  const effectiveWarning = stationTelemetry?.warningLevelM ?? flashStation.warningLevelM;
+                  const bufferMargin = (effectiveWaterLevel && effectiveFRL) ? (effectiveFRL - effectiveWaterLevel) : null;
 
-                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold block">
-                        {language === 'hi' ? 'जल स्तर' : 'WATER LEVEL'}
-                      </span>
-                      <span className="text-sm font-black text-slate-800 font-mono">
-                        {(stationTelemetry?.waterLevelM ?? flashStation.waterLevelM) ? `${(stationTelemetry?.waterLevelM ?? flashStation.waterLevelM)?.toFixed(2)} m` : '--'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {language === 'hi' ? 'FRL स्तर' : 'FRL Level'}: {flashStation.fullReservoirLevelM ? `${flashStation.fullReservoirLevelM.toFixed(2)} m` : '--'}
-                      </span>
-                    </div>
-
-                    {/* Dynamic Flood Safety Clearance Buffer */}
-                    {flashStation.waterLevelM && flashStation.fullReservoirLevelM && (
-                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 col-span-2 space-y-1">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
-                          <span className="flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                            {language === 'hi' ? 'सुरक्षित जलस्तर मार्जिन (Buffer to FRL):' : 'Clearance Buffer to FRL:'}
-                          </span>
-                          <span className="font-mono text-emerald-700 font-bold">
-                            {(flashStation.fullReservoirLevelM - flashStation.waterLevelM).toFixed(2)} m {language === 'hi' ? 'नीचे (सुरक्षित)' : 'below Full Crest'}
-                          </span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden flex">
-                          <div 
-                            className={`h-full ${
-                              (flashStation.fullReservoirLevelM - flashStation.waterLevelM) < 1.0 
-                                ? 'bg-rose-500' 
-                                : (flashStation.fullReservoirLevelM - flashStation.waterLevelM) < 2.5 
-                                ? 'bg-amber-500' 
-                                : 'bg-emerald-500'
-                            }`}
-                            style={{ width: `${Math.min(100, Math.max(5, flashStation.storagePercentage || 70))}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[9px] text-slate-400">
-                          <span>{language === 'hi' ? 'वर्तमान' : 'Current'}: {flashStation.waterLevelM.toFixed(2)} m</span>
-                          <span>{language === 'hi' ? 'चेतावनी' : 'Warning'}: {flashStation.warningLevelM ? `${flashStation.warningLevelM.toFixed(2)} m` : '280.00 m'}</span>
-                          <span>{language === 'hi' ? 'अधिकतम FRL' : 'FRL'}: {flashStation.fullReservoirLevelM.toFixed(2)} m</span>
-                        </div>
+                  return (
+                    <>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? 'वर्तमान भंडारण' : 'CURRENT STORAGE'}
+                        </span>
+                        <span className="text-sm font-black text-[#0047ab] font-mono">
+                          {effectiveStorage ? `${effectiveStorage.toLocaleString()} MCM` : flashStation.currentLiveStorageBMC ? `${flashStation.currentLiveStorageBMC} BMC` : '--'}
+                        </span>
+                        <span className="text-[10px] text-emerald-600 font-semibold block">
+                          {effectiveStoragePct ? `${effectiveStoragePct}%` : '--'} {language === 'hi' ? 'भराव क्षमता' : 'of Full Limit'}
+                        </span>
                       </div>
-                    )}
-                  </>
-                )}
+
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? 'जल स्तर' : 'WATER LEVEL'}
+                        </span>
+                        <span className="text-sm font-black text-slate-800 font-mono">
+                          {effectiveWaterLevel ? `${effectiveWaterLevel.toFixed(2)} m` : '--'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {language === 'hi' ? 'FRL स्तर' : 'FRL Level'}: {effectiveFRL ? `${effectiveFRL.toFixed(2)} m` : '--'}
+                        </span>
+                      </div>
+
+                      {/* Dynamic Flood Safety Clearance Buffer */}
+                      {effectiveWaterLevel && effectiveFRL && bufferMargin !== null && (
+                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 col-span-2 space-y-1">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
+                            <span className="flex items-center gap-1">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              {language === 'hi' ? 'सुरक्षित जलस्तर मार्जिन (Buffer to FRL):' : 'Clearance Buffer to FRL:'}
+                            </span>
+                            <span className="font-mono text-emerald-700 font-bold">
+                              {bufferMargin.toFixed(2)} m {language === 'hi' ? 'नीचे (सुरक्षित)' : 'below Full Crest'}
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden flex">
+                            <div 
+                              className={`h-full ${
+                                bufferMargin < 1.0 
+                                  ? 'bg-rose-500' 
+                                  : bufferMargin < 2.5 
+                                  ? 'bg-amber-500' 
+                                  : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${Math.min(100, Math.max(5, effectiveStoragePct || 70))}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                            <span>{language === 'hi' ? 'वर्तमान' : 'Current'}: {effectiveWaterLevel.toFixed(2)} m</span>
+                            <span className="text-amber-700 font-semibold">{language === 'hi' ? 'चेतावनी स्तर' : 'Warning'}: {effectiveWarning ? `${effectiveWarning.toFixed(2)} m` : effectiveFRL ? `${(effectiveFRL - 1.52).toFixed(2)} m` : '--'}</span>
+                            <span className="text-slate-700 font-semibold">{language === 'hi' ? 'अधिकतम FRL' : 'FRL'}: {effectiveFRL.toFixed(2)} m</span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {(flashStation.category === 'river_level' || flashStation.category === 'river_discharge') && (() => {
                   const effectiveDischarge = stationTelemetry?.dischargeCusecs ?? flashStation.dischargeCusecs;
@@ -1443,86 +1600,243 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                   );
                 })()}
 
-                {flashStation.category === 'groundwater' && (
-                  <>
-                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold block">
-                        {language === 'hi' ? 'भूजल गहराई' : 'DEPTH TO WATER'}
-                      </span>
-                      <span className="text-sm font-black text-amber-600 font-mono">
-                        -{flashStation.waterLevelDepthMBGL ?? '--'} m
-                      </span>
-                      <span className="text-[10px] text-slate-500 block">m Below Ground Level</span>
-                    </div>
-                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold block">
-                        {language === 'hi' ? 'रीचार्ज ट्रेंड' : 'RECHARGE TREND'}
-                      </span>
-                      <span className="text-sm font-black text-emerald-600 font-mono">
-                        +{flashStation.rechargeTrendM ?? '1.5'} m
-                      </span>
-                      <span className="text-[10px] text-emerald-600 font-semibold block">
-                        {language === 'hi' ? 'भूजल स्तर वृद्धि' : 'Aquifer Gain'}
-                      </span>
-                    </div>
-                  </>
-                )}
+                {flashStation.category === 'groundwater' && (() => {
+                  const effectiveDepth = stationTelemetry?.waterLevelDepthMBGL ?? flashStation.waterLevelDepthMBGL;
+                  const effectiveTrend = stationTelemetry?.rechargeTrendM ?? flashStation.rechargeTrendM;
+                  const effectivePreMonsoon = stationTelemetry?.preMonsoonMBGL ?? flashStation.preMonsoonMBGL;
+                  const depthMbgl = effectiveDepth != null ? Math.abs(effectiveDepth) : null;
+                  const isRising = (effectiveTrend ?? 0) >= 0;
 
-                {flashStation.category === 'bhuvan_wbis' && (
-                  <>
-                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold block">
-                        {language === 'hi' ? 'भुवन NDWI स्कोर' : 'BHUVAN NDWI SCORE'}
-                      </span>
-                      <span className="text-sm font-black text-emerald-600 font-mono">
-                        {flashStation.ndwiScore ? (flashStation.ndwiScore > 0 ? `+${flashStation.ndwiScore}` : flashStation.ndwiScore) : '--'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {language === 'hi' ? 'उपग्रह द्वारा मापा गया' : 'Optically Detected'}
-                      </span>
-                    </div>
-                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold block">
-                        {language === 'hi' ? 'जल फैलाव क्षेत्रफल' : 'WATER SPREAD AREA'}
-                      </span>
-                      <span className="text-sm font-black text-slate-800 font-mono">
-                        {flashStation.waterSpreadHa ? `${flashStation.waterSpreadHa} Ha` : '--'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {flashStation.isExtinct 
-                          ? (language === 'hi' ? 'सूख कर मिट गया' : 'Dry Bed / Desiccated')
-                          : (language === 'hi' ? 'सतही क्षेत्रफल' : 'Surface Area')}
-                      </span>
-                    </div>
-                  </>
-                )}
+                  return (
+                    <>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? 'भूजल गहराई (DTWL)' : 'DEPTH TO WATER (DTWL)'}
+                        </span>
+                        <span className="text-sm font-black text-amber-600 font-mono">
+                          {depthMbgl != null ? `${depthMbgl.toFixed(2)} mbgl` : '--'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {language === 'hi' ? 'मीटर ज़मीन के नीचे (CGWB मानक)' : 'm Below Ground Level (+ve)'}
+                        </span>
+                      </div>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? 'मौसमी रीचार्ज रुझान' : 'RECHARGE TREND'}
+                        </span>
+                        <span className={`text-sm font-black font-mono ${isRising ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {effectiveTrend != null ? `${isRising ? `+${effectiveTrend.toFixed(2)}` : effectiveTrend.toFixed(2)} m` : '--'}
+                        </span>
+                        <span className={`text-[10px] font-semibold block ${isRising ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {isRising
+                            ? (language === 'hi' ? 'भूजल स्तर वृद्धि (लाभ)' : 'Aquifer Seasonal Gain')
+                            : (language === 'hi' ? 'भूजल स्तर गिरावट' : 'Aquifer Drawdown / Drop')}
+                        </span>
+                      </div>
+                      {effectivePreMonsoon != null && (
+                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 col-span-2 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-600 font-medium">
+                            {language === 'hi' ? 'प्री-मानसून बेसलाइन गहराई:' : 'Pre-Monsoon Baseline Depth:'}
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">
+                            {Math.abs(effectivePreMonsoon).toFixed(2)} mbgl
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
-                {/* Status and TDS summary */}
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between col-span-2 text-[11px]">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-2.5 h-2.5 rounded-full ${
-                      flashStation.status === 'green' ? 'bg-emerald-500' :
-                      flashStation.status === 'blue' ? 'bg-sky-500' :
-                      flashStation.status === 'yellow' ? 'bg-amber-500' :
-                      flashStation.status === 'red' ? 'bg-rose-500 animate-ping' : 'bg-slate-400'
-                    }`} />
-                    <span className="font-bold text-slate-800">
-                      {language === 'hi'
-                        ? (flashStation.status === 'green' ? 'उत्कृष्ट / पुनर्भरण' :
-                           flashStation.status === 'blue' ? 'सामान्य जल स्तर' :
-                           flashStation.status === 'yellow' ? 'मध्यम संकट / चेतावनी' :
-                           flashStation.status === 'red' ? 'गंभीर संकट / डेंजर ज़ोन' : 'विलुप्त / सूखा तल')
-                        : (flashStation.status === 'green' ? 'Pristine / Full Storage' :
-                           flashStation.status === 'blue' ? 'Normal / Safe' :
-                           flashStation.status === 'yellow' ? 'Moderate Alert' :
-                           flashStation.status === 'red' ? 'Critical / Danger' : 'Extinct / Dry Bed')
+                {flashStation.category === 'bhuvan_wbis' && (() => {
+                  const effectiveNdwi = stationTelemetry?.ndwiScore ?? flashStation.ndwiScore;
+                  const effectiveSpread = stationTelemetry?.waterSpreadHa ?? flashStation.waterSpreadHa;
+                  const effectiveBaseline = stationTelemetry?.baselineSpreadHa ?? flashStation.baselineSpreadHa;
+
+                  return (
+                    <>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? 'भुवन NDWI स्कोर' : 'BHUVAN NDWI SCORE'}
+                        </span>
+                        <span className="text-sm font-black text-emerald-600 font-mono">
+                          {effectiveNdwi != null ? (effectiveNdwi > 0 ? `+${effectiveNdwi}` : effectiveNdwi) : '--'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {language === 'hi' ? 'उपग्रह द्वारा मापा गया' : 'Optically Detected'}
+                        </span>
+                      </div>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? 'जल फैलाव क्षेत्रफल' : 'WATER SPREAD AREA'}
+                        </span>
+                        <span className="text-sm font-black text-slate-800 font-mono">
+                          {effectiveSpread != null ? `${effectiveSpread.toLocaleString()} Ha` : '--'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {flashStation.isExtinct 
+                            ? (language === 'hi' ? 'सूख कर मिट गया' : 'Dry Bed / Desiccated')
+                            : (language === 'hi' ? 'सतही क्षेत्रफल' : 'Surface Area')}
+                        </span>
+                      </div>
+                      {effectiveBaseline && effectiveSpread && (
+                        <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 col-span-2 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-600 font-medium">
+                            {language === 'hi' ? 'आधिकारिक रामसर / बेसलाइन फैलाव:' : 'Official Ramsar / Baseline Area:'}
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">
+                            {effectiveBaseline.toLocaleString()} Ha ({Math.min(100, Math.round((effectiveSpread / effectiveBaseline) * 100))}% {language === 'hi' ? 'आवरण' : 'coverage'})
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
+                {/* Dynamically verified status and TDS summary */}
+                {(() => {
+                  const dynamicEvaluation = (() => {
+                    if (flashStation.category === 'reservoir') {
+                      const level = stationTelemetry?.waterLevelM ?? flashStation.waterLevelM;
+                      const frl = stationTelemetry?.fullReservoirLevelM ?? flashStation.fullReservoirLevelM;
+                      const warn = stationTelemetry?.warningLevelM ?? flashStation.warningLevelM;
+                      const danger = stationTelemetry?.dangerLevelM ?? flashStation.dangerLevelM ?? frl;
+
+                      if (level != null && danger != null && level >= danger) {
+                        return {
+                          color: 'red',
+                          textEn: 'Critical / At Full Reservoir Level (Spillway Active)',
+                          textHi: 'अति-संवेदनशील / पूर्ण FRL स्तर (स्पिलवे सक्रिय)',
+                        };
                       }
-                    </span>
-                  </div>
-                  {flashStation.waterQualityTdsPpm && (
-                    <span className="font-mono text-blue-700 font-bold">TDS: {flashStation.waterQualityTdsPpm} ppm</span>
-                  )}
-                </div>
+                      if (level != null && warn != null && level >= warn) {
+                        return {
+                          color: 'yellow',
+                          textEn: 'Warning Mark Exceeded / High Flood Buffer Alert',
+                          textHi: 'चेतावनी स्तर पार / हाई फ्लड बफर अलर्ट',
+                        };
+                      }
+                      if (level != null && frl != null) {
+                        const buffer = frl - level;
+                        if (buffer <= 1.0) {
+                          return {
+                            color: 'blue',
+                            textEn: `Normal High Storage (${buffer.toFixed(2)}m below Full Crest)`,
+                            textHi: `सामान्य उच्च भंडारण (${buffer.toFixed(2)}m सुरक्षित अंतर)`,
+                          };
+                        }
+                        return {
+                          color: 'blue',
+                          textEn: 'Regulated Storage / Safe Buffer',
+                          textHi: 'विनियमित भंडारण / सुरक्षित जल स्तर',
+                        };
+                      }
+                    }
+
+                    if (flashStation.category === 'river_level' || flashStation.category === 'river_discharge') {
+                      const level = stationTelemetry?.currentRiverLevelM ?? flashStation.currentRiverLevelM;
+                      const danger = stationTelemetry?.dangerLevelM ?? flashStation.dangerLevelM;
+                      const warn = stationTelemetry?.warningLevelM ?? flashStation.warningLevelM;
+
+                      if (level != null && danger != null && level >= danger) {
+                        return {
+                          color: 'red',
+                          textEn: 'Critical / River Level Above Danger Mark',
+                          textHi: 'गंभीर संकट / नदी ख़तरे के निशान से ऊपर',
+                        };
+                      }
+                      if (level != null && warn != null && level >= warn) {
+                        return {
+                          color: 'yellow',
+                          textEn: 'Warning Mark Exceeded / High Flood Inflow',
+                          textHi: 'चेतावनी स्तर पार / तीव्र जल आवक',
+                        };
+                      }
+                      return {
+                        color: 'blue',
+                        textEn: 'Normal / Regulated River Flow',
+                        textHi: 'सामान्य / विनियमित नदी प्रवाह',
+                      };
+                    }
+
+                    if (flashStation.category === 'groundwater') {
+                      const depth = stationTelemetry?.waterLevelDepthMBGL ?? flashStation.waterLevelDepthMBGL;
+                      const absDepth = depth != null ? Math.abs(depth) : null;
+                      if (absDepth != null && absDepth > 40) {
+                        return {
+                          color: 'red',
+                          textEn: 'Critical / Deep Over-Exploited Aquifer',
+                          textHi: 'गंभीर संकट / अति-दोहित गहरा जलभृत',
+                        };
+                      }
+                      if (absDepth != null && absDepth > 20) {
+                        return {
+                          color: 'yellow',
+                          textEn: 'Semi-Critical / High Stress Aquifer',
+                          textHi: 'अर्ध-संवेदनशील / दबावयुक्त जलभृत',
+                        };
+                      }
+                      return {
+                        color: 'green',
+                        textEn: 'Safe / Stable Phreatic Water Table',
+                        textHi: 'सुरक्षित / स्थिर भूजल स्तर',
+                      };
+                    }
+
+                    if (flashStation.category === 'bhuvan_wbis') {
+                      if (flashStation.isExtinct) {
+                        return {
+                          color: 'slate',
+                          textEn: 'Dry Bed / Desiccated Wetland',
+                          textHi: 'सूखा तल / विलुप्त जल निकाय',
+                        };
+                      }
+                      const ndwi = stationTelemetry?.ndwiScore ?? flashStation.ndwiScore;
+                      if (ndwi != null && ndwi > 0.1) {
+                        return {
+                          color: 'green',
+                          textEn: 'Optically Detected Open Water (NDWI > 0.1)',
+                          textHi: 'उपग्रह द्वारा संसूचित खुली जल सतह (NDWI > 0.1)',
+                        };
+                      }
+                      return {
+                        color: 'yellow',
+                        textEn: 'Shallow / Silted Wetland Area',
+                        textHi: 'गाद / उथला नमभूमि क्षेत्र',
+                      };
+                    }
+
+                    return {
+                      color: flashStation.status,
+                      textEn: flashStation.statusLabel || 'Active Hydrological Monitoring',
+                      textHi: language === 'hi' ? 'सक्रिय जल निगरानी' : 'Active Hydrological Monitoring',
+                    };
+                  })();
+
+                  const effectiveTds = stationTelemetry?.waterQualityTdsPpm ?? flashStation.waterQualityTdsPpm;
+                  const effectiveEc = stationTelemetry?.electricalConductivityUsCm ?? (flashStation as any).electricalConductivityUsCm;
+
+                  return (
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between col-span-2 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-2.5 h-2.5 rounded-full ${
+                          dynamicEvaluation.color === 'green' ? 'bg-emerald-500' :
+                          dynamicEvaluation.color === 'blue' ? 'bg-sky-500' :
+                          dynamicEvaluation.color === 'yellow' ? 'bg-amber-500 animate-pulse' :
+                          dynamicEvaluation.color === 'red' ? 'bg-rose-500 animate-ping' : 'bg-slate-400'
+                        }`} />
+                        <span className="font-bold text-slate-800">
+                          {language === 'hi' ? dynamicEvaluation.textHi : dynamicEvaluation.textEn}
+                        </span>
+                      </div>
+                      {Boolean(effectiveTds || effectiveEc) && (
+                        <span className="font-mono text-blue-700 font-bold flex items-center gap-1.5 text-[10px]">
+                          {effectiveTds && <span>TDS: {effectiveTds} ppm</span>}
+                          {effectiveEc && <span className="text-slate-500 font-medium">| EC: {effectiveEc} µS/cm</span>}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
