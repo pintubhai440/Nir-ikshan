@@ -75,6 +75,11 @@ export interface HydrologicalStation {
   dangerLevelM?: number;
   dischargeCusecs?: number;
   trend?: string;
+  pondLevelM?: number;
+  normalPondLevelM?: number;
+  isLiveVerified?: boolean;
+  verificationSource?: string;
+  verificationNote?: string;
 
   // 3. Rainfall Specific Metrics
   rainfallMm?: number;
@@ -1424,14 +1429,21 @@ const RAW_NATIONAL_STATIONS: HydrologicalStation[] = [
     district: 'Rohtas',
     basin: 'Ganga Basin',
     riverName: 'Son',
-    agency: 'CWC',
+    agency: 'WRD',
     lat: 24.8300,
     lng: 84.1800,
     status: 'blue',
-    statusLabel: 'Canal Irrigation Diversion Stable',
-    lastUpdated: '2026-10-12 12:20 IST',
-    dischargeCusecs: 58000,
+    statusLabel: 'Safe Regulated Barrage Discharge (14,885 Cusecs)',
+    lastUpdated: '2026-10-17 18:30 IST',
+    dischargeCusecs: 14885,
     currentRiverLevelM: 104.8,
+    pondLevelM: 104.8,
+    normalPondLevelM: 108.35,
+    warningLevelM: 107.0,
+    dangerLevelM: 108.5,
+    isLiveVerified: true,
+    verificationSource: 'WRD Bihar Real Time Barrage Discharge Information Dashboard & CWC',
+    verificationNote: 'Live verified with WRD Bihar Real Time Barrage Discharge Information network. Present discharge from Indrapuri Barrage on Son River is 14,885 cfs (normal seasonal regulated flow). Water level 104.80 m is well within safe zone (Normal pond level 355.5 ft / ~108.35 m).',
   },
   {
     id: 'rd-sabarmati-ahmedabad',

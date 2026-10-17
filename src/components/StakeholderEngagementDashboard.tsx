@@ -97,13 +97,13 @@ export const StakeholderEngagementDashboard: React.FC<StakeholderEngagementDashb
     setIssueDescription(`Urgent attention required regarding recharge structure condition in ${currentWs.name}.`);
   };
 
-  const handleWhatsAppEscalation = (stakeholder: StakeholderContact) => {
+  const getWhatsAppUrl = (stakeholder: StakeholderContact) => {
     const rawDigits = stakeholder.phone.replace(/[^0-9]/g, '');
     const cleanPhone = rawDigits.startsWith('91') ? rawDigits : `91${rawDigits}`;
     const textMsg = encodeURIComponent(
       `Respected ${stakeholder.name} (${stakeholder.designation}),\n\nI am contacting you regarding micro-watershed water accountability in *${currentWs.name}* (District: ${currentWs.district}, Code: ${currentWs.code}). Current status is *${currentWs.currentStatus.toUpperCase()}* with ${currentWs.needsRepairCount} recharge assets needing desiltation/repairs.\n\nKindly advise on the Gram Sabha / VWSC schedule and maintenance timeline.\n\nSent via Nir-ikshan National Portal.`
     );
-    window.open(`https://wa.me/${cleanPhone}?text=${textMsg}`, '_blank');
+    return `https://wa.me/${cleanPhone}?text=${textMsg}`;
   };
 
   const handleSubmitGrievance = (e: React.FormEvent) => {
@@ -394,14 +394,16 @@ export const StakeholderEngagementDashboard: React.FC<StakeholderEngagementDashb
                 <span>Call</span>
               </a>
 
-              <button
-                onClick={() => handleWhatsAppEscalation(person)}
+              <a
+                href={getWhatsAppUrl(person)}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="py-2 px-2 text-center text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center justify-center gap-1"
                 title="Escalate via WhatsApp"
               >
                 <MessageSquare className="w-3 h-3 text-emerald-600" />
                 <span>WhatsApp</span>
-              </button>
+              </a>
 
               <button
                 onClick={() => handleOpenEscalateModal(person)}
