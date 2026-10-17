@@ -66,9 +66,200 @@ export type MainFilterType =
   | 'rivers' 
   | 'groundwater' 
   | 'bhuvan_wbis' 
-  | 'basin';
+  | 'basin'
+  | 'complaints';
 
 export type BasemapThemeType = 'light_gis' | 'satellite' | 'topo';
+
+export interface DistrictCoord {
+  name: string;
+  lat: number;
+  lng: number;
+  zoom?: number;
+}
+
+export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; zoom: number; districts: DistrictCoord[] }> = {
+  'Andhra Pradesh': {
+    center: [16.5062, 80.6480],
+    zoom: 7.2,
+    districts: [
+      { name: 'Srikakulam', lat: 18.2949, lng: 83.8938, zoom: 9.5 },
+      { name: 'Parvathipuram Manyam', lat: 18.7758, lng: 83.4241, zoom: 9.5 },
+      { name: 'Vizianagaram', lat: 18.1124, lng: 83.4022, zoom: 9.5 },
+      { name: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, zoom: 9.5 },
+      { name: 'Alluri Sitharama Raju', lat: 18.0648, lng: 82.3556, zoom: 9.5 },
+      { name: 'Anakapalli', lat: 17.6897, lng: 83.0033, zoom: 9.5 },
+      { name: 'Kakinada', lat: 16.9891, lng: 82.2475, zoom: 9.5 },
+      { name: 'East Godavari', lat: 17.0005, lng: 81.8040, zoom: 9.5 },
+      { name: 'Dr. B.R. Ambedkar Konaseema', lat: 16.5750, lng: 81.9960, zoom: 9.5 },
+      { name: 'Eluru', lat: 16.7107, lng: 81.0952, zoom: 9.5 },
+      { name: 'West Godavari', lat: 16.5449, lng: 81.5212, zoom: 9.5 },
+      { name: 'NTR', lat: 16.5062, lng: 80.6480, zoom: 9.5 },
+      { name: 'Krishna', lat: 16.1800, lng: 81.1300, zoom: 9.5 },
+      { name: 'Palnadu', lat: 16.3200, lng: 80.0500, zoom: 9.5 },
+      { name: 'Guntur', lat: 16.3067, lng: 80.4365, zoom: 9.5 },
+      { name: 'Bapatla', lat: 15.9042, lng: 80.4673, zoom: 9.5 },
+      { name: 'Prakasam', lat: 15.5057, lng: 80.0499, zoom: 9.5 },
+      { name: 'SPS Nellore', lat: 14.4426, lng: 79.9865, zoom: 9.5 },
+      { name: 'Kurnool', lat: 15.8281, lng: 78.0373, zoom: 9.5 },
+      { name: 'Nandyal', lat: 15.4886, lng: 78.4836, zoom: 9.5 },
+      { name: 'Ananthapuramu', lat: 14.6819, lng: 77.6006, zoom: 9.5 },
+      { name: 'Sri Sathya Sai', lat: 14.1670, lng: 77.8110, zoom: 9.5 },
+      { name: 'YSR Kadapa', lat: 14.4673, lng: 78.8242, zoom: 9.5 },
+      { name: 'Annamayya', lat: 14.0500, lng: 78.7500, zoom: 9.5 },
+      { name: 'Tirupati', lat: 13.6288, lng: 79.4192, zoom: 9.5 },
+      { name: 'Chittoor', lat: 13.2172, lng: 79.1003, zoom: 9.5 },
+    ]
+  },
+  'Gujarat': {
+    center: [22.3100, 70.7800],
+    zoom: 7.2,
+    districts: [
+      { name: 'Rajkot', lat: 22.3100, lng: 70.7800, zoom: 10 },
+      { name: 'Ahmedabad', lat: 23.0225, lng: 72.5714, zoom: 10 },
+      { name: 'Vadodara', lat: 22.3072, lng: 73.1812, zoom: 10 },
+      { name: 'Surat', lat: 21.1702, lng: 72.8311, zoom: 10 },
+      { name: 'Bhavnagar', lat: 21.7645, lng: 72.1519, zoom: 10 },
+      { name: 'Jamnagar', lat: 22.4707, lng: 70.0577, zoom: 10 },
+      { name: 'Junagadh', lat: 21.5222, lng: 70.4579, zoom: 10 },
+      { name: 'Kutch', lat: 23.2420, lng: 69.6669, zoom: 9 },
+    ]
+  },
+  'Maharashtra': {
+    center: [19.6633, 75.3003],
+    zoom: 7.0,
+    districts: [
+      { name: 'Pune', lat: 18.5204, lng: 73.8567, zoom: 10 },
+      { name: 'Mumbai', lat: 19.0760, lng: 72.8777, zoom: 10 },
+      { name: 'Nashik', lat: 19.9975, lng: 73.7898, zoom: 10 },
+      { name: 'Nagpur', lat: 21.1458, lng: 79.0882, zoom: 10 },
+      { name: 'Satara', lat: 17.6805, lng: 74.0183, zoom: 10 },
+      { name: 'Solapur', lat: 17.6599, lng: 75.9064, zoom: 10 },
+      { name: 'Kolhapur', lat: 16.7050, lng: 74.2433, zoom: 10 },
+    ]
+  },
+  'Karnataka': {
+    center: [15.3173, 75.7139],
+    zoom: 7.0,
+    districts: [
+      { name: 'Bengaluru Urban', lat: 12.9716, lng: 77.5946, zoom: 10 },
+      { name: 'Kolar', lat: 13.1350, lng: 78.1300, zoom: 10 },
+      { name: 'Mysuru', lat: 12.2958, lng: 76.6394, zoom: 10 },
+      { name: 'Belagavi', lat: 15.8497, lng: 74.4977, zoom: 10 },
+      { name: 'Ballari', lat: 15.1394, lng: 76.9214, zoom: 10 },
+      { name: 'Tumakuru', lat: 13.3422, lng: 77.1017, zoom: 10 },
+    ]
+  },
+  'Tamil Nadu': {
+    center: [11.1271, 78.6569],
+    zoom: 7.0,
+    districts: [
+      { name: 'Chennai', lat: 13.0827, lng: 80.2707, zoom: 10 },
+      { name: 'Coimbatore', lat: 11.0168, lng: 76.9558, zoom: 10 },
+      { name: 'Madurai', lat: 9.9252, lng: 78.1198, zoom: 10 },
+      { name: 'Salem', lat: 11.6643, lng: 78.1460, zoom: 10 },
+      { name: 'Tiruchirappalli', lat: 10.7905, lng: 78.7047, zoom: 10 },
+    ]
+  },
+  'Telangana': {
+    center: [17.8749, 78.1008],
+    zoom: 7.0,
+    districts: [
+      { name: 'Hyderabad', lat: 17.3850, lng: 78.4867, zoom: 10 },
+      { name: 'Nalgonda', lat: 17.0500, lng: 79.2700, zoom: 10 },
+      { name: 'Warangal', lat: 17.9689, lng: 79.5941, zoom: 10 },
+      { name: 'Nizamabad', lat: 18.6725, lng: 78.0941, zoom: 10 },
+      { name: 'Khammam', lat: 17.2473, lng: 80.1514, zoom: 10 },
+    ]
+  },
+  'Uttar Pradesh': {
+    center: [26.8467, 80.9462],
+    zoom: 7.0,
+    districts: [
+      { name: 'Varanasi', lat: 25.3176, lng: 82.9739, zoom: 10 },
+      { name: 'Prayagraj', lat: 25.4358, lng: 81.8463, zoom: 10 },
+      { name: 'Lucknow', lat: 26.8467, lng: 80.9462, zoom: 10 },
+      { name: 'Kanpur', lat: 26.4499, lng: 80.3319, zoom: 10 },
+      { name: 'Agra', lat: 27.1767, lng: 78.0081, zoom: 10 },
+      { name: 'Ayodhya', lat: 26.7922, lng: 82.1998, zoom: 10 },
+    ]
+  },
+  'Rajasthan': {
+    center: [27.0238, 74.2179],
+    zoom: 7.0,
+    districts: [
+      { name: 'Jaipur', lat: 26.9124, lng: 75.7873, zoom: 10 },
+      { name: 'Jodhpur', lat: 26.2389, lng: 73.0243, zoom: 10 },
+      { name: 'Udaipur', lat: 24.5854, lng: 73.7125, zoom: 10 },
+      { name: 'Kota', lat: 25.2138, lng: 75.8648, zoom: 10 },
+    ]
+  },
+  'Madhya Pradesh': {
+    center: [22.9734, 78.6569],
+    zoom: 7.0,
+    districts: [
+      { name: 'Bhopal', lat: 23.2599, lng: 77.4126, zoom: 10 },
+      { name: 'Indore', lat: 22.7196, lng: 75.8577, zoom: 10 },
+      { name: 'Jabalpur', lat: 23.1815, lng: 79.9864, zoom: 10 },
+      { name: 'Gwalior', lat: 26.2183, lng: 78.1828, zoom: 10 },
+    ]
+  },
+  'Odisha': {
+    center: [20.9517, 85.0985],
+    zoom: 7.0,
+    districts: [
+      { name: 'Bhubaneswar', lat: 20.2961, lng: 85.8245, zoom: 10 },
+      { name: 'Cuttack', lat: 20.4625, lng: 85.8828, zoom: 10 },
+      { name: 'Sambalpur', lat: 21.4669, lng: 83.9812, zoom: 10 },
+      { name: 'Puri', lat: 19.8135, lng: 85.8312, zoom: 10 },
+    ]
+  },
+  'Bihar': {
+    center: [25.0961, 85.3131],
+    zoom: 7.0,
+    districts: [
+      { name: 'Patna', lat: 25.5941, lng: 85.1376, zoom: 10 },
+      { name: 'Gaya', lat: 24.7914, lng: 85.0002, zoom: 10 },
+      { name: 'Bhagalpur', lat: 25.2425, lng: 86.9842, zoom: 10 },
+    ]
+  },
+  'Punjab': {
+    center: [31.1471, 75.3412],
+    zoom: 7.2,
+    districts: [
+      { name: 'Amritsar', lat: 31.6340, lng: 74.8723, zoom: 10 },
+      { name: 'Ludhiana', lat: 30.9010, lng: 75.8573, zoom: 10 },
+      { name: 'Jalandhar', lat: 31.3260, lng: 75.5762, zoom: 10 },
+    ]
+  },
+  'Kerala': {
+    center: [10.8505, 76.2711],
+    zoom: 7.2,
+    districts: [
+      { name: 'Thiruvananthapuram', lat: 8.5241, lng: 76.9366, zoom: 10 },
+      { name: 'Kochi', lat: 9.9312, lng: 76.2673, zoom: 10 },
+      { name: 'Kozhikode', lat: 11.2588, lng: 75.7804, zoom: 10 },
+    ]
+  },
+  'West Bengal': {
+    center: [22.9868, 87.8550],
+    zoom: 7.2,
+    districts: [
+      { name: 'Kolkata', lat: 22.5726, lng: 88.3639, zoom: 10 },
+      { name: 'Howrah', lat: 22.5958, lng: 88.2636, zoom: 10 },
+      { name: 'Siliguri', lat: 26.7271, lng: 88.3953, zoom: 10 },
+    ]
+  },
+  'Assam': {
+    center: [26.2006, 92.9376],
+    zoom: 7.0,
+    districts: [
+      { name: 'Guwahati', lat: 26.1445, lng: 91.7362, zoom: 10 },
+      { name: 'Dibrugarh', lat: 27.4728, lng: 94.9120, zoom: 10 },
+      { name: 'Silchar', lat: 24.8333, lng: 92.7789, zoom: 10 },
+    ]
+  }
+};
 
 interface InteractiveIndiaMapProps {
   waterBodies?: WaterBody[];
@@ -82,6 +273,12 @@ interface InteractiveIndiaMapProps {
   onSelectWaterBody?: (wb: WaterBody) => void;
   onSelectComplaint?: (c: CitizenComplaint) => void;
   onLodgeComplaint?: () => void;
+  selectedState?: string;
+  onStateChange?: (state: string) => void;
+  selectedDistrict?: string;
+  onDistrictChange?: (district: string) => void;
+  trackedComplaintId?: string;
+  trackedMobile?: string;
 }
 
 // 100% Strict English Category Metadata
@@ -345,6 +542,11 @@ export interface LiveStationTelemetry {
   ndwiScore?: number;
   waterSpreadHa?: number;
   baselineSpreadHa?: number;
+  rainfallMm?: number;
+  normalRainfallMm?: number;
+  departurePercent?: number;
+  elevationMslM?: number;
+  subBasin?: string;
   agency?: string;
   basin?: string;
   isLiveVerified?: boolean;
@@ -379,9 +581,19 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   initialStatusFilter,
   onStatusFilterChange,
   onSelectWaterBody,
+  onSelectComplaint,
   onLodgeComplaint,
+  selectedState: controlledState,
+  onStateChange,
+  selectedDistrict: controlledDistrict,
+  onDistrictChange,
+  trackedComplaintId,
+  trackedMobile,
 }) => {
   const { t, language } = useLanguage();
+  
+  // Is this map being rendered inside the Citizen / Normal User portal?
+  const isCitizenDashboard = currentRole === 'user';
   
   // Leaflet map refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -392,10 +604,25 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   const riverVectorsLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
   // Active filter state
-  const [activeFilterTab, setActiveFilterTab] = useState<MainFilterType>('all');
+  const [activeFilterTab, setActiveFilterTab] = useState<MainFilterType>(initialCategory === 'all' ? 'all' : 'all');
   const [selectedBasin, setSelectedBasin] = useState<string>('All Basins');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<WaterHealthStatus | 'all'>(initialStatusFilter || 'all');
+
+  // State & District selection
+  const [internalState, setInternalState] = useState<string>(initialState || controlledState || 'All India');
+  const [internalDistrict, setInternalDistrict] = useState<string>(districtFilter || controlledDistrict || 'All Districts');
+
+  const selectedState = controlledState !== undefined ? controlledState : internalState;
+  const selectedDistrict = controlledDistrict !== undefined ? controlledDistrict : internalDistrict;
+
+  // Available districts for the selected state
+  const availableDistricts = useMemo(() => {
+    if (selectedState && selectedState !== 'All India' && STATE_DISTRICT_COORDS[selectedState]) {
+      return STATE_DISTRICT_COORDS[selectedState].districts;
+    }
+    return STATE_DISTRICT_COORDS['Andhra Pradesh'].districts;
+  }, [selectedState]);
 
   // Basemap Theme: 'satellite' by default (ISRO Bhuvan & High-Res Satellite), 'light_gis', or 'topo'
   const [basemapTheme, setBasemapTheme] = useState<BasemapThemeType>('satellite');
@@ -426,10 +653,88 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   // Flashcard State: Persistent station card (closes ONLY on [X] click)
   const [flashStation, setFlashStation] = useState<HydrologicalStation | null>(null);
 
+  // Flash Complaint State (closes ONLY on [X] click)
+  const [flashComplaint, setFlashComplaint] = useState<CitizenComplaint | null>(null);
 
   // 100% Real Live Catchment Telemetry State (Open-Meteo High-Resolution Grid)
   const [realTimeTelemetry, setRealTimeTelemetry] = useState<RealTimeCatchmentTelemetry | null>(null);
   const [isRefreshingTelemetry, setIsRefreshingTelemetry] = useState<boolean>(false);
+
+  // Handlers for state and district flyTo
+  const handleSelectState = (newState: string) => {
+    setInternalState(newState);
+    setInternalDistrict('All Districts');
+    if (onStateChange) onStateChange(newState);
+    if (onDistrictChange) onDistrictChange('All Districts');
+
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (newState === 'All India') {
+      map.flyTo([20.5937, 78.9629], 5, { animate: true, duration: 1.2 });
+    } else if (STATE_DISTRICT_COORDS[newState]) {
+      const cfg = STATE_DISTRICT_COORDS[newState];
+      map.flyTo(cfg.center, cfg.zoom, { animate: true, duration: 1.2 });
+    }
+  };
+
+  const handleSelectDistrict = (newDistrict: string) => {
+    setInternalDistrict(newDistrict);
+    if (onDistrictChange) onDistrictChange(newDistrict);
+
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (newDistrict === 'All Districts') {
+      if (selectedState && STATE_DISTRICT_COORDS[selectedState]) {
+        const cfg = STATE_DISTRICT_COORDS[selectedState];
+        map.flyTo(cfg.center, cfg.zoom, { animate: true, duration: 1.2 });
+      } else {
+        map.flyTo([20.5937, 78.9629], 5, { animate: true, duration: 1.2 });
+      }
+      return;
+    }
+
+    const matched = availableDistricts.find((d) => d.name.toLowerCase() === newDistrict.toLowerCase());
+    if (matched) {
+      map.flyTo([matched.lat, matched.lng], matched.zoom || 9.5, { animate: true, duration: 1.2 });
+    }
+  };
+
+  // Sync tracked complaint from props
+  useEffect(() => {
+    if (trackedComplaintId && complaints && complaints.length > 0) {
+      const found = complaints.find((c) => c.id === trackedComplaintId);
+      if (found) {
+        setFlashStation(null);
+        setFlashComplaint(found);
+        setActiveFilterTab('complaints');
+        const map = mapInstanceRef.current;
+        if (map) {
+          map.flyTo([found.coordinates.lat, found.coordinates.lng], 10, { animate: true, duration: 1.2 });
+        }
+      }
+    }
+  }, [trackedComplaintId, complaints]);
+
+  // Sync tracked mobile from props
+  useEffect(() => {
+    if (trackedMobile && complaints && complaints.length > 0) {
+      const cleanMobile = trackedMobile.replace(/\D/g, '');
+      if (cleanMobile.length >= 4) {
+        const matched = complaints.find((c) => c.citizenPhone.replace(/\D/g, '').includes(cleanMobile));
+        if (matched) {
+          setFlashStation(null);
+          setFlashComplaint(matched);
+          setActiveFilterTab('complaints');
+          const map = mapInstanceRef.current;
+          if (map) {
+            map.flyTo([matched.coordinates.lat, matched.coordinates.lng], 10, { animate: true, duration: 1.2 });
+          }
+        }
+      }
+    }
+  }, [trackedMobile, complaints]);
 
   // Fetch real-time live weather & catchment precipitation for exact station coordinates
   const fetchLiveCatchmentTelemetry = useCallback(async (lat: number, lng: number) => {
@@ -577,6 +882,11 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         ndwiScore: data.ndwiScore ?? firstRecord?.ndwiScore ?? (st as any).ndwiScore,
         waterSpreadHa: data.waterSpreadHa ?? firstRecord?.waterSpreadHa ?? (st as any).waterSpreadHa,
         baselineSpreadHa: data.baselineSpreadHa ?? firstRecord?.baselineSpreadHa ?? (st as any).baselineSpreadHa,
+        rainfallMm: data.rainfallMm ?? firstRecord?.rainfallMm ?? (st as any).rainfallMm,
+        normalRainfallMm: data.normalRainfallMm ?? firstRecord?.normalRainfall_MM ?? (st as any).normalRainfallMm,
+        departurePercent: data.departurePercent ?? firstRecord?.departure_Percent ?? (st as any).departurePercent,
+        elevationMslM: data.elevationMslM ?? firstRecord?.elevationMslM,
+        subBasin: data.subBasin ?? (st as any).subBasin,
         agency: (() => {
           let resolved = data.agency ?? (isRecordMatching ? firstRecord?.agencyName : undefined) ?? st.agency;
           if (st.state && st.state !== 'Andhra Pradesh' && (resolved === 'APWRIMS' || resolved === 'APWRIMS Network' || resolved === 'APWRIMS & CWC')) {
@@ -680,9 +990,27 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   }, []);
 
   // Filtered stations logic using the active filter tab and basin
+  // Filtered stations logic using the active filter tab, basin, state, and district
   const filteredStations = useMemo(() => {
+    // If active tab is complaints, return empty list of telemetry stations so complaints take full focus
+    if (activeFilterTab === 'complaints') return [];
+
     return dynamicStations.filter((station) => {
-      // 1. Filter by Main 6 Tabs
+      // 1. Filter by State (only in Citizen Dashboard when state is locked)
+      if (isCitizenDashboard && selectedState && selectedState !== 'All India') {
+        if (!station.state.toLowerCase().includes(selectedState.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 2. Filter by District (only in Citizen Dashboard when district is locked)
+      if (isCitizenDashboard && selectedDistrict && selectedDistrict !== 'All Districts') {
+        if (!station.district.toLowerCase().includes(selectedDistrict.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 3. Filter by Main 6 Tabs
       if (activeFilterTab === 'reservoir') {
         if (station.category !== 'reservoir') return false;
       } else if (activeFilterTab === 'rivers') {
@@ -704,12 +1032,12 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         }
       }
 
-      // 2. Status filter (from top 5 cards)
+      // 4. Status filter (from top 5 cards)
       if (statusFilter !== 'all') {
         if (station.status !== statusFilter) return false;
       }
 
-      // 3. Search query filter
+      // 5. Search query filter
       if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase();
         const matches = 
@@ -724,9 +1052,9 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
 
       return true;
     });
-  }, [dynamicStations, activeFilterTab, selectedBasin, statusFilter, searchQuery]);
+  }, [dynamicStations, activeFilterTab, selectedBasin, statusFilter, searchQuery, selectedState, selectedDistrict]);
 
-  // Counts for each of the 6 tabs
+  // Counts for each tab
   const tabCounts = useMemo(() => {
     return {
       all: dynamicStations.length,
@@ -735,8 +1063,10 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       groundwater: dynamicStations.filter((s) => s.category === 'groundwater').length,
       bhuvan_wbis: dynamicStations.filter((s) => s.category === 'bhuvan_wbis' || s.isExtinct || s.status === 'grey').length,
       basin: MAJOR_RIVER_BASINS.length,
+      complaints: complaints.length,
+      resolvedComplaints: complaints.filter((c) => c.status === 'RESOLVED').length,
     };
-  }, [dynamicStations]);
+  }, [dynamicStations, complaints]);
 
   // Open Modal Handler (sync temporary state with current)
   const handleOpenFilterModal = () => {
@@ -774,6 +1104,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         'Pennar Basin': [14.5, 78.5, 7],
         'Sabarmati Basin': [23.0, 72.8, 7],
         'Mahi Basin': [23.5, 74.0, 7],
+        'West Flowing Rivers of Kutch and Saurashtra including Luni': [22.31, 70.78, 7],
       };
       const target = basinCenters[tempBasin];
       if (target) {
@@ -1018,7 +1349,91 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
 
       markersGroup.addLayer(marker);
     });
-  }, [filteredStations, flashStation, calculateMarkerRadius]);
+
+    // Also render Citizen Complaints Layer (ONLY in Citizen / Normal User portal)
+    if (isCitizenDashboard && (activeFilterTab === 'complaints' || activeFilterTab === 'all')) {
+      complaints.forEach((c) => {
+        if (!c.coordinates || !c.coordinates.lat || !c.coordinates.lng) return;
+
+        // District filter check if district selected
+        if (selectedDistrict && selectedDistrict !== 'All Districts') {
+          if (!c.district?.toLowerCase().includes(selectedDistrict.toLowerCase())) {
+            return;
+          }
+        }
+
+        const isResolved = c.status === 'RESOLVED';
+        const isSelected = flashComplaint?.id === c.id;
+
+        // High-visibility distinct markers as requested
+        // Resolved: Fixed Emerald Green (#10b981) with distinct White Checkmark (✓)
+        // Active/In-Progress: Fixed Amber/Orange (#ea580c) with glowing pulsating ping ring
+        const iconHtml = isResolved
+          ? `<div style="
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              background: #10b981;
+              border: 3px solid #ffffff;
+              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.7);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #ffffff;
+              font-weight: 900;
+              font-size: 16px;
+              cursor: pointer;
+              transition: transform 0.2s;
+              ${isSelected ? 'transform: scale(1.3); outline: 3px solid #047857;' : ''}
+            ">✓</div>`
+          : `<div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: #ea580c; opacity: 0.5; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+              <div style="
+                position: relative;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: #ea580c;
+                border: 2.5px solid #ffffff;
+                box-shadow: 0 4px 12px rgba(234, 88, 12, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #ffffff;
+                font-weight: 800;
+                font-size: 13px;
+                ${isSelected ? 'transform: scale(1.3); outline: 3px solid #c2410c;' : ''}
+              ">⚠️</div>
+            </div>`;
+
+        const complaintIcon = L.divIcon({
+          html: iconHtml,
+          className: 'complaint-pin-marker',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+
+        const cMarker = L.marker([c.coordinates.lat, c.coordinates.lng], {
+          icon: complaintIcon,
+          zIndexOffset: 1200,
+        });
+
+        // Click Event: Open specialized Complaint Flashcard
+        cMarker.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          setFlashStation(null);
+          setFlashComplaint(c);
+          if (onSelectComplaint) onSelectComplaint(c);
+          map.flyTo([c.coordinates.lat, c.coordinates.lng], Math.max(map.getZoom() + 1, 9.5), {
+            animate: true,
+            duration: 1.0,
+          });
+        });
+
+        markersGroup.addLayer(cMarker);
+      });
+    }
+  }, [filteredStations, flashStation, flashComplaint, complaints, activeFilterTab, currentRole, selectedDistrict, calculateMarkerRadius, onSelectComplaint]);
 
   // Re-render markers on changes
   useEffect(() => {
@@ -1151,6 +1566,143 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       </div>
 
       {/* ============================================================== */}
+      {/* 1.5 DEDICATED STATE & DISTRICT FILTER + QUICK LAYER PILLS       */}
+      {/* (SHOWN ONLY ON CITIZEN / NORMAL USER DASHBOARD)                */}
+      {/* ============================================================== */}
+      {isCitizenDashboard && (
+        <div className="px-3 sm:px-4 py-2 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5 z-10">
+          {/* Left: State & District Dropdowns */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* State Dropdown */}
+            <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 transition-colors border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
+              <MapPin className="w-3.5 h-3.5 text-[#0047ab] shrink-0" />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {language === 'hi' ? 'राज्य:' : 'State:'}
+              </span>
+              <select
+                value={selectedState}
+                onChange={(e) => handleSelectState(e.target.value)}
+                className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer pr-1"
+              >
+                <option value="All India">🇮🇳 All India (सम्पूर्ण भारत)</option>
+                <option value="Andhra Pradesh">Andhra Pradesh (ఆంధ్రప్రదేశ్)</option>
+                <option value="Gujarat">Gujarat (Rajkot & Saurashtra)</option>
+                <option value="Maharashtra">Maharashtra (महाराष्ट्र)</option>
+                <option value="Karnataka">Karnataka (ಕರ್ನಾಟಕ)</option>
+                <option value="Tamil Nadu">Tamil Nadu (தமிழ்நாடு)</option>
+                <option value="Telangana">Telangana (తెలంగాణ)</option>
+                <option value="Uttar Pradesh">Uttar Pradesh (उत्तर प्रदेश)</option>
+                <option value="Rajasthan">Rajasthan (राजस्थान)</option>
+                <option value="Madhya Pradesh">Madhya Pradesh (मध्य प्रदेश)</option>
+                <option value="Odisha">Odisha (ଓଡ଼ିଶା)</option>
+                <option value="Bihar">Bihar (बिहार)</option>
+                <option value="Punjab">Punjab (ਪੰਜਾਬ)</option>
+                <option value="Kerala">Kerala (കേരളം)</option>
+                <option value="West Bengal">West Bengal (পশ্চিমবঙ্গ)</option>
+                <option value="Assam">Assam (অসম)</option>
+              </select>
+            </div>
+
+            {/* District Dropdown (Dynamic) */}
+            <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 transition-colors border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {language === 'hi' ? 'ज़िला:' : 'District:'}
+              </span>
+              <select
+                value={selectedDistrict}
+                onChange={(e) => handleSelectDistrict(e.target.value)}
+                className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer max-w-[170px] truncate pr-1"
+              >
+                <option value="All Districts">All Districts ({availableDistricts.length})</option>
+                {availableDistricts.map((d) => (
+                  <option key={d.name} value={d.name}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Right: Quick Layer Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full">
+            <button
+              onClick={() => setActiveFilterTab('all')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                activeFilterTab === 'all'
+                  ? 'bg-[#0077B6] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              All Telemetry ({tabCounts.all})
+            </button>
+
+            <button
+              onClick={() => setActiveFilterTab('reservoir')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                activeFilterTab === 'reservoir'
+                  ? 'bg-sky-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span>💧</span>
+              <span>Dams ({tabCounts.reservoir})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveFilterTab('rivers')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                activeFilterTab === 'rivers'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span>🌊</span>
+              <span>Rivers ({tabCounts.rivers})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveFilterTab('groundwater')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                activeFilterTab === 'groundwater'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span>⛏️</span>
+              <span>DWLR ({tabCounts.groundwater})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveFilterTab('bhuvan_wbis')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                activeFilterTab === 'bhuvan_wbis'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span>🛰️</span>
+              <span>Bhuvan ({tabCounts.bhuvan_wbis})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveFilterTab('complaints')}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 border ${
+                activeFilterTab === 'complaints'
+                  ? 'bg-gradient-to-r from-amber-600 to-rose-600 text-white border-transparent shadow-xs'
+                  : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+              }`}
+            >
+              <span>⚠️</span>
+              <span>{language === 'hi' ? 'आपकी शिकायतें' : 'Your Complaints'}</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
+                {complaints.length}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
       {/* 2. MAP VIEW CONTAINER WITH FLOATING PERSISTENT FLASHCARD        */}
       {/* ============================================================== */}
       <div className={`relative w-full h-[620px] sm:h-[700px] lg:h-[780px] overflow-hidden transition-colors ${basemapTheme === 'satellite' ? 'bg-[#0a0f1d]' : 'bg-[#eef2f6]'}`}>
@@ -1162,6 +1714,153 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
             filter: `brightness(${brightness}%) contrast(${contrast}%)`,
           }}
         />
+
+        {/* COMPLAINT DETAIL FLASHCARD (Opens on complaint pin click, CLOSES ONLY on [X] click) */}
+        {flashComplaint && (
+          <div 
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40 max-w-sm sm:max-w-md w-[calc(100%-24px)] sm:w-auto bg-white/95 border border-slate-200/90 backdrop-blur-xl shadow-2xl rounded-3xl p-4 sm:p-5 text-slate-900 space-y-3.5 pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto"
+          >
+            {/* Flashcard Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                    flashComplaint.status === 'RESOLVED'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                      : 'bg-amber-50 text-amber-800 border-amber-300'
+                  }`}>
+                    {flashComplaint.status === 'RESOLVED' ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>✓ {language === 'hi' ? 'हल किया गया (कार्य पूर्ण)' : 'RESOLVED / COMPLETED'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>⚠️ {language === 'hi' ? 'कार्रवाई जारी' : 'UNDER INVESTIGATION'}</span>
+                      </>
+                    )}
+                  </span>
+                  <span className="font-mono text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-700">
+                    {flashComplaint.id}
+                  </span>
+                </div>
+
+                <h4 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight">
+                  {flashComplaint.locationLandmark}
+                </h4>
+
+                <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5 flex-wrap">
+                  <span>{flashComplaint.village ? `${flashComplaint.village}, ` : ''}{flashComplaint.mandal}, {flashComplaint.district}</span>
+                  <span>•</span>
+                  <span 
+                    onClick={() => copyGpsCoordinates(flashComplaint.coordinates.lat, flashComplaint.coordinates.lng)}
+                    className="text-blue-600 font-mono text-[10px] cursor-pointer hover:underline flex items-center gap-1"
+                    title="Click to copy GPS"
+                  >
+                    📍 {flashComplaint.coordinates.lat.toFixed(4)}°N, {flashComplaint.coordinates.lng.toFixed(4)}°E
+                  </span>
+                </div>
+              </div>
+
+              {/* Close Button: Closes ONLY on [X] click */}
+              <button
+                onClick={() => setFlashComplaint(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer transition-colors"
+                title="Close Flashcard"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Photos Section: Citizen Photo and Inspector Resolution Photo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Citizen Original Photo */}
+              <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                  📸 {language === 'hi' ? 'शिकायत का फ़ोटो (नागरिक प्रमाण)' : 'Citizen Complaint Photo'}
+                </span>
+                <img
+                  src={flashComplaint.photoUrl || 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=600&q=80'}
+                  alt="Citizen Evidence"
+                  className="w-full h-28 object-cover rounded-xl border border-slate-200"
+                />
+                <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                  {flashComplaint.submittedAt}
+                </div>
+              </div>
+
+              {/* If Resolved: Inspector Resolution Photo */}
+              {flashComplaint.status === 'RESOLVED' ? (
+                <div className="bg-emerald-50/70 rounded-2xl p-2.5 border border-emerald-300">
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase block mb-1 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{language === 'hi' ? 'सत्यापित समाधान फ़ोटो' : 'Resolution Proof Photo'}</span>
+                  </span>
+                  <img
+                    src={
+                      flashComplaint.workExecution?.afterPhotoUrl ||
+                      flashComplaint.inspectionReport?.postWorkVerification?.verificationPhotoUrl ||
+                      flashComplaint.inspectionReport?.sitePhotoUrl ||
+                      'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'
+                    }
+                    alt="Work Completed"
+                    className="w-full h-28 object-cover rounded-xl border border-emerald-300 shadow-2xs"
+                  />
+                  <div className="text-[10px] text-emerald-800 font-bold mt-1 truncate">
+                    ✓ {language === 'hi' ? 'कार्य पूर्ण व सत्यापित' : 'Work Completed & Approved'}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50/70 rounded-2xl p-2.5 border border-amber-300 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-800 uppercase block mb-1">
+                      {language === 'hi' ? 'फ़ील्ड स्थिति' : 'Field Progress Status'}
+                    </span>
+                    <p className="text-[11px] text-amber-900 font-medium">
+                      {language === 'hi'
+                        ? 'जांच अधिकारी स्थल पर रवाना। टीडीएस रीडिंग व कचरा निवारण जारी है।'
+                        : 'Field team dispatched. Water testing & waste removal in progress.'}
+                    </p>
+                  </div>
+                  <div className="text-[10px] text-slate-600 space-y-0.5 mt-2">
+                    <div><strong>Inspector:</strong> {flashComplaint.assignedInspector || 'Dispatched'}</div>
+                    <div><strong>Nodal Cell:</strong> {flashComplaint.assignedNodalOfficer}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Description & Citizen Info */}
+            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-xs space-y-1.5">
+              <div>
+                <span className="font-bold text-slate-800">{language === 'hi' ? 'समस्या विवरण: ' : 'Problem Description: '}</span>
+                <span className="text-slate-600">{flashComplaint.shortDescription}</span>
+              </div>
+              <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200 flex justify-between items-center">
+                <span>{language === 'hi' ? 'नागरिक:' : 'Citizen:'} <strong>{flashComplaint.citizenName}</strong></span>
+                <span className="font-mono text-[#0047ab] font-bold">{flashComplaint.citizenPhone}</span>
+              </div>
+            </div>
+
+            {/* If Resolved: Verification sign-off details */}
+            {flashComplaint.status === 'RESOLVED' && (
+              <div className="p-2.5 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-200 text-[11px] space-y-1">
+                <div className="font-bold flex items-center justify-between">
+                  <span>{language === 'hi' ? 'इंस्पेक्टर सत्यापन रिपोर्ट:' : 'Inspector Verification Report:'}</span>
+                  <span className="text-emerald-700 font-mono font-bold">
+                    TDS: {flashComplaint.inspectionReport?.tdsReadingPpm || 220} ppm (Normal)
+                  </span>
+                </div>
+                <p className="text-emerald-800 text-[10px]">
+                  {flashComplaint.inspectionReport?.postWorkVerification?.remarks ||
+                    flashComplaint.workExecution?.workSummary ||
+                    'Site thoroughly de-contaminated. Soil buffer created, water testing normal. Case officially closed.'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* PERSISTENT FLASHCARD (Opens on click/inspect, CLOSES ONLY on [X] click) */}
         {flashStation && (
@@ -1644,6 +2343,62 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                   );
                 })()}
 
+                {flashStation.category === 'rainfall' && (() => {
+                  const effectiveRain = stationTelemetry?.rainfallMm ?? flashStation.rainfallMm;
+                  const effectiveNormal = stationTelemetry?.normalRainfallMm ?? flashStation.normalRainfallMm;
+                  const effectiveDeparture = stationTelemetry?.departurePercent ?? flashStation.departurePercent;
+                  const effectiveElevation = stationTelemetry?.elevationMslM ?? (flashStation.district === 'Rajkot' ? 133 : 180);
+                  const effectiveSubBasin = flashStation.subBasin || stationTelemetry?.subBasin || (flashStation.district === 'Rajkot' ? 'Aji & Bhadar River Basin (Saurashtra)' : 'Active River Catchment');
+
+                  return (
+                    <>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? '24 घंटे / दर्ज वर्षा' : 'RECORDED / 24H RAIN'}
+                        </span>
+                        <span className="text-base font-black text-blue-700 font-mono">
+                          {effectiveRain != null ? `${effectiveRain} mm` : '--'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {language === 'hi' ? 'आईएमडी ऑटोमेटेड गेज' : 'IMD Automated Gauge'}
+                        </span>
+                      </div>
+
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 font-bold block">
+                          {language === 'hi' ? 'सामान्य वर्षा एवं विचलन' : 'NORMAL & DEPARTURE'}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-black text-slate-800 font-mono">
+                            {effectiveNormal != null ? `${effectiveNormal} mm` : '--'}
+                          </span>
+                          {effectiveDeparture != null && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              effectiveDeparture >= 20 ? 'bg-sky-100 text-sky-800 border border-sky-300' :
+                              effectiveDeparture <= -20 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                              'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            }`}>
+                              {effectiveDeparture >= 0 ? `+${effectiveDeparture}%` : `${effectiveDeparture}%`}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-500 block">
+                          {language === 'hi' ? 'दीर्घकालिक मौसमी संदर्भ' : 'Long-Term Seasonal Ref'}
+                        </span>
+                      </div>
+
+                      <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 col-span-2 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-600 font-medium">
+                          {language === 'hi' ? 'कैचमेंट एवं उप-बेसिन स्थिति:' : 'Hydrological Catchment & Sub-Basin:'}
+                        </span>
+                        <span className="font-mono font-bold text-slate-800">
+                          {effectiveSubBasin} • {effectiveElevation}m MSL
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+
                 {/* Dynamically verified status and TDS summary */}
                 {(() => {
                   const dynamicEvaluation = (() => {
@@ -1754,6 +2509,36 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                         color: 'yellow',
                         textEn: 'Shallow / Silted Wetland Area',
                         textHi: 'गाद / उथला नमभूमि क्षेत्र',
+                      };
+                    }
+
+                    if (flashStation.category === 'rainfall') {
+                      const dep = stationTelemetry?.departurePercent ?? flashStation.departurePercent;
+                      if (dep != null) {
+                        if (dep >= 20) {
+                          return {
+                            color: 'blue',
+                            textEn: `Excess Catchment Rainfall (+${dep.toFixed(1)}% Departure)`,
+                            textHi: `अत्यधिक कैचमेंट वर्षा (+${dep.toFixed(1)}% विचलन)`,
+                          };
+                        } else if (dep <= -20) {
+                          return {
+                            color: 'yellow',
+                            textEn: `Deficit Catchment Rainfall (${dep.toFixed(1)}% Departure)`,
+                            textHi: `कमी/न्यून कैचमेंट वर्षा (${dep.toFixed(1)}% विचलन)`,
+                          };
+                        } else {
+                          return {
+                            color: 'green',
+                            textEn: `Normal Seasonal Rainfall (${dep >= 0 ? '+' : ''}${dep.toFixed(1)}% Departure)`,
+                            textHi: `सामान्य मौसमी वर्षा (${dep >= 0 ? '+' : ''}${dep.toFixed(1)}% विचलन)`,
+                          };
+                        }
+                      }
+                      return {
+                        color: 'blue',
+                        textEn: 'Active IMD Precipitation Monitoring',
+                        textHi: 'सक्रिय आईएमडी वर्षा निगरानी',
                       };
                     }
 

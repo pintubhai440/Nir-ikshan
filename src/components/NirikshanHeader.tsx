@@ -90,17 +90,29 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
             </button>
           </div>
 
-          {/* If NOT logged in: Show Image 3 Login Button */}
+          {/* Login & Hamburger Menu Action Area */}
           {!isLoggedIn ? (
-            <button
-              onClick={onOpenLoginModal}
-              className="flex items-center gap-2 bg-[#0077B6] hover:bg-[#03045E] text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
-            >
-              <LogIn className="w-4 h-4 text-[#CAF0F8]" />
-              <span>{t('login')}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onOpenLoginModal}
+                className="flex items-center gap-2 bg-[#0077B6] hover:bg-[#03045E] text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+              >
+                <LogIn className="w-4 h-4 text-[#CAF0F8]" />
+                <span>{t('login')}</span>
+              </button>
+
+              <button
+                onClick={onOpenDrawer}
+                className="w-10 h-10 rounded-xl bg-[#03045E] hover:bg-[#0077B6] border border-[#00B4D8]/40 flex flex-col items-center justify-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer p-2"
+                title={t('switchPortal')}
+                aria-label="Navigation Menu"
+              >
+                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+              </button>
+            </div>
           ) : (
-            /* If logged in: Show user pill + Image 4 Hamburger (Three Line) Button */
             <div className="flex items-center gap-2">
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -109,14 +121,12 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
                 </span>
               </div>
 
-              {/* Exact Hamburger Button from Image 4 */}
               <button
                 onClick={onOpenDrawer}
                 className="w-10 h-10 rounded-xl bg-[#03045E] hover:bg-[#0077B6] border border-[#00B4D8]/40 flex flex-col items-center justify-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer p-2"
                 title={t('switchPortal')}
                 aria-label="Navigation Menu"
               >
-                {/* 3 Cyan / Teal Bars as shown in Image 4 */}
                 <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
                 <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
                 <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>

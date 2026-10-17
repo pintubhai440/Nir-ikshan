@@ -57,8 +57,18 @@ export default function App() {
   });
 
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
-    const saved = localStorage.getItem('nir_complaints');
-    return saved ? JSON.parse(saved) : INITIAL_CITIZEN_COMPLAINTS;
+    try {
+      const saved = localStorage.getItem('nir_complaints');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_CITIZEN_COMPLAINTS.length) {
+          return parsed;
+        }
+      }
+      return INITIAL_CITIZEN_COMPLAINTS;
+    } catch {
+      return INITIAL_CITIZEN_COMPLAINTS;
+    }
   });
 
   const [officers] = useState<OfficerContact[]>(INITIAL_OFFICER_CONTACTS);
@@ -497,7 +507,7 @@ export default function App() {
         officers={officers}
       />
 
-      {/* Slide-out Navigation Drawer (Hamburger Menu - Image 4 & 5) */}
+      {/* Slide-out Navigation Drawer (Hamburger Menu) */}
       <NirikshanSlideDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -509,6 +519,8 @@ export default function App() {
         onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
         selectedNodalDistrict={selectedNodalDistrict}
         onSelectNodalDistrict={setSelectedNodalDistrict}
+        isLoggedIn={isLoggedIn}
+        onOpenLogin={() => setIsOtpModalOpen(true)}
       />
 
       {/* Citizen Mobile OTP Login Modal (Image 3 -> Login Page Flow) */}

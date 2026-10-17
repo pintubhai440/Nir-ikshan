@@ -175,7 +175,7 @@ export const NirikshanVerticalSidebar: React.FC<NirikshanVerticalSidebarProps> =
           </div>
         </div>
 
-        {/* Middle Scrollable Section: Vertical 5 User Roles */}
+        {/* Middle Scrollable Section: Vertical User Roles */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           <div className="flex items-center justify-between px-2 pt-1 pb-1">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
