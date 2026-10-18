@@ -56,16 +56,20 @@ export default function App() {
     }
   });
 
-  // Complaints state: Seed with sample citizen complaints (2 verified public grievances) + user-submitted & Supabase records
+  // Complaints state: Clean 2 real complaints from database (CMP-AP-2026-403 & CMP-AP-2026-788)
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
       const saved = localStorage.getItem('nir_complaints');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((c: CitizenComplaint) => c.id));
-          const missingSamples = SAMPLE_CITIZEN_COMPLAINTS.filter((sc) => !existingIds.has(sc.id));
-          return [...parsed, ...missingSamples];
+          // Filter out any stale mock complaints (e.g. CMP-AP-2026-101 .. 109)
+          const valid = parsed.filter(
+            (c: CitizenComplaint) => !c.id.startsWith('CMP-AP-2026-10')
+          );
+          if (valid.length > 0) {
+            return valid;
+          }
         }
       }
       return SAMPLE_CITIZEN_COMPLAINTS;
@@ -132,16 +136,12 @@ export default function App() {
     if (isSupabaseConfigured()) {
       fetchComplaintsFromSupabase().then((remoteComplaints) => {
         if (remoteComplaints && remoteComplaints.length > 0) {
-          setComplaints((prev) => {
-            const remoteIds = new Set(remoteComplaints.map((r: CitizenComplaint) => r.id));
-            const merged = [...remoteComplaints, ...prev.filter((p: CitizenComplaint) => !remoteIds.has(p.id))];
-            try {
-              localStorage.setItem('nir_complaints', JSON.stringify(merged));
-            } catch (e) {
-              console.error('Failed to sync complaints to localStorage cache', e);
-            }
-            return merged;
-          });
+          setComplaints(remoteComplaints);
+          try {
+            localStorage.setItem('nir_complaints', JSON.stringify(remoteComplaints));
+          } catch (e) {
+            console.error('Failed to sync complaints to localStorage cache', e);
+          }
         }
       });
 
