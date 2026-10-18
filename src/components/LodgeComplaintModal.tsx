@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import L from 'leaflet';
 import { CitizenComplaint } from '../types/nirikshan';
 import { useLanguage } from '../context/LanguageContext';
+import { ANDHRA_PRADESH_26_DISTRICTS } from '../data/andhraDistrictsData';
 import { 
   AlertTriangle, 
   MapPin, 
@@ -9,7 +11,13 @@ import {
   X, 
   Send, 
   User, 
-  Info
+  Info,
+  Crosshair,
+  RotateCcw,
+  Map as MapIcon,
+  CheckCircle2,
+  Compass,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -33,51 +41,311 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
   const [citizenPhone, setCitizenPhone] = useState(currentUser?.phone || '');
 
   // Keep synced with currentUser if logged in
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && currentUser) {
       if (!citizenName && currentUser.name) setCitizenName(currentUser.name);
       if (!citizenPhone && currentUser.phone) setCitizenPhone(currentUser.phone);
     }
   }, [isOpen, currentUser]);
-  const [district, setDistrict] = useState<'Vizianagaram' | 'Parvathipuram Manyam' | 'Visakhapatnam'>('Vizianagaram');
+
+  const [district, setDistrict] = useState<string>('Vizianagaram');
   const [mandal, setMandal] = useState('');
   const [locationLandmark, setLocationLandmark] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState('https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&auto=format&fit=crop');
+  
+  // GPS Coordinates & Status State (Default Vizianagaram District Center)
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number }>({
-    lat: 18.1067,
-    lng: 83.3956,
+    lat: 18.1124,
+    lng: 83.4022,
   });
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [gpsFeedback, setGpsFeedback] = useState<{
+    type: 'success' | 'info' | 'loading';
+    message: string;
+  } | null>(null);
+  const [showMiniMap, setShowMiniMap] = useState(true);
+
+  // Leaflet map refs
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  // Initialize or re-center interactive mini-map with ONLY Street Map
+  useEffect(() => {
+    if (!isOpen) {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+      return;
+    }
+
+    if (!showMiniMap) return;
+
+    // Small delay to ensure modal DOM is mounted and visible
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current) return;
+
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+        return;
+      }
+
+      try {
+        const map = L.map(mapContainerRef.current, {
+          center: [coordinates.lat, coordinates.lng],
+          zoom: 12,
+          zoomControl: true,
+          attributionControl: false,
+        });
+
+        // 100% Reliable, Free, High-Quality Street Map (Esri World Street Map - No API key required!)
+        L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+          {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Streets',
+          }
+        ).addTo(map);
+
+        const customHazardIcon = L.divIcon({
+          html: `
+            <div style="
+              width: 34px;
+              height: 34px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                background: rgba(239, 68, 68, 0.45);
+                animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+              "></div>
+              <div style="
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: #dc2626;
+                border: 2px solid #ffffff;
+                color: #ffffff;
+                font-size: 11px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+                font-weight: bold;
+              ">⚠️</div>
+            </div>
+          `,
+          className: 'hazard-pin-marker',
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
+        });
+
+        const marker = L.marker([coordinates.lat, coordinates.lng], {
+          icon: customHazardIcon,
+          draggable: true,
+        }).addTo(map);
+
+        marker.bindTooltip(
+          language === 'hi' 
+            ? '📍 खींचें या स्ट्रीट मैप पर कहीं भी क्लिक करें' 
+            : language === 'te' 
+            ? '📍 స్ట్రీట్ మ్యాప్‌పై పిన్ చేయండి' 
+            : '📍 Drag pin or click anywhere on street map',
+          { direction: 'top', offset: [0, -14], permanent: false }
+        );
+
+        // Update coordinates when marker is dragged
+        marker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          const newLat = Number(pos.lat.toFixed(4));
+          const newLng = Number(pos.lng.toFixed(4));
+          setCoordinates({ lat: newLat, lng: newLng });
+          setGpsFeedback({
+            type: 'success',
+            message: language === 'hi' 
+              ? `स्ट्रीट मैप पर पिन सेट किया गया: ${newLat}° N, ${newLng}° E` 
+              : language === 'te'
+              ? `స్ట్రీట్ మ్యాప్‌పై పిన్ సెట్ చేయబడింది: ${newLat}° N, ${newLng}° E`
+              : `Point pinned on street map: ${newLat}° N, ${newLng}° E`,
+          });
+        });
+
+        // Click on map to move marker and update coordinates
+        map.on('click', (e) => {
+          const newLat = Number(e.latlng.lat.toFixed(4));
+          const newLng = Number(e.latlng.lng.toFixed(4));
+          marker.setLatLng([newLat, newLng]);
+          setCoordinates({ lat: newLat, lng: newLng });
+          setGpsFeedback({
+            type: 'success',
+            message: language === 'hi' 
+              ? `नक्शे से चुना गया स्थान: ${newLat}° N, ${newLng}° E` 
+              : language === 'te'
+              ? `మ్యాప్‌లో ఎంచుకున్న స్థానం: ${newLat}° N, ${newLng}° E`
+              : `Location selected on street map: ${newLat}° N, ${newLng}° E`,
+          });
+        });
+
+        mapInstanceRef.current = map;
+        markerRef.current = marker;
+
+        // Force a resize after tile load
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 300);
+      } catch (err) {
+        console.error('Mini map initialization error:', err);
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, [isOpen, showMiniMap, language]);
+
+  // Sync marker position and map center when coordinates change
+  useEffect(() => {
+    if (markerRef.current && mapInstanceRef.current) {
+      markerRef.current.setLatLng([coordinates.lat, coordinates.lng]);
+    }
+  }, [coordinates.lat, coordinates.lng]);
 
   if (!isOpen) return null;
 
+  // Handle District Change & auto-update coordinates to district center
+  const handleDistrictChange = (distName: string) => {
+    setDistrict(distName);
+    const found = ANDHRA_PRADESH_26_DISTRICTS.find(
+      (d) => d.name.toLowerCase() === distName.toLowerCase()
+    );
+    if (found?.centerCoords) {
+      const newCoord = { lat: found.centerCoords.lat, lng: found.centerCoords.lng };
+      setCoordinates(newCoord);
+      setGpsFeedback({
+        type: 'info',
+        message: language === 'hi' 
+          ? `${found.name} जिला केंद्र के निर्देशांक लागू किए गए (${newCoord.lat}° N, ${newCoord.lng}° E)` 
+          : language === 'te'
+          ? `${found.name} జిల్లా కేంద్రం కోఆర్డినేట్స్ వర్తింపజేయబడ్డాయి (${newCoord.lat}° N, ${newCoord.lng}° E)`
+          : `Applied ${found.name} district center coordinates (${newCoord.lat}° N, ${newCoord.lng}° E)`,
+      });
+
+      // Fly map smoothly to newly selected district center
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo([newCoord.lat, newCoord.lng], 12, { duration: 1 });
+      }
+    }
+  };
+
+  // Reset coordinates to currently selected district center
+  const handleResetToDistrictCenter = () => {
+    const found = ANDHRA_PRADESH_26_DISTRICTS.find(
+      (d) => d.name.toLowerCase() === district.toLowerCase()
+    );
+    const defaultCoord = found?.centerCoords || { lat: 18.1124, lng: 83.4022 };
+    setCoordinates(defaultCoord);
+    setGpsFeedback({
+      type: 'info',
+      message: language === 'hi'
+        ? `${district} जिला केंद्र पर रीसेट किया गया (${defaultCoord.lat}° N, ${defaultCoord.lng}° E)`
+        : language === 'te'
+        ? `${district} జిల్లా కేంద్రానికి రీసెట్ చేయబడింది (${defaultCoord.lat}° N, ${defaultCoord.lng}° E)`
+        : `Reset to ${district} center coordinates (${defaultCoord.lat}° N, ${defaultCoord.lng}° E)`,
+    });
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([defaultCoord.lat, defaultCoord.lng], 12, { duration: 1 });
+    }
+  };
+
+  // GPS Auto-Fetch: Live Device GPS or clean District fallback (No random external IP)
   const handleFetchCurrentGps = () => {
     setIsFetchingLocation(true);
-    if ('geolocation' in navigator) {
+    setGpsFeedback({
+      type: 'loading',
+      message: language === 'hi' 
+        ? 'लाइव जीपीएस सिग्नल खोज रहे हैं...' 
+        : language === 'te'
+        ? 'లైవ్ GPS సంకేతాలను శోధిస్తోంది...'
+        : 'Detecting live GPS signal from device...',
+    });
+
+    const tryBrowserGeolocation = (highAccuracy: boolean) => {
+      if (!('geolocation' in navigator)) {
+        fallbackToDistrict('Geolocation not supported in browser');
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setCoordinates({
-            lat: Number(pos.coords.latitude.toFixed(4)),
-            lng: Number(pos.coords.longitude.toFixed(4)),
+          const lat = Number(pos.coords.latitude.toFixed(4));
+          const lng = Number(pos.coords.longitude.toFixed(4));
+          const acc = Math.round(pos.coords.accuracy || 15);
+          setCoordinates({ lat, lng });
+          setIsFetchingLocation(false);
+          setGpsFeedback({
+            type: 'success',
+            message: language === 'hi'
+              ? `🟢 लाइव जीपीएस प्राप्त हुआ: ${lat}° N, ${lng}° E (सटीकता: ±${acc}m)`
+              : language === 'te'
+              ? `🟢 లైవ్ GPS కనుగొనబడింది: ${lat}° N, ${lng}° E (ఖచ్చితత్వం: ±${acc}m)`
+              : `🟢 Live GPS Locked: ${lat}° N, ${lng}° E (Accuracy: ±${acc}m)`,
           });
-          setIsFetchingLocation(false);
-        },
-        () => {
-          if (district === 'Vizianagaram') {
-            setCoordinates({ lat: 18.1124, lng: 83.4022 });
-          } else if (district === 'Parvathipuram Manyam') {
-            setCoordinates({ lat: 18.7758, lng: 83.4241 });
-          } else {
-            setCoordinates({ lat: 17.6868, lng: 83.2185 });
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.flyTo([lat, lng], 14, { duration: 1.2 });
           }
-          setIsFetchingLocation(false);
         },
-        { timeout: 5000 }
+        (err) => {
+          if (highAccuracy) {
+            // High accuracy timed out, retry with standard cellular/wifi
+            tryBrowserGeolocation(false);
+          } else {
+            fallbackToDistrict(err.message);
+          }
+        },
+        {
+          enableHighAccuracy: highAccuracy,
+          timeout: highAccuracy ? 5000 : 7000,
+          maximumAge: 30000,
+        }
       );
-    } else {
+    };
+
+    const fallbackToDistrict = (reason?: string) => {
+      // Fallback directly to chosen District center coordinates
+      const currentDistObj = ANDHRA_PRADESH_26_DISTRICTS.find(
+        (d) => d.name.toLowerCase() === district.toLowerCase()
+      );
+      const defaultCoord = currentDistObj?.centerCoords || { lat: 18.1124, lng: 83.4022 };
+      setCoordinates(defaultCoord);
       setIsFetchingLocation(false);
-    }
+      setGpsFeedback({
+        type: 'info',
+        message: language === 'hi'
+          ? `⚠️ डिवाइस जीपीएस अनुपलब्ध। ${district} जिला केंद्र निर्देशांक लागू किए गए। आप मान टाइप कर सकते हैं या नक्शे पर क्लिक कर सकते हैं।`
+          : language === 'te'
+          ? `⚠️ పరికర GPS అందుబాటులో లేదు. ${district} జిల్లా కేంద్రం కోఆర్డినేట్స్ వర్తింపజేయబడ్డాయి.`
+          : `⚠️ Browser GPS unavailable (${reason || 'permission blocked'}). Applied ${district} district coordinates. You can edit Lat/Lng directly or click on the map to pin.`,
+      });
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo([defaultCoord.lat, defaultCoord.lng], 12, { duration: 1 });
+      }
+    };
+
+    tryBrowserGeolocation(true);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,6 +366,20 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
     { label: language === 'hi' ? 'सूखा तालाब' : language === 'te' ? 'ఎండిన జలాశయం' : 'Dry Tank Encroachment', url: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&auto=format&fit=crop' },
   ];
 
+  // Helper to determine Nodal Officer for the district
+  const getNodalOfficer = (distName: string) => {
+    const found = ANDHRA_PRADESH_26_DISTRICTS.find(
+      (d) => d.name.toLowerCase() === distName.toLowerCase()
+    );
+    if (found?.officerInCharge) {
+      return `${found.officerInCharge.name} (${found.officerInCharge.designation}), ${distName}`;
+    }
+    if (distName === 'Vizianagaram') return 'Dr. B. K. Rao (IAS), Vizianagaram';
+    if (distName === 'Parvathipuram Manyam') return 'Smt. S. Lakshmi (IAS), Parvathipuram';
+    if (distName === 'Visakhapatnam') return 'Sri K. Venkat (IAS), Visakhapatnam';
+    return `District Nodal Officer (IAS), ${distName}`;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -113,15 +395,15 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
       mandal: mandal.trim() || 'Headquarters Mandal',
       village: locationLandmark.trim() || 'Main Village',
       locationLandmark: locationLandmark.trim(),
-      coordinates,
+      coordinates: {
+        lat: Number(coordinates.lat) || 18.1124,
+        lng: Number(coordinates.lng) || 83.4022,
+      },
       shortDescription: shortDescription.trim(),
       photoUrl,
       submittedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
       status: 'SUBMITTED',
-      assignedNodalOfficer: 
-        district === 'Vizianagaram' ? 'Dr. B. K. Rao (IAS), Vizianagaram' :
-        district === 'Parvathipuram Manyam' ? 'Smt. S. Lakshmi (IAS), Parvathipuram' :
-        'Sri K. Venkat (IAS), Visakhapatnam',
+      assignedNodalOfficer: getNodalOfficer(district),
     };
 
     onComplaintSubmitted(newComplaint);
@@ -154,6 +436,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+            title={language === 'hi' ? 'बंद करें' : language === 'te' ? 'మూసివేయి' : 'Close'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -185,7 +468,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'मोबाइल नंबर' : language === 'te' ? 'మొబైల్ నంబర్' : 'Mobile Number'}
+                  {language === 'hi' ? 'मोबाइल नंबर (ट्रैकिंग हेतु)' : language === 'te' ? 'మొబైల్ సంఖ్య (ట్రాకింగ్ కొరకు)' : 'Mobile Number (for tracking)'}
                 </label>
                 <input
                   type="tel"
@@ -193,7 +476,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
                   placeholder="98480 12345"
                   value={citizenPhone}
                   onChange={(e) => setCitizenPhone(e.target.value)}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white"
+                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white font-mono"
                 />
               </div>
             </div>
@@ -211,7 +494,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
                   placeholder="35"
                   value={citizenAge}
                   onChange={(e) => setCitizenAge(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white"
+                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white font-mono"
                 />
               </div>
 
@@ -236,7 +519,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-3">
             <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-[#0047ab]" />
-              <span>{language === 'hi' ? '2. जिला एवं भौगोलिक स्थान' : language === 'te' ? '2. జిల్లా మరియు భౌగోళిక స్థానం' : '2. District & Geographic Location'}</span>
+              <span>{language === 'hi' ? '2. जिला एवं भौगोलिक स्थान' : language === 'te' ? '2. जिल्हा మరియు భౌగోళిక స్థానం' : '2. District & Geographic Location'}</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -246,12 +529,17 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
                 </label>
                 <select
                   value={district}
-                  onChange={(e) => setDistrict(e.target.value as any)}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
                   className="w-full text-xs p-2 border border-slate-300 rounded-lg font-semibold focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer"
                 >
-                  <option value="Vizianagaram">Vizianagaram</option>
-                  <option value="Parvathipuram Manyam">Parvathipuram Manyam</option>
-                  <option value="Visakhapatnam">Visakhapatnam</option>
+                  <optgroup label={language === 'hi' ? 'आंध्र प्रदेश के जिले' : language === 'te' ? 'ఆంధ్రప్రదేశ్ జిల్లాలు' : 'Andhra Pradesh Districts'}>
+                    {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
+                      <option key={d.id} value={d.name}>
+                        {language === 'te' && d.teluguName ? `${d.name} (${d.teluguName})` : d.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value="Other">{language === 'hi' ? 'अन्य / आंध्र प्रदेश से बाहर' : language === 'te' ? 'ఇతర / ఏపీ వెలుపల' : 'Other / Outside AP'}</option>
                 </select>
               </div>
 
@@ -284,27 +572,167 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
               />
             </div>
 
-            {/* GPS Auto-Detect Button */}
-            <div className="bg-white border border-slate-200 rounded-lg p-2.5 flex flex-wrap items-center justify-between gap-2">
-              <div className="text-[11px]">
-                <span className="font-semibold text-slate-600 block">
-                  {language === 'hi' ? 'जीपीएस निर्देशांक:' : language === 'te' ? 'GPS కోఆర్డినేట్స్:' : 'GPS Coordinates:'}
-                </span>
-                <span className="font-mono text-slate-800 font-bold">
-                  Lat: {coordinates.lat}° N, Lng: {coordinates.lng}° E
-                </span>
+            {/* GPS Coordinates & Interactive Street Map Box */}
+            <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{language === 'hi' ? 'जीपीएस निर्देशांक' : language === 'te' ? 'GPS కోఆర్డినేట్స్' : 'GPS Coordinates (Lat / Lng)'}</span>
+                  </span>
+                  <p className="text-[10px] text-slate-500">
+                    {language === 'hi' 
+                      ? 'ऑटो-फेच करें, मान टाइप करें या नीचे स्ट्रीट मैप पर क्लिक करके सटीक स्थान पिन करें।' 
+                      : language === 'te'
+                      ? 'ఆటో-ఫెచ్ చేయండి లేదా నేరుగా స్ట్రీట్ మ్యాప్‌పై క్లిక్ చేసి పిన్ చేయండి.'
+                      : 'Auto-fetch, type coordinates directly, or click/drag anywhere on the street map to pin.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Auto-Fetch GPS Button */}
+                  <button
+                    type="button"
+                    onClick={handleFetchCurrentGps}
+                    disabled={isFetchingLocation}
+                    className="px-2.5 py-1.5 bg-[#0047ab] hover:bg-blue-700 active:scale-95 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {isFetchingLocation ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Crosshair className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {isFetchingLocation
+                        ? (language === 'hi' ? 'खोज रहे हैं...' : language === 'te' ? 'శోధిస్తోంది...' : 'Detecting GPS...')
+                        : (language === 'hi' ? 'मेरा GPS स्थान प्राप्त करें' : language === 'te' ? 'నా GPS లొకేషన్ తీసుకోండి' : 'Auto-Fetch My GPS Location')}
+                    </span>
+                  </button>
+
+                  {/* Reset to district center */}
+                  <button
+                    type="button"
+                    onClick={handleResetToDistrictCenter}
+                    className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                    title={language === 'hi' ? 'चुने गए जिले के केंद्र पर रीसेट करें' : 'Reset coordinates to selected district center'}
+                  >
+                    <RotateCcw className="w-3 h-3 text-slate-500" />
+                    <span>{language === 'hi' ? 'जिला केंद्र' : language === 'te' ? 'జిల్లా కేంద్రం' : 'District Center'}</span>
+                  </button>
+
+                  {/* Toggle Mini-Map Collapse */}
+                  <button
+                    type="button"
+                    onClick={() => setShowMiniMap((prev) => !prev)}
+                    className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0077B6] rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <MapIcon className="w-3 h-3" />
+                    <span>{showMiniMap ? (language === 'hi' ? 'नक्शा छुपाएं' : language === 'te' ? 'మ్యాప్ దాచు' : 'Hide Map') : (language === 'hi' ? 'नक्शा दिखाएं' : language === 'te' ? 'మ్యాప్ చూపు' : 'Show Map')}</span>
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={handleFetchCurrentGps}
-                disabled={isFetchingLocation}
-                className="px-3 py-1.5 bg-[#0047ab] hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{isFetchingLocation 
-                  ? (language === 'hi' ? 'जीपीएस प्राप्त कर रहे हैं...' : language === 'te' ? 'GPS లొకేషన్ తీసుకుంటోంది...' : 'Fetching GPS...') 
-                  : (language === 'hi' ? 'मेरा जीपीएस स्थान प्राप्त करें' : language === 'te' ? 'నా GPS లొకేషన్ తీసుకోండి' : 'Auto-Fetch My GPS Location')}</span>
-              </button>
+
+              {/* Editable Latitude and Longitude input fields */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                    {language === 'hi' ? 'अक्षांश / Latitude (°N)' : language === 'te' ? 'అక్షాంశం (°N)' : 'Latitude (°N)'}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.0001"
+                      required
+                      value={coordinates.lat}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setCoordinates((prev) => ({ ...prev, lat: isNaN(val) ? 0 : val }));
+                      }}
+                      className="w-full text-xs font-mono font-bold p-2 pl-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-800"
+                      placeholder="e.g. 18.1124"
+                    />
+                    <span className="absolute right-2 top-2 text-[10px] font-mono font-bold text-slate-400">°N</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                    {language === 'hi' ? 'देशांतर / Longitude (°E)' : language === 'te' ? 'రేఖాంశం (°E)' : 'Longitude (°E)'}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.0001"
+                      required
+                      value={coordinates.lng}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setCoordinates((prev) => ({ ...prev, lng: isNaN(val) ? 0 : val }));
+                      }}
+                      className="w-full text-xs font-mono font-bold p-2 pl-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-800"
+                      placeholder="e.g. 83.4022"
+                    />
+                    <span className="absolute right-2 top-2 text-[10px] font-mono font-bold text-slate-400">°E</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status feedback banner */}
+              {gpsFeedback && (
+                <div
+                  className={`text-[11px] p-2 rounded-lg flex items-start gap-2 animate-in fade-in duration-200 ${
+                    gpsFeedback.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                      : gpsFeedback.type === 'loading'
+                      ? 'bg-blue-50 text-blue-900 border border-blue-200'
+                      : 'bg-amber-50 text-amber-900 border border-amber-200'
+                  }`}
+                >
+                  {gpsFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : gpsFeedback.type === 'loading' ? (
+                    <Loader2 className="w-4 h-4 text-blue-600 shrink-0 animate-spin mt-0.5" />
+                  ) : (
+                    <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 leading-snug">
+                    <span>{gpsFeedback.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGpsFeedback(null)}
+                    className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* Interactive Street Mini-Map with Click-to-Pin (ONLY Streets, No API Key Error!) */}
+              {showMiniMap && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[10px] text-slate-600 px-0.5">
+                    <span className="font-semibold text-slate-700 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>
+                        {language === 'hi' 
+                          ? '🗺️ स्ट्रीट मैप: सटीक स्थान हेतु नक्शे पर कहीं भी क्लिक करें या पिन खींचें' 
+                          : language === 'te'
+                          ? '🗺️ స్ట్రీట్ మ్యాప్: ఖచ్చితమైన ప్రదేశం కోసం మ్యాప్‌పై క్లిక్ చేయండి'
+                          : '🗺️ Street Map: Click or drag pin anywhere on map to set exact site'}
+                      </span>
+                    </span>
+                    <span className="font-mono text-slate-700 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                      [{coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}]
+                    </span>
+                  </div>
+                  <div
+                    ref={mapContainerRef}
+                    className="h-48 sm:h-56 w-full rounded-xl border border-slate-300 overflow-hidden relative shadow-inner z-0"
+                    style={{ minHeight: '190px' }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -367,10 +795,10 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
             <Info className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
             <span>
               {language === 'hi' 
-                ? `यह शिकायत सीधे नोडल अधिकारी (${district}) को भेजी जाएगी, जो तुरंत जांच के लिए फील्ड इंस्पेक्टर नियुक्त करेंगे।`
+                ? `यह शिकायत सीधे नोडल अधिकारी (${getNodalOfficer(district)}) को भेजी जाएगी, जो तुरंत जांच के लिए फील्ड इंस्पेक्टर नियुक्त करेंगे।`
                 : language === 'te'
-                ? `ఈ ఫిర్యాదు నేరుగా నోడల్ అధికారికి (${district}) సమర్పించబడుతుంది, వారు తక్షణమే తనిఖీకి ఫీల్డ్ ఇన్స్పెక్టర్‌ను పంపుతారు.`
-                : `This complaint will be directly submitted to the Nodal Officer (${district}), who will immediately dispatch a Field Inspector to investigate.`}
+                ? `ఈ ఫిర్యాదు నేరుగా నోడల్ అధికారికి (${getNodalOfficer(district)}) సమర్పించబడుతుంది, వారు తక్షణమే తనిఖీకి ఫీల్డ్ ఇన్స్పెక్టర్‌ను పంపుతారు.`
+                : `This complaint will be directly submitted to the Nodal Officer (${getNodalOfficer(district)}), who will immediately dispatch a Field Inspector to investigate.`}
             </span>
           </div>
 
