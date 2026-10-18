@@ -52,7 +52,8 @@ import {
   Radio,
   ShieldCheck,
   ShieldAlert,
-  Zap
+  Zap,
+  LogIn
 } from 'lucide-react';
 import { 
   AP_OFFICIAL_RESERVOIRS, 
@@ -78,10 +79,39 @@ export interface DistrictCoord {
   zoom?: number;
 }
 
-export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; zoom: number; districts: DistrictCoord[] }> = {
+export interface StateCoordConfig {
+  center: [number, number];
+  zoom: number;
+  minZoom: number;
+  bounds: [[number, number], [number, number]];
+  polygon?: [number, number][];
+  districts: DistrictCoord[];
+}
+
+export const INDIA_BOUNDS = L.latLngBounds(
+  L.latLng(6.0, 68.0),
+  L.latLng(37.5, 97.5)
+);
+
+export const STATE_DISTRICT_COORDS: Record<string, StateCoordConfig> = {
   'Andhra Pradesh': {
     center: [16.5062, 80.6480],
     zoom: 7.2,
+    minZoom: 6.6,
+    bounds: [[12.3, 76.4], [19.8, 85.1]],
+    polygon: [
+      [19.12, 84.78], [18.85, 84.45], [18.35, 84.05], [18.25, 83.90],
+      [17.75, 83.35], [17.65, 83.25], [17.35, 82.85], [16.95, 82.25],
+      [16.70, 82.20], [16.35, 81.65], [15.90, 80.85], [15.75, 80.35],
+      [15.45, 80.05], [14.85, 80.05], [14.45, 80.02], [13.80, 80.20],
+      [13.50, 80.25], [13.25, 79.95], [13.15, 79.55], [12.80, 78.95],
+      [12.80, 78.45], [13.35, 78.35], [13.75, 77.85], [13.80, 77.20],
+      [14.25, 76.85], [14.85, 76.90], [15.25, 77.05], [15.60, 77.15],
+      [15.85, 77.40], [16.05, 77.85], [15.95, 78.35], [16.20, 78.90],
+      [16.55, 79.30], [16.75, 79.95], [16.95, 80.50], [17.20, 81.10],
+      [17.50, 81.25], [17.85, 81.45], [18.25, 82.05], [18.55, 82.65],
+      [18.75, 83.05], [19.00, 83.55], [19.15, 84.20], [19.12, 84.78]
+    ],
     districts: [
       { name: 'Srikakulam', lat: 18.2949, lng: 83.8938, zoom: 9.5 },
       { name: 'Parvathipuram Manyam', lat: 18.7758, lng: 83.4241, zoom: 9.5 },
@@ -114,6 +144,17 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Gujarat': {
     center: [22.3100, 70.7800],
     zoom: 7.2,
+    minZoom: 6.5,
+    bounds: [[20.0, 68.0], [24.8, 74.6]],
+    polygon: [
+      [20.15, 72.85], [20.75, 72.95], [21.15, 72.75], [21.75, 72.25],
+      [21.65, 71.55], [20.75, 70.95], [20.90, 70.35], [21.65, 69.55],
+      [22.35, 68.95], [22.75, 69.15], [23.00, 70.15], [22.85, 70.75],
+      [23.35, 68.75], [23.75, 68.65], [24.45, 69.85], [24.75, 71.25],
+      [24.45, 72.45], [24.25, 73.15], [23.65, 73.85], [23.15, 74.35],
+      [22.45, 74.45], [21.85, 73.95], [21.45, 73.45], [20.65, 73.25],
+      [20.15, 72.85]
+    ],
     districts: [
       { name: 'Rajkot', lat: 22.3100, lng: 70.7800, zoom: 10 },
       { name: 'Ahmedabad', lat: 23.0225, lng: 72.5714, zoom: 10 },
@@ -128,6 +169,16 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Maharashtra': {
     center: [19.6633, 75.3003],
     zoom: 7.0,
+    minZoom: 6.3,
+    bounds: [[15.5, 72.5], [22.2, 81.0]],
+    polygon: [
+      [15.80, 73.70], [16.50, 73.30], [17.50, 73.10], [18.50, 72.85],
+      [19.30, 72.80], [20.10, 72.75], [20.50, 73.40], [21.30, 73.80],
+      [21.50, 74.80], [21.70, 76.50], [21.50, 77.80], [21.70, 79.50],
+      [21.40, 80.60], [20.80, 80.90], [19.50, 80.40], [18.70, 80.10],
+      [18.40, 79.20], [18.80, 78.30], [18.40, 77.50], [17.80, 77.20],
+      [17.30, 76.20], [16.80, 75.30], [16.20, 74.50], [15.80, 73.70]
+    ],
     districts: [
       { name: 'Pune', lat: 18.5204, lng: 73.8567, zoom: 10 },
       { name: 'Mumbai', lat: 19.0760, lng: 72.8777, zoom: 10 },
@@ -141,6 +192,16 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Karnataka': {
     center: [15.3173, 75.7139],
     zoom: 7.0,
+    minZoom: 6.4,
+    bounds: [[11.5, 74.0], [18.6, 78.7]],
+    polygon: [
+      [14.90, 74.10], [14.00, 74.45], [13.20, 74.75], [12.80, 74.85],
+      [12.10, 75.80], [11.60, 76.60], [11.85, 77.20], [12.45, 77.75],
+      [13.15, 78.35], [13.75, 77.85], [14.85, 76.90], [15.25, 77.05],
+      [15.85, 77.40], [16.50, 77.35], [17.40, 77.60], [18.40, 77.20],
+      [17.80, 76.50], [17.30, 75.80], [16.50, 74.80], [15.50, 74.20],
+      [14.90, 74.10]
+    ],
     districts: [
       { name: 'Bengaluru Urban', lat: 12.9716, lng: 77.5946, zoom: 10 },
       { name: 'Kolar', lat: 13.1350, lng: 78.1300, zoom: 10 },
@@ -153,6 +214,15 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Tamil Nadu': {
     center: [11.1271, 78.6569],
     zoom: 7.0,
+    minZoom: 6.4,
+    bounds: [[8.0, 76.2], [13.6, 80.4]],
+    polygon: [
+      [8.08, 77.55], [8.55, 78.15], [9.25, 79.15], [9.95, 79.35],
+      [10.80, 79.85], [11.50, 79.80], [12.25, 80.05], [13.15, 80.30],
+      [13.50, 80.20], [13.25, 79.75], [12.85, 79.15], [12.50, 78.50],
+      [12.25, 77.80], [11.60, 77.30], [11.20, 76.80], [10.50, 76.95],
+      [9.80, 77.25], [9.25, 77.35], [8.55, 77.45], [8.08, 77.55]
+    ],
     districts: [
       { name: 'Chennai', lat: 13.0827, lng: 80.2707, zoom: 10 },
       { name: 'Coimbatore', lat: 11.0168, lng: 76.9558, zoom: 10 },
@@ -164,6 +234,14 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Telangana': {
     center: [17.8749, 78.1008],
     zoom: 7.0,
+    minZoom: 6.6,
+    bounds: [[15.8, 77.2], [19.9, 81.8]],
+    polygon: [
+      [15.95, 78.10], [16.20, 78.90], [16.55, 79.30], [16.95, 80.50],
+      [17.45, 81.10], [18.25, 80.50], [18.90, 80.20], [19.45, 79.80],
+      [19.85, 78.90], [19.65, 78.20], [19.15, 77.70], [18.40, 77.60],
+      [17.75, 77.60], [17.15, 77.50], [16.45, 77.45], [15.95, 78.10]
+    ],
     districts: [
       { name: 'Hyderabad', lat: 17.3850, lng: 78.4867, zoom: 10 },
       { name: 'Nalgonda', lat: 17.0500, lng: 79.2700, zoom: 10 },
@@ -175,6 +253,17 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Uttar Pradesh': {
     center: [26.8467, 80.9462],
     zoom: 7.0,
+    minZoom: 6.3,
+    bounds: [[23.8, 77.0], [30.5, 84.7]],
+    polygon: [
+      [30.40, 77.55], [29.80, 78.35], [29.20, 79.15], [28.80, 80.15],
+      [28.40, 81.15], [27.75, 82.25], [27.35, 83.50], [27.15, 84.45],
+      [26.25, 84.35], [25.55, 84.15], [24.95, 83.35], [24.15, 83.25],
+      [24.15, 82.65], [24.85, 81.85], [25.15, 80.95], [24.75, 79.85],
+      [24.25, 78.85], [24.85, 78.35], [25.65, 78.50], [26.15, 77.85],
+      [27.15, 77.65], [28.15, 77.35], [28.85, 77.25], [29.95, 77.25],
+      [30.40, 77.55]
+    ],
     districts: [
       { name: 'Varanasi', lat: 25.3176, lng: 82.9739, zoom: 10 },
       { name: 'Prayagraj', lat: 25.4358, lng: 81.8463, zoom: 10 },
@@ -187,6 +276,16 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Rajasthan': {
     center: [27.0238, 74.2179],
     zoom: 7.0,
+    minZoom: 6.0,
+    bounds: [[23.0, 69.4], [30.3, 78.4]],
+    polygon: [
+      [30.20, 73.85], [30.15, 75.35], [29.25, 75.50], [28.65, 76.45],
+      [27.95, 76.85], [27.45, 77.35], [26.85, 77.85], [26.35, 76.95],
+      [25.45, 76.85], [24.75, 76.45], [24.15, 75.85], [23.45, 74.85],
+      [23.15, 74.25], [23.85, 73.45], [24.45, 72.85], [24.85, 71.65],
+      [25.65, 70.85], [26.65, 69.85], [27.65, 70.25], [28.45, 71.35],
+      [29.45, 72.65], [30.20, 73.85]
+    ],
     districts: [
       { name: 'Jaipur', lat: 26.9124, lng: 75.7873, zoom: 10 },
       { name: 'Jodhpur', lat: 26.2389, lng: 73.0243, zoom: 10 },
@@ -197,6 +296,15 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Madhya Pradesh': {
     center: [22.9734, 78.6569],
     zoom: 7.0,
+    minZoom: 6.2,
+    bounds: [[21.0, 74.0], [26.9, 82.9]],
+    polygon: [
+      [26.85, 77.95], [26.45, 78.85], [25.45, 79.65], [25.15, 80.85],
+      [24.85, 81.85], [24.15, 82.65], [23.65, 82.85], [22.85, 82.15],
+      [22.15, 81.45], [21.55, 80.65], [21.55, 78.65], [21.45, 76.45],
+      [21.65, 74.85], [22.25, 74.25], [22.85, 74.85], [23.45, 75.45],
+      [24.45, 75.85], [25.25, 76.85], [26.15, 77.25], [26.85, 77.95]
+    ],
     districts: [
       { name: 'Bhopal', lat: 23.2599, lng: 77.4126, zoom: 10 },
       { name: 'Indore', lat: 22.7196, lng: 75.8577, zoom: 10 },
@@ -207,6 +315,14 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Odisha': {
     center: [20.9517, 85.0985],
     zoom: 7.0,
+    minZoom: 6.4,
+    bounds: [[17.8, 81.3], [22.6, 87.6]],
+    polygon: [
+      [22.55, 86.45], [22.15, 87.25], [21.55, 87.15], [20.75, 86.85],
+      [19.85, 86.05], [19.25, 84.95], [18.85, 84.15], [18.25, 82.85],
+      [18.25, 81.85], [18.85, 82.45], [19.55, 82.65], [20.45, 82.85],
+      [21.25, 83.45], [22.15, 83.95], [22.45, 85.15], [22.55, 86.45]
+    ],
     districts: [
       { name: 'Bhubaneswar', lat: 20.2961, lng: 85.8245, zoom: 10 },
       { name: 'Cuttack', lat: 20.4625, lng: 85.8828, zoom: 10 },
@@ -217,6 +333,14 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Bihar': {
     center: [25.0961, 85.3131],
     zoom: 7.0,
+    minZoom: 6.6,
+    bounds: [[24.2, 83.2], [27.6, 88.3]],
+    polygon: [
+      [27.45, 84.25], [27.15, 85.25], [26.85, 86.45], [26.55, 87.65],
+      [26.15, 88.15], [25.55, 87.85], [25.15, 87.25], [24.65, 86.85],
+      [24.45, 85.85], [24.45, 84.65], [24.85, 83.45], [25.45, 83.85],
+      [25.85, 84.45], [26.55, 84.15], [27.45, 84.25]
+    ],
     districts: [
       { name: 'Patna', lat: 25.5941, lng: 85.1376, zoom: 10 },
       { name: 'Gaya', lat: 24.7914, lng: 85.0002, zoom: 10 },
@@ -226,6 +350,13 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Punjab': {
     center: [31.1471, 75.3412],
     zoom: 7.2,
+    minZoom: 6.8,
+    bounds: [[29.5, 73.8], [32.6, 77.0]],
+    polygon: [
+      [32.45, 75.75], [32.05, 76.05], [31.45, 76.55], [30.95, 76.85],
+      [30.45, 76.85], [29.95, 76.05], [29.75, 75.25], [30.15, 74.45],
+      [30.65, 73.85], [31.25, 74.45], [31.85, 74.95], [32.45, 75.75]
+    ],
     districts: [
       { name: 'Amritsar', lat: 31.6340, lng: 74.8723, zoom: 10 },
       { name: 'Ludhiana', lat: 30.9010, lng: 75.8573, zoom: 10 },
@@ -235,6 +366,15 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Kerala': {
     center: [10.8505, 76.2711],
     zoom: 7.2,
+    minZoom: 6.8,
+    bounds: [[8.2, 74.8], [12.9, 77.5]],
+    polygon: [
+      [12.75, 74.95], [12.25, 75.35], [11.65, 75.85], [11.15, 75.95],
+      [10.45, 76.15], [9.85, 76.25], [9.15, 76.55], [8.45, 76.95],
+      [8.25, 77.25], [8.65, 77.45], [9.25, 77.25], [9.85, 77.15],
+      [10.55, 76.85], [11.15, 76.45], [11.65, 76.25], [12.15, 75.85],
+      [12.75, 74.95]
+    ],
     districts: [
       { name: 'Thiruvananthapuram', lat: 8.5241, lng: 76.9366, zoom: 10 },
       { name: 'Kochi', lat: 9.9312, lng: 76.2673, zoom: 10 },
@@ -244,6 +384,15 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'West Bengal': {
     center: [22.9868, 87.8550],
     zoom: 7.2,
+    minZoom: 6.3,
+    bounds: [[21.5, 85.7], [27.3, 89.9]],
+    polygon: [
+      [27.15, 88.65], [26.85, 89.85], [26.25, 89.65], [25.85, 88.85],
+      [25.25, 88.85], [24.55, 88.65], [23.95, 88.85], [23.15, 89.05],
+      [22.45, 89.15], [21.65, 88.85], [21.55, 87.55], [22.15, 87.15],
+      [22.85, 86.85], [23.65, 86.85], [24.25, 87.45], [24.85, 87.85],
+      [25.65, 88.15], [26.45, 88.15], [27.15, 88.65]
+    ],
     districts: [
       { name: 'Kolkata', lat: 22.5726, lng: 88.3639, zoom: 10 },
       { name: 'Howrah', lat: 22.5958, lng: 88.2636, zoom: 10 },
@@ -253,6 +402,15 @@ export const STATE_DISTRICT_COORDS: Record<string, { center: [number, number]; z
   'Assam': {
     center: [26.2006, 92.9376],
     zoom: 7.0,
+    minZoom: 6.3,
+    bounds: [[24.1, 89.6], [28.2, 96.1]],
+    polygon: [
+      [27.85, 95.85], [27.45, 95.85], [26.85, 94.65], [26.15, 93.65],
+      [25.45, 93.15], [24.75, 93.15], [24.45, 92.65], [24.85, 92.25],
+      [25.45, 92.45], [26.05, 91.85], [26.05, 89.95], [26.45, 89.85],
+      [26.85, 90.85], [26.85, 92.25], [27.15, 93.45], [27.65, 94.85],
+      [27.85, 95.85]
+    ],
     districts: [
       { name: 'Guwahati', lat: 26.1445, lng: 91.7362, zoom: 10 },
       { name: 'Dibrugarh', lat: 27.4728, lng: 94.9120, zoom: 10 },
@@ -279,6 +437,9 @@ interface InteractiveIndiaMapProps {
   onDistrictChange?: (district: string) => void;
   trackedComplaintId?: string;
   trackedMobile?: string;
+  currentUser?: { name: string; phone: string } | null;
+  isLoggedIn?: boolean;
+  onOpenLoginModal?: () => void;
 }
 
 // 100% Strict English Category Metadata
@@ -589,6 +750,9 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   onDistrictChange,
   trackedComplaintId,
   trackedMobile,
+  currentUser,
+  isLoggedIn,
+  onOpenLoginModal,
 }) => {
   const { t, language } = useLanguage();
   
@@ -602,6 +766,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const hybridLabelLayerRef = useRef<L.TileLayer | null>(null);
   const riverVectorsLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const stateBorderLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
   // Active filter state
   const [activeFilterTab, setActiveFilterTab] = useState<MainFilterType>(initialCategory === 'all' ? 'all' : 'all');
@@ -660,45 +825,178 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   const [realTimeTelemetry, setRealTimeTelemetry] = useState<RealTimeCatchmentTelemetry | null>(null);
   const [isRefreshingTelemetry, setIsRefreshingTelemetry] = useState<boolean>(false);
 
-  // Handlers for state and district flyTo
+  // Helper to smoothly fly and focus on selected State or District
+  // Without rigid boundary locking - keeps zoom-in, zoom-out, and panning completely free!
+  const focusStateOrDistrict = useCallback((stName: string, distName?: string) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (!stName || stName === 'All India') {
+      map.flyTo([21.5, 79.0], 5, { animate: true, duration: 1.2 });
+      return;
+    }
+
+    const stConfig = STATE_DISTRICT_COORDS[stName];
+    if (!stConfig) return;
+
+    if (distName && distName !== 'All Districts') {
+      const matched = stConfig.districts.find(
+        (d) => d.name.toLowerCase() === distName.toLowerCase()
+      );
+      if (matched) {
+        map.flyTo([matched.lat, matched.lng], matched.zoom || 9.5, { animate: true, duration: 1.2 });
+        return;
+      }
+    }
+
+    map.flyTo(stConfig.center, stConfig.zoom, { animate: true, duration: 1.2 });
+  }, []);
+
+  // Handlers for state and district selection with smooth zoom and boundary highlighting
   const handleSelectState = (newState: string) => {
     setInternalState(newState);
     setInternalDistrict('All Districts');
     if (onStateChange) onStateChange(newState);
     if (onDistrictChange) onDistrictChange('All Districts');
-
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    if (newState === 'All India') {
-      map.flyTo([20.5937, 78.9629], 5, { animate: true, duration: 1.2 });
-    } else if (STATE_DISTRICT_COORDS[newState]) {
-      const cfg = STATE_DISTRICT_COORDS[newState];
-      map.flyTo(cfg.center, cfg.zoom, { animate: true, duration: 1.2 });
-    }
+    focusStateOrDistrict(newState, 'All Districts');
   };
 
   const handleSelectDistrict = (newDistrict: string) => {
     setInternalDistrict(newDistrict);
     if (onDistrictChange) onDistrictChange(newDistrict);
+    focusStateOrDistrict(selectedState, newDistrict);
+  };
 
+  // Render State Boundary Border Line & Highlight Area whenever State or District changes
+  useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    const borderGroup = stateBorderLayerGroupRef.current;
+    if (!map || !borderGroup) return;
 
-    if (newDistrict === 'All Districts') {
-      if (selectedState && STATE_DISTRICT_COORDS[selectedState]) {
-        const cfg = STATE_DISTRICT_COORDS[selectedState];
-        map.flyTo(cfg.center, cfg.zoom, { animate: true, duration: 1.2 });
-      } else {
-        map.flyTo([20.5937, 78.9629], 5, { animate: true, duration: 1.2 });
+    borderGroup.clearLayers();
+
+    if (selectedState && selectedState !== 'All India') {
+      const stConfig = STATE_DISTRICT_COORDS[selectedState];
+      if (stConfig && stConfig.polygon && stConfig.polygon.length > 0) {
+        // 1. Glowing outer border outline for high contrast
+        const glowPolygon = L.polygon(stConfig.polygon, {
+          color: '#0284c7', // vibrant cyan glow
+          weight: 7,
+          opacity: 0.35,
+          fill: false,
+          interactive: false,
+        });
+        borderGroup.addLayer(glowPolygon);
+
+        // 2. High-visibility state border line + highlighted area fill
+        const statePolygon = L.polygon(stConfig.polygon, {
+          color: '#0047ab', // sharp cobalt border line
+          weight: 3.5,
+          opacity: 0.95,
+          dashArray: '8, 5',
+          fillColor: '#38bdf8', // semi-transparent highlight fill
+          fillOpacity: 0.14,
+          interactive: true,
+        });
+
+        statePolygon.bindTooltip(
+          `<div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 800; color: #03045e; background: #ffffff; padding: 4px 8px; border-radius: 8px; border: 1.5px solid #0047ab; box-shadow: 0 4px 12px rgba(0,71,171,0.2);">
+             🇮🇳 ${selectedState} State Boundary
+           </div>`,
+          { sticky: true, opacity: 0.98 }
+        );
+        borderGroup.addLayer(statePolygon);
+
+        // 3. Highlight district focus zone if district is selected
+        if (selectedDistrict && selectedDistrict !== 'All Districts') {
+          const dist = stConfig.districts.find(
+            (d) => d.name.toLowerCase() === selectedDistrict.toLowerCase()
+          );
+          if (dist) {
+            const distCircle = L.circle([dist.lat, dist.lng], {
+              radius: 26000,
+              color: '#d97706',
+              weight: 3,
+              dashArray: '5, 5',
+              fillColor: '#f59e0b',
+              fillOpacity: 0.18,
+              interactive: true,
+            });
+            distCircle.bindTooltip(
+              `<div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 800; color: #78350f; background: #fffbeb; padding: 4px 8px; border-radius: 8px; border: 1.5px solid #f59e0b; box-shadow: 0 4px 12px rgba(245,158,11,0.25);">
+                 📍 ${dist.name} District Focus Zone
+               </div>`,
+              { sticky: true, opacity: 0.98 }
+            );
+            borderGroup.addLayer(distCircle);
+          }
+        }
+      }
+    }
+  }, [selectedState, selectedDistrict]);
+
+  // Track citizen complaints tied to the user's mobile number (from OTP login or search)
+  const userPhoneDigits = useMemo(() => {
+    const raw = (currentUser?.phone || trackedMobile || '').replace(/\D/g, '');
+    return raw.length >= 4 ? raw : '';
+  }, [currentUser, trackedMobile]);
+
+  const userComplaints = useMemo(() => {
+    if (!complaints || !userPhoneDigits) return [];
+    return complaints.filter((c) => {
+      const cDigits = c.citizenPhone.replace(/\D/g, '');
+      return (
+        (userPhoneDigits.length >= 10 && cDigits.endsWith(userPhoneDigits.slice(-10))) ||
+        (cDigits.length >= 10 && userPhoneDigits.endsWith(cDigits.slice(-10))) ||
+        cDigits.includes(userPhoneDigits) ||
+        userPhoneDigits.includes(cDigits)
+      );
+    });
+  }, [complaints, userPhoneDigits]);
+
+  // Smart search handler: if user searches a State or District name, immediately zoom-in & lock
+  const handleSearchInputChange = (val: string) => {
+    setSearchQuery(val);
+    const query = val.trim().toLowerCase();
+    if (!query) return;
+
+    if (query === 'all india' || query === 'india') {
+      handleSelectState('All India');
+      return;
+    }
+
+    // 1. Check if user searched a State (e.g. "andhra pradesh", "andhra", "gujarat", etc.)
+    const matchedState = Object.keys(STATE_DISTRICT_COORDS).find((st) => {
+      const lower = st.toLowerCase();
+      return lower === query || (query.length >= 4 && (lower.startsWith(query) || lower.includes(query)));
+    });
+
+    if (matchedState) {
+      if (selectedState !== matchedState) {
+        handleSelectState(matchedState);
       }
       return;
     }
 
-    const matched = availableDistricts.find((d) => d.name.toLowerCase() === newDistrict.toLowerCase());
-    if (matched) {
-      map.flyTo([matched.lat, matched.lng], matched.zoom || 9.5, { animate: true, duration: 1.2 });
+    // 2. Check if user searched a District across states
+    for (const [stName, stConfig] of Object.entries(STATE_DISTRICT_COORDS)) {
+      const matchedDist = stConfig.districts.find((d) => {
+        const lower = d.name.toLowerCase();
+        return lower === query || (query.length >= 4 && (lower.startsWith(query) || lower.includes(query)));
+      });
+      if (matchedDist) {
+        if (selectedState !== stName) {
+          setInternalState(stName);
+          if (onStateChange) onStateChange(stName);
+        }
+        handleSelectDistrict(matchedDist.name);
+        return;
+      }
     }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
   };
 
   // Sync tracked complaint from props
@@ -1147,20 +1445,13 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
-    // Strict India Geoboundary: covers territory from South of Kanyakumari (6.0°N) to Kashmir/Ladakh (37.5°N)
-    // and Gujarat Kutch (68.0°E) to Arunachal Pradesh (97.5°E)
-    const INDIA_BOUNDS = L.latLngBounds(
-      L.latLng(6.0, 68.0),
-      L.latLng(37.5, 97.5)
-    );
-
     const map = L.map(mapContainerRef.current, {
       center: [21.5, 79.0], // All-India Geographic Center
       zoom: 5,
-      minZoom: 4.5, // Strictly prevents zooming out beyond India!
+      minZoom: 4.0, // Flexible zoom out across India
       maxZoom: 18,
-      maxBounds: INDIA_BOUNDS, // Hard boundary lock
-      maxBoundsViscosity: 1.0, // 100% boundary viscosity - cannot pan or scroll outside India!
+      maxBounds: INDIA_BOUNDS,
+      maxBoundsViscosity: 0.35, // Smooth boundary behavior without rigid lock
       zoomControl: true,
       attributionControl: true,
       preferCanvas: true,
@@ -1189,9 +1480,10 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       });
     });
 
-    // Layer groups for markers & rivers
+    // Layer groups for markers, rivers & state boundary highlight
     markersLayerGroupRef.current = L.layerGroup().addTo(map);
     riverVectorsLayerGroupRef.current = L.layerGroup().addTo(map);
+    stateBorderLayerGroupRef.current = L.layerGroup().addTo(map);
 
     // Render River Vectors
     AP_RIVER_VECTORS.forEach((river) => {
@@ -1214,6 +1506,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     return () => {
       map.remove();
       mapInstanceRef.current = null;
+      stateBorderLayerGroupRef.current = null;
     };
   }, []);
 
@@ -1495,24 +1788,25 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       {/* ============================================================== */}
       <div className="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 z-20">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Left: Search Bar */}
+          {/* Left: Search Bar with Smart State & District Detection */}
           <div className="relative flex-1 bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden flex items-center">
             <Search className="w-4 h-4 text-slate-400 ml-3.5 shrink-0" />
             <input
               type="text"
               placeholder={
                 language === 'hi'
-                  ? 'स्टेशन, बांध, नदी या राज्य खोजें (उदा. टिहरी, भाखड़ा, गंगा, श्रीशैलम)...'
-                  : 'Search station, river, dam, state (e.g. Tehri, Bhakra, Ganga, Srisailam)...'
+                  ? 'राज्य, ज़िला, स्टेशन, बांध या नदी खोजें (उदा. Andhra Pradesh, Rajkot, Tehri)...'
+                  : 'Search state, district, dam, river (e.g. Andhra Pradesh, Visakhapatnam, Tehri)...'
               }
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchInputChange(e.target.value)}
               className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none font-medium"
             />
             {searchQuery && (
               <button 
-                onClick={() => setSearchQuery('')} 
+                onClick={handleClearSearch} 
                 className="p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                title="Clear Search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -1566,139 +1860,121 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 1.5 DEDICATED STATE & DISTRICT FILTER + QUICK LAYER PILLS       */}
-      {/* (SHOWN ONLY ON CITIZEN / NORMAL USER DASHBOARD)                */}
+      {/* 1.5 DEDICATED STATE & DISTRICT FILTER + YOUR COMPLAINTS         */}
+      {/* (SHOWN ON CITIZEN / NORMAL USER DASHBOARD)                     */}
       {/* ============================================================== */}
       {isCitizenDashboard && (
-        <div className="px-3 sm:px-4 py-2 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5 z-10">
-          {/* Left: State & District Dropdowns */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* State Dropdown */}
-            <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 transition-colors border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
-              <MapPin className="w-3.5 h-3.5 text-[#0047ab] shrink-0" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {language === 'hi' ? 'राज्य:' : 'State:'}
-              </span>
-              <select
-                value={selectedState}
-                onChange={(e) => handleSelectState(e.target.value)}
-                className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer pr-1"
-              >
-                <option value="All India">🇮🇳 All India (सम्पूर्ण भारत)</option>
-                <option value="Andhra Pradesh">Andhra Pradesh (ఆంధ్రప్రదేశ్)</option>
-                <option value="Gujarat">Gujarat (Rajkot & Saurashtra)</option>
-                <option value="Maharashtra">Maharashtra (महाराष्ट्र)</option>
-                <option value="Karnataka">Karnataka (ಕರ್ನಾಟಕ)</option>
-                <option value="Tamil Nadu">Tamil Nadu (தமிழ்நாடு)</option>
-                <option value="Telangana">Telangana (తెలంగాణ)</option>
-                <option value="Uttar Pradesh">Uttar Pradesh (उत्तर प्रदेश)</option>
-                <option value="Rajasthan">Rajasthan (राजस्थान)</option>
-                <option value="Madhya Pradesh">Madhya Pradesh (मध्य प्रदेश)</option>
-                <option value="Odisha">Odisha (ଓଡ଼ିଶା)</option>
-                <option value="Bihar">Bihar (बिहार)</option>
-                <option value="Punjab">Punjab (ਪੰਜਾਬ)</option>
-                <option value="Kerala">Kerala (കേരളം)</option>
-                <option value="West Bengal">West Bengal (পশ্চিমবঙ্গ)</option>
-                <option value="Assam">Assam (অসম)</option>
-              </select>
-            </div>
-
-            {/* District Dropdown (Dynamic) */}
-            <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 transition-colors border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {language === 'hi' ? 'ज़िला:' : 'District:'}
-              </span>
-              <select
-                value={selectedDistrict}
-                onChange={(e) => handleSelectDistrict(e.target.value)}
-                className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer max-w-[170px] truncate pr-1"
-              >
-                <option value="All Districts">All Districts ({availableDistricts.length})</option>
-                {availableDistricts.map((d) => (
-                  <option key={d.name} value={d.name}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="px-3 sm:px-4 py-2 bg-white border-b border-slate-200 flex flex-wrap items-center gap-2.5 z-10">
+          {/* State Dropdown - Pure English */}
+          <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 transition-colors border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
+            <MapPin className="w-3.5 h-3.5 text-[#0047ab] shrink-0" />
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              State:
+            </span>
+            <select
+              value={selectedState}
+              onChange={(e) => handleSelectState(e.target.value)}
+              className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="All India">All India</option>
+              <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Gujarat">Gujarat</option>
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Karnataka">Karnataka</option>
+              <option value="Tamil Nadu">Tamil Nadu</option>
+              <option value="Telangana">Telangana</option>
+              <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="Rajasthan">Rajasthan</option>
+              <option value="Madhya Pradesh">Madhya Pradesh</option>
+              <option value="Odisha">Odisha</option>
+              <option value="Bihar">Bihar</option>
+              <option value="Punjab">Punjab</option>
+              <option value="Kerala">Kerala</option>
+              <option value="West Bengal">West Bengal</option>
+              <option value="Assam">Assam</option>
+            </select>
           </div>
 
-          {/* Right: Quick Layer Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full">
-            <button
-              onClick={() => setActiveFilterTab('all')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeFilterTab === 'all'
-                  ? 'bg-[#0077B6] text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
+          {/* District Dropdown (Dynamic) */}
+          <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 transition-colors border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              District:
+            </span>
+            <select
+              value={selectedDistrict}
+              onChange={(e) => handleSelectDistrict(e.target.value)}
+              className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer max-w-[170px] truncate pr-1"
             >
-              All Telemetry ({tabCounts.all})
-            </button>
+              <option value="All Districts">All Districts ({availableDistricts.length})</option>
+              {availableDistricts.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
+          {/* Your Complaints Button (Placed right beside District) */}
+          {/* Strictly visible ONLY to users who have lodged complaints with their mobile number */}
+          {userComplaints.length > 0 ? (
             <button
-              onClick={() => setActiveFilterTab('reservoir')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeFilterTab === 'reservoir'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <span>💧</span>
-              <span>Dams ({tabCounts.reservoir})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilterTab('rivers')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeFilterTab === 'rivers'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <span>🌊</span>
-              <span>Rivers ({tabCounts.rivers})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilterTab('groundwater')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeFilterTab === 'groundwater'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <span>⛏️</span>
-              <span>DWLR ({tabCounts.groundwater})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilterTab('bhuvan_wbis')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeFilterTab === 'bhuvan_wbis'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <span>🛰️</span>
-              <span>Bhuvan ({tabCounts.bhuvan_wbis})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilterTab('complaints')}
-              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 border ${
+              onClick={() => {
+                setActiveFilterTab('complaints');
+                const first = userComplaints[0];
+                if (first && first.coordinates) {
+                  setFlashComplaint(first);
+                  if (onSelectComplaint) onSelectComplaint(first);
+                  const map = mapInstanceRef.current;
+                  if (map) {
+                    map.flyTo([first.coordinates.lat, first.coordinates.lng], 10.5, {
+                      animate: true,
+                      duration: 1.0,
+                    });
+                  }
+                }
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 border shadow-2xs ${
                 activeFilterTab === 'complaints'
-                  ? 'bg-gradient-to-r from-amber-600 to-rose-600 text-white border-transparent shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-600 to-rose-600 text-white border-transparent ring-2 ring-amber-400/50 shadow-xs'
                   : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
               }`}
+              title="Click to view and track your personal lodged complaints"
             >
               <span>⚠️</span>
-              <span>{language === 'hi' ? 'आपकी शिकायतें' : 'Your Complaints'}</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
-                {complaints.length}
+              <span>Your Complaints</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-black/15 text-[10px] font-mono font-bold">
+                {userComplaints.length}
               </span>
             </button>
-          </div>
+          ) : !isLoggedIn && onOpenLoginModal ? (
+            <button
+              onClick={onOpenLoginModal}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-[#0077B6] bg-slate-50 hover:bg-sky-50 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              title="Login with your mobile number to view and track your filed complaints"
+            >
+              <LogIn className="w-3.5 h-3.5 text-[#0077B6]" />
+              <span className="text-[11px]">Track via Mobile</span>
+            </button>
+          ) : null}
+
+          {/* State Boundary Highlight Status Badge */}
+          {selectedState && selectedState !== 'All India' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-50 border border-sky-200 text-[#0047ab] text-xs font-bold animate-in fade-in ml-auto sm:ml-0">
+              <span className="text-xs">🗺️</span>
+              <span className="text-[11px]">
+                {selectedDistrict && selectedDistrict !== 'All Districts'
+                  ? `Border Highlighted: ${selectedDistrict}, ${selectedState}`
+                  : `Border Highlighted: ${selectedState}`}
+              </span>
+              <button
+                onClick={() => handleSelectState('All India')}
+                className="ml-1 px-1.5 py-0.5 rounded-md bg-sky-200 hover:bg-sky-300 text-[#0047ab] text-[10px] font-extrabold cursor-pointer transition-colors"
+                title="Reset to All India"
+              >
+                ✕ All India
+              </button>
+            </div>
+          )}
         </div>
       )}
 

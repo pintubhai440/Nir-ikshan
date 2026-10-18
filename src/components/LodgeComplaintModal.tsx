@@ -17,18 +17,28 @@ interface LodgeComplaintModalProps {
   isOpen: boolean;
   onClose: () => void;
   onComplaintSubmitted: (complaint: CitizenComplaint) => void;
+  currentUser?: { name: string; phone: string } | null;
 }
 
 export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
   isOpen,
   onClose,
   onComplaintSubmitted,
+  currentUser,
 }) => {
   const { t, language } = useLanguage();
-  const [citizenName, setCitizenName] = useState('');
+  const [citizenName, setCitizenName] = useState(currentUser?.name || '');
   const [citizenAge, setCitizenAge] = useState<number | ''>('');
   const [citizenGender, setCitizenGender] = useState<'Male' | 'Female' | 'Other'>('Male');
-  const [citizenPhone, setCitizenPhone] = useState('');
+  const [citizenPhone, setCitizenPhone] = useState(currentUser?.phone || '');
+
+  // Keep synced with currentUser if logged in
+  React.useEffect(() => {
+    if (isOpen && currentUser) {
+      if (!citizenName && currentUser.name) setCitizenName(currentUser.name);
+      if (!citizenPhone && currentUser.phone) setCitizenPhone(currentUser.phone);
+    }
+  }, [isOpen, currentUser]);
   const [district, setDistrict] = useState<'Vizianagaram' | 'Parvathipuram Manyam' | 'Visakhapatnam'>('Vizianagaram');
   const [mandal, setMandal] = useState('');
   const [locationLandmark, setLocationLandmark] = useState('');

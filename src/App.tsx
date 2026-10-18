@@ -38,7 +38,7 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRoleType>('overview');
 
   // Cache version to automatically purge stale mock data from previous sessions
-  const STORAGE_VERSION = 'v10_vizianagaram_5color_real_telemetry';
+  const STORAGE_VERSION = 'v12_zero_complaints_testing_clean';
 
   // Load persisted state or initial seed data with version check
   const [waterBodies, setWaterBodies] = useState<WaterBody[]>(() => {
@@ -47,6 +47,7 @@ export default function App() {
       if (version !== STORAGE_VERSION) {
         localStorage.setItem('nir_storage_version', STORAGE_VERSION);
         localStorage.setItem('nir_water_bodies', JSON.stringify(INITIAL_WATER_BODIES));
+        localStorage.setItem('nir_complaints', JSON.stringify([]));
         return INITIAL_WATER_BODIES;
       }
       const saved = localStorage.getItem('nir_water_bodies');
@@ -56,20 +57,26 @@ export default function App() {
     }
   });
 
+  // Zero complaints initial state for testing as requested by user
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
-      const saved = localStorage.getItem('nir_complaints');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= INITIAL_CITIZEN_COMPLAINTS.length) {
-          return parsed;
-        }
+      const version = localStorage.getItem('nir_storage_version');
+      if (version !== STORAGE_VERSION) {
+        localStorage.setItem('nir_storage_version', STORAGE_VERSION);
+        localStorage.setItem('nir_complaints', JSON.stringify([]));
+        return [];
       }
-      return INITIAL_CITIZEN_COMPLAINTS;
+      const saved = localStorage.getItem('nir_complaints');
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_CITIZEN_COMPLAINTS;
+      return [];
     }
   });
+
+  const handleClearAllComplaints = () => {
+    setComplaints([]);
+    localStorage.setItem('nir_complaints', JSON.stringify([]));
+  };
 
   const [officers] = useState<OfficerContact[]>(INITIAL_OFFICER_CONTACTS);
 
@@ -380,8 +387,12 @@ export default function App() {
           <CitizenDashboard
             complaints={complaints}
             waterBodies={waterBodies}
+            currentUser={currentUser}
+            isLoggedIn={isLoggedIn}
+            onOpenLoginModal={() => setIsOtpModalOpen(true)}
             onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
             onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
+            onClearAllComplaints={handleClearAllComplaints}
           />
         )}
 
@@ -497,6 +508,7 @@ export default function App() {
         isOpen={isLodgeModalOpen}
         onClose={() => setIsLodgeModalOpen(false)}
         onComplaintSubmitted={handleComplaintSubmitted}
+        currentUser={currentUser}
       />
 
       {/* Officer Directory Modal */}

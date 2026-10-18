@@ -39,6 +39,10 @@ interface CitizenDashboardProps {
   waterBodies: WaterBody[];
   onOpenLodgeModal: () => void;
   onOpenDirectoryModal: () => void;
+  currentUser?: { name: string; phone: string } | null;
+  isLoggedIn?: boolean;
+  onOpenLoginModal?: () => void;
+  onClearAllComplaints?: () => void;
 }
 
 export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
@@ -46,12 +50,23 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   waterBodies,
   onOpenLodgeModal,
   onOpenDirectoryModal,
+  currentUser,
+  isLoggedIn = false,
+  onOpenLoginModal,
+  onClearAllComplaints,
 }) => {
   const { t, language } = useLanguage();
-  const [searchPhone, setSearchPhone] = useState('');
+  const [searchPhone, setSearchPhone] = useState(currentUser?.phone || '');
   const [selectedState, setSelectedState] = useState('All India');
   const [selectedDistrict, setSelectedDistrict] = useState('All Districts');
   const [trackedComplaint, setTrackedComplaint] = useState<CitizenComplaint | null>(complaints[0] || null);
+
+  // Keep searchPhone synced if currentUser changes (e.g. on mobile OTP login)
+  React.useEffect(() => {
+    if (currentUser?.phone && !searchPhone) {
+      setSearchPhone(currentUser.phone);
+    }
+  }, [currentUser?.phone]);
   const [selectedDossierId, setSelectedDossierId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'RESOLVED'>('ALL');
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
@@ -405,13 +420,26 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={onOpenLodgeModal}
-            className="self-start md:self-center px-5 py-2.5 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{language === 'hi' ? 'नई शिकायत दर्ज करें' : 'Lodge New Grievance'}</span>
-          </button>
+          <div className="flex items-center gap-2 self-start md:self-center flex-wrap">
+            {complaints.length > 0 && onClearAllComplaints && (
+              <button
+                onClick={onClearAllComplaints}
+                className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Reset all complaints back to zero for testing"
+              >
+                <span>🗑️</span>
+                <span>{language === 'hi' ? 'सभी हटाएं (0 करें)' : 'Clear to 0'}</span>
+              </button>
+            )}
+
+            <button
+              onClick={onOpenLodgeModal}
+              className="px-5 py-2.5 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{language === 'hi' ? 'नई शिकायत दर्ज करें' : 'Lodge New Grievance'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Toolbar: Search by Mobile / Ticket ID + Brand Filter Tabs */}
@@ -521,32 +549,37 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             </div>
 
             {filteredComplaints.length === 0 ? (
-              <div className="p-10 text-center text-xs sm:text-sm text-slate-500 bg-white rounded-3xl border border-sky-100 space-y-3 shadow-2xs">
-                <AlertCircle className="w-10 h-10 text-slate-400 mx-auto" />
+              <div className="p-12 text-center text-xs sm:text-sm text-slate-500 bg-white rounded-3xl border border-sky-200/80 space-y-4 shadow-sm max-w-2xl mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mx-auto text-[#0077B6]">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                </div>
                 <div>
-                  <p className="font-bold text-[#03045E] text-base">
-                    {language === 'hi' ? 'कोई शिकायत नहीं मिली' : 'No matching grievances found'}
+                  <p className="font-extrabold text-[#03045E] text-lg">
+                    {language === 'hi' ? 'शिकायत डेटाबेस पूरी तरह शून्य है (0 Records)' : 'Grievance Database is Clean (0 Records)'}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1.5 max-w-md mx-auto">
                     {cleanSearch
                       ? `No records found matching "${searchPhone}". Try checking the phone number or Ticket ID.`
-                      : 'No complaints under this filter.'}
+                      : (language === 'hi'
+                          ? 'टेस्टिंग के लिए सभी शिकायतें हटा दी गई हैं। नीचे दिए गए बटन पर क्लिक करके नई शिकायत दर्ज करें और मानचित्र पर लाइव टेस्ट करें!'
+                          : 'All complaints have been reset to 0 for your live testing. Click "Lodge Test Complaint" to file a water grievance and verify live telemetry & map tracking!')}
                   </p>
                 </div>
-                <div className="pt-2 flex justify-center gap-2">
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                   {cleanSearch && (
                     <button
                       onClick={() => setSearchPhone('')}
-                      className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                      className="px-4 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer transition-colors"
                     >
-                      Clear Search
+                      Clear Filter
                     </button>
                   )}
                   <button
                     onClick={onOpenLodgeModal}
-                    className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-2xs"
+                    className="px-6 py-2.5 bg-gradient-to-r from-[#0077B6] to-[#03045E] hover:from-[#03045E] hover:to-[#0077B6] text-white rounded-xl text-xs font-extrabold cursor-pointer transition-all shadow-md flex items-center gap-2 hover:scale-102 active:scale-98"
                   >
-                    Report an Issue
+                    <span>➕</span>
+                    <span>{language === 'hi' ? 'नई शिकायत दर्ज करें (Test)' : 'Lodge Test Complaint'}</span>
                   </button>
                 </div>
               </div>
@@ -607,6 +640,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               alt={c.locationLandmark}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               loading="lazy"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&auto=format&fit=crop';
+                              }}
                             />
                             <div className="absolute top-2 left-2 bg-[#03045E]/85 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-2xs">
                               📸 Ground Evidence
@@ -1159,8 +1195,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               {language === 'hi'
-                ? 'राज्य या ज़िला फ़िल्टर चुनें (ज़ूम-इन और लॉक होगा)। "आपकी शिकायतें" पर क्लिक करके अपनी शिकायत व समाधान फ़ोटो देखें।'
-                : 'Select State or District to zoom in & lock view. Click "Your Complaints" to see grievances, photos & resolution proofs.'}
+                ? 'राज्य या ज़िला चुनें (सीमा रेखा हाइलाइट होगी, स्वतंत्र ज़ूम-इन/आउट)। "आपकी शिकायतें" केवल पंजीकृत शिकायतकर्ता को दिखाई देगी।'
+                : 'Select State or District (boundary line highlighted with smooth zoom-in/out). "Your Complaints" is automatically tracked for verified mobile users.'}
             </p>
           </div>
 
@@ -1187,7 +1223,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           selectedDistrict={selectedDistrict}
           onDistrictChange={setSelectedDistrict}
           trackedComplaintId={activeComplaint?.id}
-          trackedMobile={searchPhone}
+          trackedMobile={currentUser?.phone || searchPhone}
+          currentUser={currentUser}
+          isLoggedIn={isLoggedIn}
+          onOpenLoginModal={onOpenLoginModal}
           onSelectComplaint={(c) => {
             setTrackedComplaint(c);
             setSelectedDossierId(c.id);

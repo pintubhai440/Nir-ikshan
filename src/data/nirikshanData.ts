@@ -1278,7 +1278,10 @@ export const INITIAL_OFFICER_CONTACTS: OfficerContact[] = [
   },
 ];
 
-export const INITIAL_CITIZEN_COMPLAINTS: CitizenComplaint[] = [
+// Completely zeroed out complaints for fresh testing as requested by user
+export const INITIAL_CITIZEN_COMPLAINTS: CitizenComplaint[] = [];
+
+export const SAMPLE_CITIZEN_COMPLAINTS: CitizenComplaint[] = [
   {
     id: 'CMP-AP-2026-101',
     citizenName: 'B. Jagannadha Naidu',

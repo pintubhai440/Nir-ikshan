@@ -180,7 +180,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
 
           {/* ============================================================== */}
           {/* DRAWER MENU BODY: 2 Distinct Categories (Sleek & Proportional)  */}
-          {/* 1. PUBLIC USE (Normal User & Portal Home)                      */}
+          {/* 1. PUBLIC USE (Portal Home & Normal User)                      */}
           {/* 2. GOVERNMENT USE (State Admin, Nodal, Inspector, Action Worker)*/}
           {/* ============================================================== */}
           <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 bg-slate-50/60">
@@ -199,38 +199,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                 </span>
               </div>
 
-              {/* 1. Normal User (Citizen) */}
-              <button
-                onClick={() => handleRoleClick('user')}
-                className={`w-full text-left p-2.5 px-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                  currentRole === 'user'
-                    ? 'bg-[#0077B6] text-white border-[#0077B6] shadow-xs'
-                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-2xs'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    currentRole === 'user' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'
-                  }`}>
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <h5 className="text-xs sm:text-[13px] font-bold leading-tight truncate">
-                      {t('roleUser', 'Normal User (Citizen)')}
-                    </h5>
-                    <p className={`text-[11px] mt-0.5 truncate ${currentRole === 'user' ? 'text-blue-100' : 'text-slate-500'}`}>
-                      {t('roleUserDesc', 'Citizen Grievance & Tracker')}
-                    </p>
-                  </div>
-                </div>
-                <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shrink-0 ${
-                  currentRole === 'user' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {t('tagPublic', 'PUBLIC')}
-                </span>
-              </button>
-
-              {/* 2. Portal Home */}
+              {/* 1. Portal Home (National Overview) */}
               <button
                 onClick={() => handleRoleClick('overview')}
                 className={`w-full text-left p-2.5 px-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
@@ -258,6 +227,37 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                   currentRole === 'overview' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
                 }`}>
                   {t('tagNational', 'NATIONAL')}
+                </span>
+              </button>
+
+              {/* 2. Normal User (Citizen) */}
+              <button
+                onClick={() => handleRoleClick('user')}
+                className={`w-full text-left p-2.5 px-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                  currentRole === 'user'
+                    ? 'bg-[#0077B6] text-white border-[#0077B6] shadow-xs'
+                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-2xs'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    currentRole === 'user' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'
+                  }`}>
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-xs sm:text-[13px] font-bold leading-tight truncate">
+                      {t('roleUser', 'Normal User (Citizen)')}
+                    </h5>
+                    <p className={`text-[11px] mt-0.5 truncate ${currentRole === 'user' ? 'text-blue-100' : 'text-slate-500'}`}>
+                      {t('roleUserDesc', 'Citizen Grievance & Tracker')}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shrink-0 ${
+                  currentRole === 'user' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {t('tagPublic', 'PUBLIC')}
                 </span>
               </button>
             </div>
