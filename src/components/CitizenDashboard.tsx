@@ -28,7 +28,10 @@ import {
   Droplets,
   Calendar,
   FileCheck,
-  Maximize2
+  Maximize2,
+  ArrowLeft,
+  ChevronLeft,
+  Copy
 } from 'lucide-react';
 
 interface CitizenDashboardProps {
@@ -49,10 +52,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [selectedState, setSelectedState] = useState('All India');
   const [selectedDistrict, setSelectedDistrict] = useState('All Districts');
   const [trackedComplaint, setTrackedComplaint] = useState<CitizenComplaint | null>(complaints[0] || null);
+  const [selectedDossierId, setSelectedDossierId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'RESOLVED'>('ALL');
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [pdfDownloaded, setPdfDownloaded] = useState(false);
+  const [copiedGps, setCopiedGps] = useState(false);
 
   // 100% REAL LIVE DYNAMIC METRICS COMPUTATIONS:
   // 1. Assets Tracked across selected geography / India Water Grid
@@ -130,6 +135,47 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     }
     return filteredComplaints[0] || null;
   }, [trackedComplaint, filteredComplaints]);
+
+  // Active dossier displayed in detail view (if selected by user)
+  const activeDossier = useMemo(() => {
+    if (selectedDossierId) {
+      const found = complaints.find((c) => c.id === selectedDossierId);
+      if (found) return found;
+    }
+    return activeComplaint;
+  }, [selectedDossierId, complaints, activeComplaint]);
+
+  // Current position in filtered list for Next / Prev navigation
+  const currentDossierIndex = useMemo(() => {
+    if (!activeDossier) return -1;
+    return filteredComplaints.findIndex((c) => c.id === activeDossier.id);
+  }, [filteredComplaints, activeDossier]);
+
+  const prevDossier = currentDossierIndex > 0 ? filteredComplaints[currentDossierIndex - 1] : null;
+  const nextDossier = currentDossierIndex >= 0 && currentDossierIndex < filteredComplaints.length - 1 ? filteredComplaints[currentDossierIndex + 1] : null;
+
+  const handleOpenDossier = (c: CitizenComplaint) => {
+    setSelectedDossierId(c.id);
+    setTrackedComplaint(c);
+    const el = document.getElementById('citizen-tracker-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleBackToGrid = () => {
+    setSelectedDossierId(null);
+    const el = document.getElementById('citizen-tracker-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleCopyGps = (lat: number, lng: number) => {
+    try {
+      navigator.clipboard?.writeText(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      setCopiedGps(true);
+      setTimeout(() => setCopiedGps(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
 
   // Handle PDF report generation
   const handleDownloadPdf = () => {
@@ -349,7 +395,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <ShieldCheck className="w-3.5 h-3.5 text-[#0077B6]" />
               <span>{language === 'hi' ? 'नागरिक शिकायत निवारण सेल • भू-सत्यापन' : 'Citizen Grievance Redressal Cell • Ground Truth'}</span>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-[#03045E] tracking-tight">
+            <h3 className="text-xl sm:text-2xl font-bold text-[#03045E] tracking-tight">
               {language === 'hi' ? 'शिकायत समाधान एवं स्थिति ट्रैकर' : 'Grievance Tracking & Resolution Truth'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 font-normal mt-0.5 max-w-2xl">
@@ -448,25 +494,37 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           </div>
         )}
 
-        {/* Master-Detail Cohesive Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT COLUMN: Clean Complaints Dossier List (5 Columns) */}
-          <div className="lg:col-span-5 space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-[#0077B6]" />
-                <span>{language === 'hi' ? 'शिकायतों की सूची' : 'Grievance Dossier'}</span>
-              </span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-sky-100 text-[#0077B6]">
-                {filteredComplaints.length} {filteredComplaints.length === 1 ? 'case' : 'cases'}
-              </span>
+        {/* ============================================================== */}
+        {/* GRIEVANCES DISPLAY: CARD GRID VIEW (SKETCH) OR FULL DOSSIER    */}
+        {/* ============================================================== */}
+        {!selectedDossierId ? (
+          /* ============================================================ */
+          /* 1. GRID VIEW: USER-REQUESTED CARD GRID WITH "DETAIL" BUTTON   */
+          /* ============================================================ */
+          <div className="space-y-4 animate-in fade-in duration-200">
+            {/* Header Strip with Case Count & Filter Label */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-[#0077B6]" />
+                  <span>{language === 'hi' ? 'शिकायतों की सूची' : 'Grievance Dossier Grid'}</span>
+                </span>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-[#0077B6] border border-sky-200">
+                  {filteredComplaints.length} {filteredComplaints.length === 1 ? 'record' : 'records'}
+                </span>
+              </div>
+              <div className="text-xs text-slate-500 font-medium">
+                {language === 'hi'
+                  ? 'किसी भी शिकायत का पूरा विवरण देखने के लिए नीचे "विवरण देखें" बटन दबाएं'
+                  : 'Click "View Details" on any grievance card to inspect full technical dossier'}
+              </div>
             </div>
 
             {filteredComplaints.length === 0 ? (
-              <div className="p-8 text-center text-xs sm:text-sm text-slate-500 bg-white rounded-2xl border border-sky-100 space-y-3 shadow-2xs">
-                <AlertCircle className="w-8 h-8 text-slate-400 mx-auto" />
+              <div className="p-10 text-center text-xs sm:text-sm text-slate-500 bg-white rounded-3xl border border-sky-100 space-y-3 shadow-2xs">
+                <AlertCircle className="w-10 h-10 text-slate-400 mx-auto" />
                 <div>
-                  <p className="font-bold text-[#03045E]">
+                  <p className="font-bold text-[#03045E] text-base">
                     {language === 'hi' ? 'कोई शिकायत नहीं मिली' : 'No matching grievances found'}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
@@ -479,98 +537,215 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   {cleanSearch && (
                     <button
                       onClick={() => setSearchPhone('')}
-                      className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                      className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer transition-colors"
                     >
                       Clear Search
                     </button>
                   )}
                   <button
                     onClick={onOpenLodgeModal}
-                    className="px-4 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                    className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-2xs"
                   >
                     Report an Issue
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
+              /* THE MULTI-COLUMN CARD GRID (MATCHING USER SKETCH) */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                 {filteredComplaints.map((c) => {
-                  const isSelected = activeComplaint?.id === c.id;
                   const isResolved = c.status === 'RESOLVED';
+                  const stepNum = getStatusStepNumber(c.status);
 
                   return (
                     <div
                       key={c.id}
-                      onClick={() => handleSelectComplaint(c)}
-                      className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
-                        isSelected
-                          ? 'bg-white border-2 border-[#0077B6] shadow-sm ring-4 ring-[#0077B6]/10'
-                          : 'bg-white/90 border border-slate-200/90 hover:border-sky-300 hover:bg-white hover:shadow-2xs'
-                      }`}
+                      className="bg-white rounded-2xl border border-sky-200/80 hover:border-[#0077B6] shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group p-4 sm:p-5"
                     >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-[#03045E] text-white">
+                      {/* Top Row: Ticket ID + Status Badge */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-[#03045E] text-white shadow-2xs tracking-wide">
                             {c.id}
                           </span>
-                          <span className="text-[11px] font-medium text-slate-400">
-                            {c.submittedAt}
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${
+                              isResolved
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-amber-50 text-amber-900 border-amber-300'
+                            }`}
+                          >
+                            {isResolved ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>Resolved</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <span>In Progress</span>
+                              </>
+                            )}
                           </span>
                         </div>
-                        <span
-                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                            isResolved
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                              : 'bg-amber-50 text-amber-800 border-amber-300'
-                          }`}
-                        >
-                          {isResolved ? '✓ Resolved' : '⚠️ Action Pending'}
-                        </span>
+
+                        {/* Image Preview Thumbnail (If photo exists) */}
+                        {c.photoUrl && (
+                          <div 
+                            onClick={() => {
+                              setPreviewPhoto({
+                                url: c.photoUrl || '',
+                                title: `Citizen Evidence: ${c.locationLandmark}`,
+                                subtitle: c.shortDescription
+                              });
+                            }}
+                            className="relative aspect-16/9 rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer group-hover:border-[#0077B6]/40 transition-colors"
+                            title="Click to Zoom Ground Evidence"
+                          >
+                            <img
+                              src={c.photoUrl}
+                              alt={c.locationLandmark}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                            <div className="absolute top-2 left-2 bg-[#03045E]/85 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-2xs">
+                              📸 Ground Evidence
+                            </div>
+                            <div className="absolute inset-0 bg-[#03045E]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                              <Maximize2 className="w-3.5 h-3.5" />
+                              <span>Zoom</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Landmark Title */}
+                        <div>
+                          <h4 className="text-sm font-extrabold text-[#03045E] group-hover:text-[#0077B6] transition-colors line-clamp-2 leading-snug">
+                            {c.locationLandmark}
+                          </h4>
+                          <div className="flex items-center gap-1 text-xs text-slate-500 font-medium mt-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
+                            <span className="truncate">{c.mandal}, {c.district}</span>
+                          </div>
+                        </div>
+
+                        {/* Short Description */}
+                        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                          {c.shortDescription}
+                        </p>
+
+                        {/* Mini Lifecycle Progress Bar */}
+                        <div className="pt-2 border-t border-slate-100 space-y-1">
+                          <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500">
+                            <span>Lifecycle Pipeline</span>
+                            <span className="text-[#0077B6] font-bold">Step {stepNum} of 4</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex gap-0.5">
+                            <div className={`h-full flex-1 rounded-full ${stepNum >= 1 ? 'bg-[#0077B6]' : 'bg-slate-200'}`} />
+                            <div className={`h-full flex-1 rounded-full ${stepNum >= 2 ? 'bg-[#0077B6]' : 'bg-slate-200'}`} />
+                            <div className={`h-full flex-1 rounded-full ${stepNum >= 3 ? 'bg-amber-500' : 'bg-slate-200'}`} />
+                            <div className={`h-full flex-1 rounded-full ${stepNum >= 4 ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                          </div>
+                        </div>
+
+                        {/* Key Finding or Reporter Info */}
+                        <div className="text-[11px] text-slate-500 flex items-center justify-between">
+                          <span>Reporter: <strong className="text-slate-700">{c.citizenName}</strong></span>
+                          <span className="text-slate-400 font-medium">{c.submittedAt}</span>
+                        </div>
                       </div>
 
-                      <h4 className="text-sm font-bold text-[#03045E] leading-snug line-clamp-1">
-                        {c.locationLandmark}
-                      </h4>
-                      <p className="text-xs text-slate-600 line-clamp-2 mt-1 leading-relaxed">
-                        {c.shortDescription}
-                      </p>
-
-                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="text-slate-600 font-medium truncate flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
-                          <span>{c.district} • {c.mandal}</span>
-                        </span>
-                        <span className="font-bold text-[#0077B6] flex items-center gap-1 hover:underline shrink-0 ml-2">
-                          <span>Details</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </span>
-                      </div>
+                      {/* Detail Button (The exact button requested by the user!) */}
+                      <button
+                        onClick={() => handleOpenDossier(c)}
+                        className="w-full mt-4 py-2.5 px-4 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all hover:scale-101 active:scale-99 cursor-pointer"
+                      >
+                        <span>{language === 'hi' ? 'विवरण देखें (पूरा विवरण)' : 'View Full Details'}</span>
+                        <ChevronRight className="w-4 h-4 text-sky-200 group-hover:translate-x-0.5 transition-transform" />
+                      </button>
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
+        ) : (
+          /* ============================================================ */
+          /* 2. DEDICATED FULL-PAGE DOSSIER VIEW (OPENED ON DETAIL CLICK)  */
+          /* ============================================================ */
+          activeDossier && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Top Navigation & Return Bar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-200 shadow-2xs">
+                {/* Back to Grid Button */}
+                <button
+                  onClick={handleBackToGrid}
+                  className="px-4 py-2 bg-sky-50 hover:bg-[#0077B6] text-[#03045E] hover:text-white border border-sky-200 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs shrink-0"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>{language === 'hi' ? 'सभी शिकायतों की सूची पर वापस जाएं' : 'Back to All Grievances'}</span>
+                </button>
 
-          {/* RIGHT COLUMN: Upgraded Dossier Detail View (7 Columns) */}
-          <div className="lg:col-span-7">
-            {activeComplaint ? (
-              <div className="bg-white border border-sky-100 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6 relative">
-                {/* Header: ID, Status Pill, Action to Map */}
-                <div className="space-y-3 pb-4 border-b border-sky-100">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono font-bold bg-[#03045E] text-white px-3 py-1 rounded-lg shadow-2xs">
-                        {activeComplaint.id}
+                {/* Case Switcher Pagination */}
+                <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600">
+                  <button
+                    disabled={!prevDossier}
+                    onClick={() => prevDossier && handleOpenDossier(prevDossier)}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer flex items-center gap-1"
+                    title="Previous Case"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Prev</span>
+                  </button>
+                  <span className="px-2 font-mono text-slate-700 bg-slate-100 rounded py-1">
+                    Case {currentDossierIndex + 1} / {filteredComplaints.length}
+                  </span>
+                  <button
+                    disabled={!nextDossier}
+                    onClick={() => nextDossier && handleOpenDossier(nextDossier)}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer flex items-center gap-1"
+                    title="Next Case"
+                  >
+                    <span className="hidden md:inline">Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Right Direct Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleScrollToMap(activeDossier)}
+                    className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
+                    <span>Focus on Map Below 📍</span>
+                  </button>
+                  <button
+                    onClick={onOpenDirectoryModal}
+                    className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Official Directory
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Full-Width Dossier Document Card */}
+              <div className="bg-white border border-sky-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-7 relative">
+                {/* Dossier Header: ID, Status, Title, Coordinates */}
+                <div className="space-y-4 pb-5 border-b border-sky-100">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="text-xs font-mono font-bold bg-[#03045E] text-white px-3.5 py-1 rounded-lg shadow-2xs tracking-wider">
+                        {activeDossier.id}
                       </span>
                       <span
                         className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 ${
-                          activeComplaint.status === 'RESOLVED'
+                          activeDossier.status === 'RESOLVED'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                             : 'bg-amber-50 text-amber-900 border-amber-300'
                         }`}
                       >
-                        {activeComplaint.status === 'RESOLVED' ? (
+                        {activeDossier.status === 'RESOLVED' ? (
                           <>
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                             <span>✓ Case Resolved & Ground Restored</span>
@@ -584,204 +759,207 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleScrollToMap(activeComplaint)}
-                      className="px-3.5 py-1.5 bg-sky-50 hover:bg-[#0077B6] hover:text-white text-[#0077B6] border border-sky-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                    >
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>{language === 'hi' ? 'नीचे मानचित्र पर देखें' : 'Focus on Map Below'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleCopyGps(activeDossier.coordinates.lat, activeDossier.coordinates.lng)}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Copy GPS Coordinates"
+                      >
+                        <Copy className="w-3 h-3 text-slate-500" />
+                        <span>{copiedGps ? 'Copied GPS!' : 'Copy GPS'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-extrabold text-[#03045E] tracking-tight">
-                      {activeComplaint.locationLandmark}
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-[#03045E] tracking-tight leading-tight">
+                      {activeDossier.locationLandmark}
                     </h3>
-                    <div className="flex flex-wrap items-center gap-y-1.5 gap-x-3 text-xs text-slate-600 mt-1.5">
+                    <div className="flex flex-wrap items-center gap-y-1.5 gap-x-3 text-xs sm:text-sm text-slate-600 mt-2">
                       <span className="inline-flex items-center gap-1 font-semibold text-[#03045E]">
-                        <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
-                        <span>{activeComplaint.district}, {activeComplaint.mandal}</span>
+                        <MapPin className="w-4 h-4 text-[#0077B6]" />
+                        <span>{activeDossier.village ? `${activeDossier.village}, ` : ''}{activeDossier.mandal}, {activeDossier.district}</span>
                       </span>
                       <span>•</span>
-                      <span className="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                        GPS: {activeComplaint.coordinates.lat.toFixed(4)}°N, {activeComplaint.coordinates.lng.toFixed(4)}°E
+                      <span className="font-mono text-slate-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100 font-semibold">
+                        GPS: {activeDossier.coordinates.lat.toFixed(4)}°N, {activeDossier.coordinates.lng.toFixed(4)}°E
                       </span>
                       <span>•</span>
-                      <span>Citizen: <strong className="text-slate-800">{activeComplaint.citizenName}</strong> ({activeComplaint.citizenPhone})</span>
+                      <span>Citizen: <strong className="text-slate-800">{activeDossier.citizenName}</strong> ({activeDossier.citizenPhone})</span>
                       <span>•</span>
-                      <span className="text-slate-500">Logged: {activeComplaint.submittedAt}</span>
+                      <span className="text-slate-500">Logged: {activeDossier.submittedAt}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 4-Step Connected Lifecycle Stepper */}
-                <div className="space-y-3 bg-[#f0f7fb] p-4 sm:p-5 rounded-2xl border border-sky-100">
+                {/* 4-Step Connected Lifecycle Stepper (Full Width) */}
+                <div className="space-y-3 bg-[#f0f7fb] p-5 sm:p-6 rounded-2xl border border-sky-100">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
                       <FileCheck className="w-4 h-4 text-[#0077B6]" />
                       <span>{language === 'hi' ? 'निवारण प्रगति चरण (4-स्तरीय प्रक्रिया)' : 'Redressal Progress Lifecycle (4-Step Pipeline)'}</span>
                     </span>
-                    <span className="text-xs font-bold text-[#0077B6] bg-sky-100 px-2.5 py-0.5 rounded-full">
-                      Step {getStatusStepNumber(activeComplaint.status)} of 4
+                    <span className="text-xs font-bold text-[#0077B6] bg-sky-100 px-3 py-1 rounded-full border border-sky-200">
+                      Step {getStatusStepNumber(activeDossier.status)} of 4
                     </span>
                   </div>
 
                   {/* Connected Track Bar */}
-                  <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="relative w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-[#03045E] via-[#0077B6] to-emerald-500 transition-all duration-500 rounded-full"
                       style={{ 
-                        width: activeComplaint.status === 'RESOLVED' 
+                        width: activeDossier.status === 'RESOLVED' 
                           ? '100%' 
-                          : activeComplaint.status === 'WORKER_IN_PROGRESS' || activeComplaint.status === 'ACTION_ASSIGNED'
+                          : activeDossier.status === 'WORKER_IN_PROGRESS' || activeDossier.status === 'ACTION_ASSIGNED'
                             ? '75%'
-                            : activeComplaint.status === 'INSPECTOR_ASSIGNED'
+                            : activeDossier.status === 'INSPECTOR_ASSIGNED'
                               ? '50%'
                               : '25%'
                       }}
                     ></div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                     {/* Step 1: Lodged */}
-                    <div className="bg-white p-3 rounded-xl border border-sky-200/80 text-center shadow-2xs">
+                    <div className="bg-white p-3.5 rounded-xl border border-sky-200 text-center shadow-2xs">
                       <div className="text-[10px] font-extrabold text-emerald-600 uppercase mb-1">
                         1. {t('stepSubmitted')}
                       </div>
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 mx-auto my-1" />
-                      <div className="text-[10px] text-slate-700 font-semibold truncate">
-                        {activeComplaint.citizenName}
+                      <div className="text-[11px] text-slate-800 font-bold truncate">
+                        {activeDossier.citizenName}
                       </div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">
-                        {activeComplaint.submittedAt}
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {activeDossier.submittedAt}
                       </div>
                     </div>
 
                     {/* Step 2: Inspector Assigned */}
                     <div
-                      className={`p-3 rounded-xl border text-center shadow-2xs ${
-                        getStatusStepNumber(activeComplaint.status) >= 2
+                      className={`p-3.5 rounded-xl border text-center shadow-2xs ${
+                        getStatusStepNumber(activeDossier.status) >= 2
                           ? 'bg-white border-[#0077B6] ring-1 ring-[#0077B6]/20'
                           : 'bg-slate-100/80 text-slate-400 border-slate-200'
                       }`}
                     >
                       <div
                         className={`text-[10px] font-extrabold uppercase mb-1 ${
-                          getStatusStepNumber(activeComplaint.status) >= 2 ? 'text-[#0077B6]' : 'text-slate-400'
+                          getStatusStepNumber(activeDossier.status) >= 2 ? 'text-[#0077B6]' : 'text-slate-400'
                         }`}
                       >
                         2. {t('stepInspectorAssigned')}
                       </div>
                       <UserCheck
                         className={`w-4 h-4 mx-auto my-1 ${
-                          getStatusStepNumber(activeComplaint.status) >= 2 ? 'text-[#0077B6]' : 'text-slate-400'
+                          getStatusStepNumber(activeDossier.status) >= 2 ? 'text-[#0077B6]' : 'text-slate-400'
                         }`}
                       />
-                      <div className="text-[10px] text-slate-700 font-semibold truncate">
-                        {activeComplaint.inspectionReport?.inspectorName || activeComplaint.assignedInspector || 'G. Srinivas Rao'}
+                      <div className="text-[11px] text-slate-800 font-bold truncate">
+                        {activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}
                       </div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">
+                      <div className="text-[10px] text-slate-500 mt-0.5">
                         Field Ground Survey
                       </div>
                     </div>
 
                     {/* Step 3: Action Execution */}
                     <div
-                      className={`p-3 rounded-xl border text-center shadow-2xs ${
-                        getStatusStepNumber(activeComplaint.status) >= 3
+                      className={`p-3.5 rounded-xl border text-center shadow-2xs ${
+                        getStatusStepNumber(activeDossier.status) >= 3
                           ? 'bg-white border-amber-500 ring-1 ring-amber-200'
                           : 'bg-slate-100/80 text-slate-400 border-slate-200'
                       }`}
                     >
                       <div
                         className={`text-[10px] font-extrabold uppercase mb-1 ${
-                          getStatusStepNumber(activeComplaint.status) >= 3 ? 'text-amber-700' : 'text-slate-400'
+                          getStatusStepNumber(activeDossier.status) >= 3 ? 'text-amber-700' : 'text-slate-400'
                         }`}
                       >
                         3. {t('stepActionAssigned')}
                       </div>
                       <Wrench
                         className={`w-4 h-4 mx-auto my-1 ${
-                          getStatusStepNumber(activeComplaint.status) >= 3 ? 'text-amber-600' : 'text-slate-400'
+                          getStatusStepNumber(activeDossier.status) >= 3 ? 'text-amber-600' : 'text-slate-400'
                         }`}
                       />
-                      <div className="text-[10px] text-slate-700 font-semibold truncate">
-                        {activeComplaint.assignedEngineer || 'P. Venkat & Crew'}
+                      <div className="text-[11px] text-slate-800 font-bold truncate">
+                        {activeDossier.assignedEngineer || 'P. Venkat & Crew'}
                       </div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">
+                      <div className="text-[10px] text-slate-500 mt-0.5">
                         Civil Work Force
                       </div>
                     </div>
 
                     {/* Step 4: Restored & Verified */}
                     <div
-                      className={`p-3 rounded-xl border text-center shadow-2xs ${
-                        activeComplaint.status === 'RESOLVED'
+                      className={`p-3.5 rounded-xl border text-center shadow-2xs ${
+                        activeDossier.status === 'RESOLVED'
                           ? 'bg-emerald-50 border-emerald-400 ring-1 ring-emerald-300'
                           : 'bg-slate-100/80 text-slate-400 border-slate-200'
                       }`}
                     >
                       <div
                         className={`text-[10px] font-extrabold uppercase mb-1 ${
-                          activeComplaint.status === 'RESOLVED' ? 'text-emerald-700' : 'text-slate-400'
+                          activeDossier.status === 'RESOLVED' ? 'text-emerald-700' : 'text-slate-400'
                         }`}
                       >
                         4. {t('stepResolved')}
                       </div>
                       <CheckCircle2
                         className={`w-4 h-4 mx-auto my-1 ${
-                          activeComplaint.status === 'RESOLVED' ? 'text-emerald-600' : 'text-slate-400'
+                          activeDossier.status === 'RESOLVED' ? 'text-emerald-600' : 'text-slate-400'
                         }`}
                       />
-                      <div className="text-[10px] text-slate-800 font-extrabold truncate">
-                        {activeComplaint.status === 'RESOLVED' ? 'Verified & Closed' : 'Audit Pending'}
+                      <div className="text-[11px] text-slate-800 font-extrabold truncate">
+                        {activeDossier.status === 'RESOLVED' ? 'Verified & Closed' : 'Audit Pending'}
                       </div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">
+                      <div className="text-[10px] text-slate-500 mt-0.5">
                         TDS & Soil Buffer
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Ground Truth Photo Evidence (Side-by-Side Comparison) */}
-                <div className="space-y-3">
+                {/* Ground Truth Photo Evidence (Full-Width Responsive Comparison) */}
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
                       <Layers className="w-4 h-4 text-[#0077B6]" />
                       <span>{language === 'hi' ? 'भू-सत्यापन एवं समाधान साक्ष्य फ़ोटो' : 'Ground Truth & Photographic Evidence'}</span>
                     </span>
-                    <span className="text-[11px] text-slate-500 font-medium">
+                    <span className="text-xs text-slate-500 font-medium">
                       Official Geotagged Records
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {/* Before: Citizen Evidence Photo */}
-                    <div className="bg-[#f0f7fb] p-3.5 rounded-2xl border border-sky-100 shadow-2xs space-y-2 flex flex-col justify-between">
-                      <div className="space-y-2">
+                    <div className="bg-[#f0f7fb] p-4 sm:p-5 rounded-2xl border border-sky-100 shadow-2xs space-y-3 flex flex-col justify-between">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-extrabold text-[#03045E] flex items-center gap-1">
+                          <span className="text-xs font-extrabold text-[#03045E] flex items-center gap-1.5">
                             <span>📸 Citizen Lodged Proof</span>
                           </span>
-                          <span className="text-[10px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                            {activeComplaint.submittedAt}
+                          <span className="text-[10px] font-mono text-slate-600 bg-white px-2.5 py-0.5 rounded border border-slate-200">
+                            {activeDossier.submittedAt}
                           </span>
                         </div>
 
                         <div 
                           onClick={() => {
-                            if (activeComplaint.photoUrl) {
+                            if (activeDossier.photoUrl) {
                               setPreviewPhoto({
-                                url: activeComplaint.photoUrl,
-                                title: `Citizen Evidence: ${activeComplaint.locationLandmark}`,
-                                subtitle: activeComplaint.shortDescription
+                                url: activeDossier.photoUrl,
+                                title: `Citizen Evidence: ${activeDossier.locationLandmark}`,
+                                subtitle: activeDossier.shortDescription
                               });
                             }
                           }}
                           className="relative group rounded-xl overflow-hidden cursor-pointer bg-slate-900 border border-slate-200 aspect-16/10"
                         >
                           <img
-                            src={activeComplaint.photoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=600&q=80'}
+                            src={activeDossier.photoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=600&q=80'}
                             alt="Citizen Proof"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
@@ -791,50 +969,50 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           </div>
                         </div>
 
-                        <div className="bg-white p-2.5 rounded-xl border border-sky-100 text-xs text-slate-700 space-y-1">
-                          <div className="font-bold text-[#03045E]">Reported Problem:</div>
-                          <p className="text-slate-600 line-clamp-3 leading-relaxed">
-                            {activeComplaint.shortDescription}
+                        <div className="bg-white p-3.5 rounded-xl border border-sky-100 text-xs text-slate-700 space-y-1.5">
+                          <div className="font-bold text-[#03045E] text-sm">Reported Problem:</div>
+                          <p className="text-slate-600 leading-relaxed text-xs">
+                            {activeDossier.shortDescription}
                           </p>
                         </div>
                       </div>
 
-                      <div className="text-[11px] text-slate-500 pt-1 flex items-center justify-between">
-                        <span>Reporter: <strong>{activeComplaint.citizenName}</strong></span>
-                        <span className="font-mono text-slate-600">{activeComplaint.citizenPhone}</span>
+                      <div className="text-xs text-slate-500 pt-2 border-t border-sky-100/60 flex items-center justify-between">
+                        <span>Reporter: <strong>{activeDossier.citizenName}</strong></span>
+                        <span className="font-mono text-slate-700 font-semibold">{activeDossier.citizenPhone}</span>
                       </div>
                     </div>
 
                     {/* After: If Resolved vs In-Progress Field Status */}
-                    {activeComplaint.status === 'RESOLVED' ? (
-                      <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-300 shadow-2xs space-y-2 flex flex-col justify-between">
-                        <div className="space-y-2">
+                    {activeDossier.status === 'RESOLVED' ? (
+                      <div className="bg-emerald-50/70 p-4 sm:p-5 rounded-2xl border border-emerald-300 shadow-2xs space-y-3 flex flex-col justify-between">
+                        <div className="space-y-3">
                           <div className="flex items-center justify-between text-emerald-900">
-                            <span className="text-[11px] font-extrabold flex items-center gap-1.5">
+                            <span className="text-xs font-extrabold flex items-center gap-1.5">
                               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                               <span>📸 Restoration Proof (After Action)</span>
                             </span>
-                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-200 text-emerald-900">
+                            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 border border-emerald-300">
                               Verified Closure
                             </span>
                           </div>
 
                           <div 
                             onClick={() => setPreviewPhoto({
-                              url: activeComplaint.workExecution?.afterPhotoUrl ||
-                                activeComplaint.inspectionReport?.postWorkVerification?.verificationPhotoUrl ||
-                                activeComplaint.inspectionReport?.sitePhotoUrl ||
+                              url: activeDossier.workExecution?.afterPhotoUrl ||
+                                activeDossier.inspectionReport?.postWorkVerification?.verificationPhotoUrl ||
+                                activeDossier.inspectionReport?.sitePhotoUrl ||
                                 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-                              title: `Work Restored: ${activeComplaint.locationLandmark}`,
-                              subtitle: `Verified by ${activeComplaint.inspectionReport?.inspectorName || activeComplaint.assignedInspector || 'Water Inspector'}`
+                              title: `Work Restored: ${activeDossier.locationLandmark}`,
+                              subtitle: `Verified by ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'Water Inspector'}`
                             })}
                             className="relative group rounded-xl overflow-hidden cursor-pointer bg-emerald-950 border border-emerald-300 aspect-16/10"
                           >
                             <img
                               src={
-                                activeComplaint.workExecution?.afterPhotoUrl ||
-                                activeComplaint.inspectionReport?.postWorkVerification?.verificationPhotoUrl ||
-                                activeComplaint.inspectionReport?.sitePhotoUrl ||
+                                activeDossier.workExecution?.afterPhotoUrl ||
+                                activeDossier.inspectionReport?.postWorkVerification?.verificationPhotoUrl ||
+                                activeDossier.inspectionReport?.sitePhotoUrl ||
                                 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'
                               }
                               alt="Resolution Proof"
@@ -846,36 +1024,36 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             </div>
                           </div>
 
-                          <div className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-1.5 text-xs text-emerald-950">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span>Inspector: <strong>{activeComplaint.inspectionReport?.inspectorName || activeComplaint.assignedInspector || 'G. Srinivas Rao'}</strong></span>
-                              <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                TDS: {activeComplaint.inspectionReport?.tdsReadingPpm || 210} ppm
+                          <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-2 text-xs text-emerald-950">
+                            <div className="flex items-center justify-between text-xs">
+                              <span>Inspector: <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}</strong></span>
+                              <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                                TDS: {activeDossier.inspectionReport?.tdsReadingPpm || 210} ppm
                               </span>
                             </div>
-                            <p className="text-[11px] text-emerald-900 leading-snug">
-                              {activeComplaint.inspectionReport?.postWorkVerification?.remarks ||
-                                activeComplaint.workExecution?.workSummary ||
+                            <p className="text-xs text-emerald-900 leading-relaxed">
+                              {activeDossier.inspectionReport?.postWorkVerification?.remarks ||
+                                activeDossier.workExecution?.workSummary ||
                                 'Water body fully desilted, contaminated inflow isolated. Soil buffer created, water testing normal. Case officially closed.'}
                             </p>
                           </div>
                         </div>
 
-                        <div className="text-[11px] text-emerald-800 pt-1 flex items-center justify-between font-medium">
+                        <div className="text-xs text-emerald-800 pt-2 border-t border-emerald-200 flex items-center justify-between font-medium">
                           <span>Status: <strong>Clean Potable Standard</strong></span>
                           <span>✓ Verified by Nodal Cell</span>
                         </div>
                       </div>
                     ) : (
                       /* Active Field Investigation Card with Real Telemetry & Photo */
-                      <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-300 shadow-2xs space-y-2 flex flex-col justify-between">
-                        <div className="space-y-2">
+                      <div className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-300 shadow-2xs space-y-3 flex flex-col justify-between">
+                        <div className="space-y-3">
                           <div className="flex items-center justify-between text-amber-950">
-                            <span className="text-[11px] font-extrabold flex items-center gap-1.5">
+                            <span className="text-xs font-extrabold flex items-center gap-1.5">
                               <Wrench className="w-4 h-4 text-amber-600" />
                               <span>🔍 Field Inspection & Action Status</span>
                             </span>
-                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-200 text-amber-900">
+                            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
                               Active in Field
                             </span>
                           </div>
@@ -883,17 +1061,17 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           {/* Interim Inspection Preview Photo */}
                           <div 
                             onClick={() => {
-                              const photo = activeComplaint.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80';
+                              const photo = activeDossier.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80';
                               setPreviewPhoto({
                                 url: photo,
-                                title: `Field Survey: ${activeComplaint.locationLandmark}`,
-                                subtitle: `Inspector: ${activeComplaint.inspectionReport?.inspectorName || activeComplaint.assignedInspector || 'G. Srinivas Rao'}`
+                                title: `Field Survey: ${activeDossier.locationLandmark}`,
+                                subtitle: `Inspector: ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}`
                               });
                             }}
                             className="relative group rounded-xl overflow-hidden cursor-pointer bg-slate-900 border border-amber-200 aspect-16/10"
                           >
                             <img
-                              src={activeComplaint.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80'}
+                              src={activeDossier.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80'}
                               alt="Field Investigation"
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
@@ -904,24 +1082,24 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           </div>
 
                           {/* Ground Truth Findings Grid */}
-                          <div className="bg-white p-2.5 rounded-xl border border-amber-200 space-y-1.5 text-xs text-amber-950">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span>Inspector: <strong>{activeComplaint.inspectionReport?.inspectorName || activeComplaint.assignedInspector || 'G. Srinivas Rao'}</strong></span>
-                              <span className="font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                                TDS: {activeComplaint.inspectionReport?.tdsReadingPpm || 640} ppm
+                          <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-2 text-xs text-amber-950">
+                            <div className="flex items-center justify-between text-xs">
+                              <span>Inspector: <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}</strong></span>
+                              <span className="font-extrabold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
+                                TDS: {activeDossier.inspectionReport?.tdsReadingPpm || 640} ppm
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-700">
-                              <strong>Waste Source:</strong> {activeComplaint.inspectionReport?.wasteLevel || 'Severe'} ({activeComplaint.inspectionReport?.wasteType || 'Agricultural Runoff & Silt Encroachment'})
+                            <div className="text-xs text-slate-700">
+                              <strong>Waste Source:</strong> {activeDossier.inspectionReport?.wasteLevel || 'Severe'} ({activeDossier.inspectionReport?.wasteType || 'Agricultural Runoff & Silt Encroachment'})
                             </div>
-                            <p className="text-[11px] text-amber-900 leading-snug bg-amber-50/80 p-1.5 rounded-lg border border-amber-200/60">
-                              {activeComplaint.inspectionReport?.validationRemarks || 'Site surveyed by field officer. Heavy silt and debris blocking natural percolation. Action crew dispatched with excavation machinery.'}
+                            <p className="text-xs text-amber-900 leading-relaxed bg-amber-50/80 p-2 rounded-lg border border-amber-200/60">
+                              {activeDossier.inspectionReport?.validationRemarks || 'Site surveyed by field officer. Heavy silt and debris blocking natural percolation. Action crew dispatched with excavation machinery.'}
                             </p>
                           </div>
                         </div>
 
-                        <div className="text-[11px] text-amber-800 pt-1 flex items-center justify-between font-medium">
-                          <span>Action Crew: <strong>{activeComplaint.assignedEngineer || 'P. Venkat & Team'}</strong></span>
+                        <div className="text-xs text-amber-800 pt-2 border-t border-amber-200 flex items-center justify-between font-medium">
+                          <span>Action Crew: <strong>{activeDossier.assignedEngineer || 'P. Venkat & Team'}</strong></span>
                           <span>Machinery On-Site</span>
                         </div>
                       </div>
@@ -929,28 +1107,35 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* Footer Action Bar: Nodal Officer & Map Jump */}
-                <div className="pt-3 border-t border-sky-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#03045E] text-white flex items-center justify-center font-extrabold text-xs shrink-0 shadow-2xs">
+                {/* Footer Action Bar: Nodal Officer & Navigation Buttons */}
+                <div className="pt-4 border-t border-sky-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#03045E] text-white flex items-center justify-center font-extrabold text-sm shrink-0 shadow-2xs">
                       SE
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Assigned Nodal Cell</span>
-                      <span className="font-extrabold text-[#03045E]">{activeComplaint.assignedNodalOfficer}</span>
+                      <span className="font-extrabold text-[#03045E] text-sm">{activeDossier.assignedNodalOfficer}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      onClick={handleBackToGrid}
+                      className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>{language === 'hi' ? 'शिकायतों की सूची' : 'Back to Grid'}</span>
+                    </button>
                     <button
                       onClick={onOpenDirectoryModal}
-                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold transition-colors cursor-pointer shadow-2xs"
+                      className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold transition-colors cursor-pointer shadow-2xs"
                     >
                       Official Directory
                     </button>
                     <button
-                      onClick={() => handleScrollToMap(activeComplaint)}
-                      className="px-4 py-2 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer hover:scale-102 active:scale-98"
+                      onClick={() => handleScrollToMap(activeDossier)}
+                      className="px-5 py-2.5 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer hover:scale-102 active:scale-98"
                     >
                       <MapPin className="w-4 h-4 text-[#CAF0F8]" />
                       <span>Pin on Map 📍</span>
@@ -958,13 +1143,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-sky-100 shadow-xs">
-                Select a grievance from the list to view complete redressal data.
-              </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )
+        )}
       </div>
 
       {/* ============================================================== */}
@@ -1007,7 +1188,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           onDistrictChange={setSelectedDistrict}
           trackedComplaintId={activeComplaint?.id}
           trackedMobile={searchPhone}
-          onSelectComplaint={(c) => setTrackedComplaint(c)}
+          onSelectComplaint={(c) => {
+            setTrackedComplaint(c);
+            setSelectedDossierId(c.id);
+            const el = document.getElementById('citizen-tracker-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
           onLodgeComplaint={onOpenLodgeModal}
         />
       </div>
