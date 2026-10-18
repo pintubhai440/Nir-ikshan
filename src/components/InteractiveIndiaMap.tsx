@@ -949,17 +949,35 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   }, [currentUser, trackedMobile]);
 
   const userComplaints = useMemo(() => {
-    if (!complaints || !userPhoneDigits) return [];
+    if (!complaints) return [];
+    if (currentRole === 'user') {
+      if (!isLoggedIn || !currentUser) return [];
+      const userPhoneClean = (currentUser.phone || '').replace(/\D/g, '');
+      const userNameClean = (currentUser.name || '').trim().toLowerCase();
+      return complaints.filter((c) => {
+        const compPhoneClean = (c.citizenPhone || '').replace(/\D/g, '');
+        const compNameClean = (c.citizenName || '').trim().toLowerCase();
+        if (userPhoneClean.length >= 10 && compPhoneClean.length >= 10) {
+          if (compPhoneClean.slice(-10) === userPhoneClean.slice(-10)) return true;
+        } else if (userPhoneClean && compPhoneClean) {
+          if (compPhoneClean === userPhoneClean || compPhoneClean.endsWith(userPhoneClean) || userPhoneClean.endsWith(compPhoneClean)) return true;
+        }
+        if (userNameClean && compNameClean && userNameClean === compNameClean) {
+          return true;
+        }
+        return false;
+      });
+    }
+    if (!userPhoneDigits) return complaints;
     return complaints.filter((c) => {
-      const cDigits = c.citizenPhone.replace(/\D/g, '');
+      const cDigits = (c.citizenPhone || '').replace(/\D/g, '');
       return (
         (userPhoneDigits.length >= 10 && cDigits.endsWith(userPhoneDigits.slice(-10))) ||
         (cDigits.length >= 10 && userPhoneDigits.endsWith(cDigits.slice(-10))) ||
-        cDigits.includes(userPhoneDigits) ||
-        userPhoneDigits.includes(cDigits)
+        cDigits === userPhoneDigits
       );
     });
-  }, [complaints, userPhoneDigits]);
+  }, [complaints, userPhoneDigits, currentRole, isLoggedIn, currentUser]);
 
   // Smart search handler: if user searches a State or District name, immediately zoom-in & lock
   const handleSearchInputChange = (val: string) => {
@@ -1016,7 +1034,8 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     }
     if (trackedComplaintId && trackedComplaintId !== prevTrackedIdRef.current && complaints && complaints.length > 0) {
       prevTrackedIdRef.current = trackedComplaintId;
-      const found = complaints.find((c) => c.id === trackedComplaintId);
+      const targetPool = currentRole === 'user' ? userComplaints : complaints;
+      const found = targetPool.find((c) => c.id === trackedComplaintId);
       if (found) {
         setFlashStation(null);
         setFlashComplaint(found);
@@ -1027,7 +1046,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         }
       }
     }
-  }, [trackedComplaintId, complaints]);
+  }, [trackedComplaintId, complaints, currentRole, userComplaints]);
 
   // Fetch real-time live weather & catchment precipitation for exact station coordinates
   const fetchLiveCatchmentTelemetry = useCallback(async (lat: number, lng: number) => {
@@ -2124,8 +2143,11 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                 <span className="text-slate-600">{flashComplaint.shortDescription}</span>
               </div>
               <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200 flex justify-between items-center">
-                <span>{language === 'hi' ? 'नागरिक:' : 'Citizen:'} <strong>{flashComplaint.citizenName}</strong></span>
-                <span className="font-mono text-[#0047ab] font-bold">{flashComplaint.citizenPhone}</span>
+                <span className="flex items-center gap-1 text-emerald-800 font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{language === 'hi' ? 'नागरिक:' : 'Citizen:'} <strong>{currentUser?.name || flashComplaint.citizenName}</strong></span>
+                </span>
+                <span className="font-mono text-[#0047ab] font-bold">{currentUser?.phone || flashComplaint.citizenPhone}</span>
               </div>
             </div>
 

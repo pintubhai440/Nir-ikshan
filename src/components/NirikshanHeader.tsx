@@ -1,7 +1,6 @@
-import { Droplets, LogIn, Menu, Database } from 'lucide-react';
+import { Droplets, LogIn, Menu } from 'lucide-react';
 import { UserRoleType } from '../types/nirikshan';
 import { useLanguage } from '../context/LanguageContext';
-import { isSupabaseConfigured } from '../lib/supabase';
 
 interface NirikshanHeaderProps {
   currentRole: UserRoleType;
@@ -20,10 +19,8 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
   currentUser,
   onOpenLoginModal,
   onOpenDrawer,
-  onOpenSupabaseModal,
 }) => {
   const { language, setLanguage, t } = useLanguage();
-  const isCloudDbConnected = isSupabaseConfigured();
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs w-full">
@@ -93,24 +90,7 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
             </button>
           </div>
 
-          {/* Cloud Database (Supabase) Sync Status Trigger */}
-          {onOpenSupabaseModal && (
-            <button
-              onClick={onOpenSupabaseModal}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                isCloudDbConnected
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-xs'
-                  : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-              }`}
-              title={isCloudDbConnected ? 'Supabase Cloud Database Connected' : 'Configure Supabase Cloud Sync'}
-            >
-              <Database className={`w-3.5 h-3.5 ${isCloudDbConnected ? 'text-emerald-600' : 'text-amber-600'}`} />
-              <span className="hidden md:inline">
-                {isCloudDbConnected ? 'Supabase Active' : 'Cloud Sync'}
-              </span>
-              <span className={`w-1.5 h-1.5 rounded-full ${isCloudDbConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-            </button>
-          )}
+
 
           {/* Login & Hamburger Menu Action Area */}
           {!isLoggedIn ? (

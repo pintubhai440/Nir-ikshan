@@ -430,7 +430,6 @@ export default function App() {
         currentUser={currentUser}
         onOpenLoginModal={() => setIsOtpModalOpen(true)}
         onOpenDrawer={() => setIsDrawerOpen(true)}
-        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
 
       {/* Main Dashboard Body Container */}
@@ -636,7 +635,6 @@ export default function App() {
         onSelectNodalDistrict={setSelectedNodalDistrict}
         isLoggedIn={isLoggedIn}
         onOpenLogin={() => setIsOtpModalOpen(true)}
-        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
 
       {/* Citizen Mobile OTP Login Modal (Image 3 -> Login Page Flow) */}

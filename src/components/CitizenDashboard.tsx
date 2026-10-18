@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CitizenComplaint, WaterBody } from '../types/nirikshan';
 import { InteractiveIndiaMap } from './InteractiveIndiaMap';
 import { useLanguage } from '../context/LanguageContext';
@@ -67,13 +67,55 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [searchPhone, setSearchPhone] = useState('');
   const [selectedState, setSelectedState] = useState('All India');
   const [selectedDistrict, setSelectedDistrict] = useState('All Districts');
-  const [trackedComplaint, setTrackedComplaint] = useState<CitizenComplaint | null>(complaints[0] || null);
+  const [trackedComplaint, setTrackedComplaint] = useState<CitizenComplaint | null>(null);
   const [selectedDossierId, setSelectedDossierId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'RESOLVED'>('ALL');
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [pdfDownloaded, setPdfDownloaded] = useState(false);
   const [copiedGps, setCopiedGps] = useState(false);
+
+  // User Complaints Scope: Under citizen data protection, ONLY complaints filed by this user are displayed
+  const userComplaints = useMemo(() => {
+    if (!isLoggedIn || !currentUser) return [];
+    const userPhoneClean = (currentUser.phone || '').replace(/\D/g, '');
+    const userNameClean = (currentUser.name || '').trim().toLowerCase();
+
+    return complaints.filter((c) => {
+      const compPhoneClean = (c.citizenPhone || '').replace(/\D/g, '');
+      const compNameClean = (c.citizenName || '').trim().toLowerCase();
+
+      if (userPhoneClean.length >= 10 && compPhoneClean.length >= 10) {
+        if (compPhoneClean.slice(-10) === userPhoneClean.slice(-10)) return true;
+      } else if (userPhoneClean && compPhoneClean) {
+        if (compPhoneClean === userPhoneClean || compPhoneClean.endsWith(userPhoneClean) || userPhoneClean.endsWith(compPhoneClean)) return true;
+      }
+      if (userNameClean && compNameClean && userNameClean === compNameClean) {
+        return true;
+      }
+      return false;
+    });
+  }, [complaints, isLoggedIn, currentUser]);
+
+  // Base list of complaints visible to the user:
+  // When logged in: Strictly limited to the user's own submitted complaints
+  // When not logged in: If an exact ticket ID or phone is searched, show only that matching record
+  const visibleComplaints = useMemo(() => {
+    if (isLoggedIn && currentUser) {
+      return userComplaints;
+    }
+    if (searchPhone.trim().length >= 4) {
+      const clean = searchPhone.trim().toLowerCase();
+      const digits = clean.replace(/\D/g, '');
+      return complaints.filter((c) => {
+        const compPhoneClean = (c.citizenPhone || '').replace(/\D/g, '');
+        if (digits.length >= 6 && compPhoneClean.includes(digits)) return true;
+        if (c.id.toLowerCase() === clean || c.id.toLowerCase().includes(clean)) return true;
+        return false;
+      });
+    }
+    return [];
+  }, [isLoggedIn, currentUser, userComplaints, complaints, searchPhone]);
 
   // 100% REAL LIVE DYNAMIC METRICS COMPUTATIONS:
   // 1. Assets Tracked across selected geography / India Water Grid
@@ -98,53 +140,41 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     return 1887; // Total real verified hydrological stations in National Water Grid
   }, [selectedState, selectedDistrict, waterBodies]);
 
-  // 2. Open Issues / Active Grievances in real database
+  // 2. Open Issues / Active Grievances in real database (Strictly user-scoped when logged in)
   const realOpenIssues = useMemo(() => {
-    return complaints.filter((c) => c.status !== 'RESOLVED').length;
-  }, [complaints]);
+    const list = isLoggedIn && currentUser ? userComplaints : visibleComplaints;
+    return list.filter((c) => c.status !== 'RESOLVED').length;
+  }, [userComplaints, visibleComplaints, isLoggedIn, currentUser]);
 
   // 3. Overdue / Active On-Site Field Tasks
   const realActiveTasks = useMemo(() => {
-    return complaints.filter((c) => 
+    const list = isLoggedIn && currentUser ? userComplaints : visibleComplaints;
+    return list.filter((c) => 
       c.status === 'WORKER_IN_PROGRESS' || 
       c.status === 'INSPECTOR_ASSIGNED' || 
       c.status === 'INSPECTION_COMPLETED' ||
       c.status === 'ACTION_ASSIGNED' ||
       c.status === 'VERIFICATION_PENDING'
     ).length;
-  }, [complaints]);
+  }, [userComplaints, visibleComplaints, isLoggedIn, currentUser]);
 
   // 4. Verified Closures in real database
   const realVerifiedClosures = useMemo(() => {
-    return complaints.filter((c) => c.status === 'RESOLVED').length;
-  }, [complaints]);
+    const list = isLoggedIn && currentUser ? userComplaints : visibleComplaints;
+    return list.filter((c) => c.status === 'RESOLVED').length;
+  }, [userComplaints, visibleComplaints, isLoggedIn, currentUser]);
 
   // Real SLA Adherence %
   const realSlaAdherence = useMemo(() => {
-    if (complaints.length === 0) return '100.0%';
-    return `${((realVerifiedClosures / complaints.length) * 100).toFixed(1)}%`;
-  }, [complaints.length, realVerifiedClosures]);
+    const list = isLoggedIn && currentUser ? userComplaints : visibleComplaints;
+    if (list.length === 0) return '100.0%';
+    return `${((realVerifiedClosures / list.length) * 100).toFixed(1)}%`;
+  }, [userComplaints, visibleComplaints, isLoggedIn, currentUser, realVerifiedClosures]);
 
-  // User Complaints Scope: Under citizen data protection, only complaints filed by this user are displayed
-  const userComplaints = useMemo(() => {
-    if (!isLoggedIn || !currentUser?.phone) return [];
-    const userPhoneClean = currentUser.phone.replace(/\D/g, '');
-    return complaints.filter((c) => {
-      const compPhoneClean = (c.citizenPhone || '').replace(/\D/g, '');
-      if (userPhoneClean && compPhoneClean) {
-        return compPhoneClean.endsWith(userPhoneClean.slice(-10)) || userPhoneClean.endsWith(compPhoneClean.slice(-10));
-      }
-      if (currentUser.name && c.citizenName) {
-        return currentUser.name.trim().toLowerCase() === c.citizenName.trim().toLowerCase();
-      }
-      return false;
-    });
-  }, [complaints, isLoggedIn, currentUser]);
-
-  // Filter complaints based on Ticket ID / Landmark search + Status Tab (Visible to all citizens)
+  // Filter complaints based on Ticket ID / Landmark search + Status Tab
   const cleanSearch = searchPhone.trim().toLowerCase();
   const filteredComplaints = useMemo(() => {
-    return complaints.filter((c) => {
+    return visibleComplaints.filter((c) => {
       if (statusFilter === 'ACTIVE' && c.status === 'RESOLVED') return false;
       if (statusFilter === 'RESOLVED' && c.status !== 'RESOLVED') return false;
 
@@ -158,7 +188,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       if (c.wasteType?.toLowerCase().includes(cleanSearch)) return true;
       return false;
     });
-  }, [complaints, statusFilter, cleanSearch]);
+  }, [visibleComplaints, statusFilter, cleanSearch]);
+
+  // Keep tracked complaint in sync with user's filtered complaints
+  useEffect(() => {
+    if (filteredComplaints.length > 0) {
+      if (!trackedComplaint || !filteredComplaints.some((c) => c.id === trackedComplaint.id)) {
+        setTrackedComplaint(filteredComplaints[0]);
+      }
+    } else {
+      setTrackedComplaint(null);
+    }
+  }, [filteredComplaints]);
 
   // Ensure tracked complaint exists or falls back to first in filtered list
   const activeComplaint = useMemo(() => {
@@ -168,14 +209,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     return filteredComplaints[0] || null;
   }, [trackedComplaint, filteredComplaints]);
 
-  // Active dossier displayed in detail view (if selected by user)
+  // Active dossier displayed in detail view (Strictly restricted to user's complaints)
   const activeDossier = useMemo(() => {
     if (selectedDossierId) {
-      const found = complaints.find((c) => c.id === selectedDossierId);
+      const found = filteredComplaints.find((c) => c.id === selectedDossierId);
       if (found) return found;
     }
     return activeComplaint;
-  }, [selectedDossierId, complaints, activeComplaint]);
+  }, [selectedDossierId, filteredComplaints, activeComplaint]);
 
   // Current position in filtered list for Next / Prev navigation
   const currentDossierIndex = useMemo(() => {
@@ -192,6 +233,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       if (onOpenLoginModal) {
         onOpenLoginModal();
       }
+      return;
+    }
+    // Strict privacy validation: Citizen can only view their own grievance dossier
+    if (!visibleComplaints.some((vc) => vc.id === c.id)) {
       return;
     }
     setSelectedDossierId(c.id);
@@ -504,7 +549,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   : 'text-slate-600 hover:text-[#03045E] hover:bg-white'
               }`}
             >
-              {tr('All', 'सभी', 'అన్నీ')} ({complaints.length})
+              {tr('All', 'सभी', 'అన్నీ')} ({visibleComplaints.length})
             </button>
             <button
               onClick={() => setStatusFilter('ACTIVE')}
@@ -515,7 +560,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span>{tr('Active', 'प्रगति पर', 'క్రియాశీల')} ({complaints.filter(c => c.status !== 'RESOLVED').length})</span>
+              <span>{tr('Active', 'प्रगति पर', 'క్రియాశీల')} ({visibleComplaints.filter(c => c.status !== 'RESOLVED').length})</span>
             </button>
             <button
               onClick={() => setStatusFilter('RESOLVED')}
@@ -526,7 +571,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{tr('Resolved', 'निराकृत', 'పరిష్కరించబడినవి')} ({complaints.filter(c => c.status === 'RESOLVED').length})</span>
+              <span>{tr('Resolved', 'निराकृत', 'పరిష్కరించబడినవి')} ({visibleComplaints.filter(c => c.status === 'RESOLVED').length})</span>
             </button>
           </div>
         </div>
@@ -562,7 +607,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
                   <FileText className="w-4 h-4 text-[#0077B6]" />
-                  <span>{tr('Grievance Dossier Grid', 'शिकायतों की सूची', 'ఫిర్యాదుల జాబితా')}</span>
+                  <span>{tr('Your Grievance Dossiers', 'आपकी दर्ज शिकायतें', 'మీ ఫిర్యాదుల జాబితా')}</span>
                 </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-[#0077B6] border border-sky-200">
                   {filteredComplaints.length} {filteredComplaints.length === 1 ? tr('record', 'मामला', 'రికార్డు') : tr('records', 'मामले', 'రికార్డులు')}
@@ -570,29 +615,56 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               </div>
               <div className="text-xs text-slate-500 font-medium">
                 {tr(
-                  'Click "View Details" on any grievance card to inspect full technical dossier',
-                  'किसी भी शिकायत का पूरा विवरण देखने के लिए नीचे "विवरण देखें" बटन दबाएं',
-                  'పూర్తి సాంకేతిక వివరాల కోసం ఏదైనా కార్డుపై "వివరాలు చూడండి" బటన్ నొక్కండి'
+                  'Only grievances registered under your mobile number are accessible',
+                  'केवल आपके पंजीकृत मोबाइल नंबर से जुड़ी शिकायतें यहां उपलब्ध हैं',
+                  'మీ మొబైల్ నంబర్‌తో నమోదు చేయబడిన ఫిర్యాదులు మాత్రమే ఇక్కడ అందుబాటులో ఉన్నాయి'
                 )}
               </div>
             </div>
 
             {filteredComplaints.length === 0 ? (
-              <div className="p-12 text-center text-xs sm:text-sm text-slate-500 bg-white rounded-3xl border border-sky-200/80 space-y-4 shadow-sm max-w-2xl mx-auto">
+              <div className="p-10 sm:p-12 text-center text-xs sm:text-sm text-slate-500 bg-white rounded-3xl border border-sky-200/80 space-y-4 shadow-sm max-w-2xl mx-auto">
                 <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mx-auto text-[#0077B6]">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  {!isLoggedIn ? (
+                    <Lock className="w-8 h-8 text-amber-500" />
+                  ) : (
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  )}
                 </div>
                 <div>
                   <p className="font-extrabold text-[#03045E] text-lg">
-                    {tr('No Grievance Records Found', 'कोई शिकायत रिकॉर्ड नहीं मिला', 'ఫిర్యాదుల రికార్డులేవీ కనుగొనబడలేదు')}
+                    {!isLoggedIn
+                      ? tr('Login to View Your Grievances', 'अपनी शिकायतें देखने के लिए लॉगिन करें', 'మీ ఫిర్యాదులను చూడటానికి లాగిన్ అవ్వండి')
+                      : tr('No Grievances Found for Your Account', 'आपके खाते के लिए कोई शिकायत नहीं मिली', 'మీ ఖాతాలో ఎటువంటి ఫిర్యాదులు లేవు')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1.5 max-w-md mx-auto">
-                    {cleanSearch
-                      ? tr(`No records found matching "${searchPhone}". Try checking Ticket ID or Landmark.`, `"${searchPhone}" से मेल खाने वाला कोई रिकॉर्ड नहीं मिला। कृपया टिकट ID या स्थान जांचें।`, `"${searchPhone}" తో సరిపోలే రికార్డులు లేవు. టికెట్ ID లేదా ప్రాంతాన్ని తనిఖీ చేయండి.`)
-                      : tr('No active complaints in the system. Click "Lodge Water Complaint" to file a new water hazard grievance!', 'वर्तमान में कोई शिकायत दर्ज नहीं है। नीचे दिए गए बटन पर क्लिक करके नई शिकायत दर्ज करें!', 'ప్రస్తుతం ఎటువంటి ఫిర్యాదులు లేవు. కొత్త ఫిర్యాదును నమోదు చేయడానికి క్రింది బటన్ నొక్కండి!')}
+                    {!isLoggedIn ? (
+                      tr(
+                        'Your privacy is protected. Enter your mobile number or Ticket ID above, or log in to view and track your submitted grievances.',
+                        'आपकी गोपनीयता सुरक्षित है। अपनी शिकायत देखने और ट्रैक करने के लिए ऊपर मोबाइल नंबर / टिकट ID दर्ज करें या लॉगिन करें।',
+                        'మీ గోప్యత రక్షించబడింది. మీ ఫిర్యాదులను ట్రాక్ చేయడానికి పైన మొబైల్ నంబర్ / టికెట్ ID నమోదు చేయండి లేదా లాగిన్ అవ్వండి.'
+                      )
+                    ) : cleanSearch ? (
+                      tr(`No records matching "${searchPhone}". Try clearing your search.`, `"${searchPhone}" से मेल खाता कोई रिकॉर्ड नहीं मिला। कृपया सर्च क्लियर करें।`, `"${searchPhone}" తో సరిపోలే రికార్డులు లేవు.`)
+                    ) : (
+                      tr(
+                        `You have not submitted any water grievances yet (${currentUser?.phone || ''}). Click "Lodge New Grievance" below to report an issue!`,
+                        `आपने अभी तक कोई जल शिकायत दर्ज नहीं की है (${currentUser?.phone || ''})। नई समस्या की रिपोर्ट करने के लिए नीचे क्लिक करें!`,
+                        `మీరు ఇంకా ఎటువంటి నీటి ఫిర్యాదులను నమోదు చేయలేదు (${currentUser?.phone || ''}). కొత్త సమస్యను నివేదించడానికి క్రింద క్లిక్ చేయండి!`
+                      )
+                    )}
                   </p>
                 </div>
                 <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                  {!isLoggedIn && onOpenLoginModal && (
+                    <button
+                      onClick={onOpenLoginModal}
+                      className="px-6 py-2.5 bg-[#03045E] hover:bg-[#0077B6] text-white rounded-xl text-xs font-extrabold cursor-pointer transition-all shadow-md flex items-center gap-2 hover:scale-102 active:scale-98"
+                    >
+                      <LogIn className="w-4 h-4 text-sky-300" />
+                      <span>{tr('Login with Mobile OTP', 'मोबाइल ओटीपी से लॉगिन करें', 'మొబైల్ OTP తో లాగిన్ చేయండి')}</span>
+                    </button>
+                  )}
                   {cleanSearch && (
                     <button
                       onClick={() => setSearchPhone('')}
@@ -606,7 +678,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     className="px-6 py-2.5 bg-gradient-to-r from-[#0077B6] to-[#03045E] hover:from-[#03045E] hover:to-[#0077B6] text-white rounded-xl text-xs font-extrabold cursor-pointer transition-all shadow-md flex items-center gap-2 hover:scale-102 active:scale-98"
                   >
                     <span>➕</span>
-                    <span>{tr('Lodge Water Complaint', 'नई शिकायत दर्ज करें', 'కొత్త ఫిర్యాదు నమోదు చేయండి')}</span>
+                    <span>{tr('Lodge New Grievance', 'नई शिकायत दर्ज करें', 'కొత్త ఫిర్యాదు నమోదు చేయండి')}</span>
                   </button>
                 </div>
               </div>
@@ -788,11 +860,33 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               </button>
             </div>
           </div>
+        ) : !activeDossier ? (
+          <div className="p-8 sm:p-12 text-center text-xs sm:text-sm text-slate-600 bg-white rounded-3xl border border-sky-200 space-y-4 shadow-sm max-w-xl mx-auto my-6">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600 shadow-xs">
+              <Lock className="w-8 h-8" />
+            </div>
+            <p className="font-extrabold text-[#03045E] text-lg">
+              {tr('Grievance Not Found or Unauthorized', 'शिकायत नहीं मिली या अनधिकृत', 'ఫిర్యాదు కనుగొనబడలేదు')}
+            </p>
+            <p className="text-xs text-slate-500">
+              {tr(
+                'This grievance is not associated with your mobile number. You can only view and inspect your own registered complaints.',
+                'यह शिकायत आपके मोबाइल नंबर से संबद्ध नहीं है। आप केवल अपनी दर्ज की गई शिकायतें देख सकते हैं।',
+                'ఈ ఫిర్యాదు మీ ఖాతాతో అనుబంధించబడలేదు. మీరు మీ స్వంత ఫిర్యాదులను మాత్రమే వీక్షించగలరు.'
+              )}
+            </p>
+            <button
+              onClick={handleBackToGrid}
+              className="px-5 py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-xs"
+            >
+              {tr('Back to Your Grievances', 'अपनी शिकायतों पर वापस जाएं', 'మీ ఫిర్యాదులకు తిరిగి వెళ్లండి')}
+            </button>
+          </div>
         ) : (
           /* ============================================================ */
           /* 2. DEDICATED FULL-PAGE DOSSIER VIEW (OPENED ON DETAIL CLICK)  */
           /* ============================================================ */
-          activeDossier && (
+          (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {/* Top Navigation & Return Bar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-200 shadow-2xs">
@@ -1324,7 +1418,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         {/* The Full Interactive All-India Map */}
         <InteractiveIndiaMap
           waterBodies={waterBodies}
-          complaints={complaints}
+          complaints={visibleComplaints}
           currentRole="user"
           selectedState={selectedState}
           onStateChange={setSelectedState}
@@ -1336,7 +1430,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           isLoggedIn={isLoggedIn}
           onOpenLoginModal={onOpenLoginModal}
           onSelectComplaint={(c) => {
-            setTrackedComplaint(c);
+            if (visibleComplaints.some((vc) => vc.id === c.id)) {
+              setTrackedComplaint(c);
+            }
             // Stay directly on the map with the flashcard open (do not jump up)
           }}
           onLodgeComplaint={onOpenLodgeModal}

@@ -15,10 +15,8 @@ import {
   ChevronDown,
   CheckCircle2,
   Lock,
-  LogIn,
-  Database
+  LogIn
 } from 'lucide-react';
-import { isSupabaseConfigured } from '../lib/supabase';
 
 interface NirikshanSlideDrawerProps {
   isOpen: boolean;
@@ -51,7 +49,6 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
 }) => {
   const { language, t } = useLanguage();
   const [isNodalExpanded, setIsNodalExpanded] = useState(true);
-  const isCloudDbConnected = isSupabaseConfigured();
 
   // Close on Escape key press
   useEffect(() => {
@@ -510,38 +507,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
 
           </div>
 
-          {/* Supabase Cloud Database Sync Status in Drawer */}
-          {onOpenSupabaseModal && (
-            <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-t border-emerald-200/70 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenSupabaseModal();
-                }}
-                className="w-full flex items-center justify-between p-2 rounded-xl bg-white border border-emerald-200 shadow-2xs hover:bg-emerald-50 transition-colors text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700">
-                    <Database className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h6 className="text-xs font-bold text-slate-800">
-                      Cloud Database (Supabase)
-                    </h6>
-                    <p className="text-[10px] text-slate-500">
-                      {isCloudDbConnected ? 'Permanent Cloud Sync Active' : 'Configure Cloud Sync'}
-                    </p>
-                  </div>
-                </div>
-                <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                  isCloudDbConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  {isCloudDbConnected ? 'ACTIVE' : 'SETUP'}
-                </span>
-              </button>
-            </div>
-          )}
+
 
           {/* ============================================================== */}
           {/* COMPACT DRAWER FOOTER                                          */}
