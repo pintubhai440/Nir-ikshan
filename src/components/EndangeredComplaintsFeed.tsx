@@ -186,11 +186,11 @@ export const EndangeredComplaintsFeed: React.FC<EndangeredComplaintsFeedProps> =
               <div className="text-xs space-y-1 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 font-mono text-[11px] text-slate-600">
                 <div className="flex items-center justify-between">
                   <span>Reported by:</span>
-                  <span className="font-semibold text-slate-800">{item.reportedBy}</span>
+                  <span className="font-semibold text-emerald-800">Protected Citizen 🔒</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Contact:</span>
-                  <span className="font-semibold text-slate-800">{item.contactPhone}</span>
+                  <span className="font-semibold text-emerald-800 font-mono">Confidential 🔒</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Logged at:</span>

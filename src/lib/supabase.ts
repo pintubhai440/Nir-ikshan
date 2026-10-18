@@ -1,14 +1,30 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CitizenComplaint } from '../types/nirikshan';
 
-// Support both Vite import.meta.env and runtime process.env
+// Support Vite import.meta.env, window globals, and safe browser localStorage (which never touches git)
+const getStoredSupabaseConfig = () => {
+  let url = '';
+  let key = '';
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      url = localStorage.getItem('nir_supabase_url') || '';
+      key = localStorage.getItem('nir_supabase_anon_key') || '';
+    }
+  } catch {}
+  return { url, key };
+};
+
+const storedConfig = getStoredSupabaseConfig();
+
 const supabaseUrl = 
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
+  storedConfig.url ||
   (typeof window !== 'undefined' && (window as any).__SUPABASE_URL__) ||
   '';
 
 const supabaseAnonKey = 
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+  storedConfig.key ||
   (typeof window !== 'undefined' && (window as any).__SUPABASE_ANON_KEY__) ||
   '';
 

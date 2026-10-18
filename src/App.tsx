@@ -56,27 +56,21 @@ export default function App() {
     }
   });
 
-  // Clean complaints state: Defaults to empty [] for fresh testing with Supabase/user submissions
+  // Complaints state: Seed with sample citizen complaints (2 verified public grievances) + user-submitted & Supabase records
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
-      // One-time purge of old hardcoded mock complaints
-      const isCleared = localStorage.getItem('nir_mock_purged_v1') === 'true';
-      if (!isCleared) {
-        localStorage.setItem('nir_mock_purged_v1', 'true');
-        localStorage.setItem('nir_complaints', JSON.stringify([]));
-        return [];
-      }
       const saved = localStorage.getItem('nir_complaints');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Exclude any hardcoded sample complaints
-          return parsed.filter((c) => !SAMPLE_CITIZEN_COMPLAINTS.some((sc) => sc.id === c.id));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((c: CitizenComplaint) => c.id));
+          const missingSamples = SAMPLE_CITIZEN_COMPLAINTS.filter((sc) => !existingIds.has(sc.id));
+          return [...parsed, ...missingSamples];
         }
       }
-      return [];
+      return SAMPLE_CITIZEN_COMPLAINTS;
     } catch {
-      return [];
+      return SAMPLE_CITIZEN_COMPLAINTS;
     }
   });
 
@@ -138,12 +132,16 @@ export default function App() {
     if (isSupabaseConfigured()) {
       fetchComplaintsFromSupabase().then((remoteComplaints) => {
         if (remoteComplaints && remoteComplaints.length > 0) {
-          setComplaints(remoteComplaints);
-          try {
-            localStorage.setItem('nir_complaints', JSON.stringify(remoteComplaints));
-          } catch (e) {
-            console.error('Failed to sync complaints to localStorage cache', e);
-          }
+          setComplaints((prev) => {
+            const remoteIds = new Set(remoteComplaints.map((r: CitizenComplaint) => r.id));
+            const merged = [...remoteComplaints, ...prev.filter((p: CitizenComplaint) => !remoteIds.has(p.id))];
+            try {
+              localStorage.setItem('nir_complaints', JSON.stringify(merged));
+            } catch (e) {
+              console.error('Failed to sync complaints to localStorage cache', e);
+            }
+            return merged;
+          });
         }
       });
 

@@ -2145,9 +2145,9 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
               <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200 flex justify-between items-center">
                 <span className="flex items-center gap-1 text-emerald-800 font-semibold">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{language === 'hi' ? 'नागरिक:' : 'Citizen:'} <strong>{currentUser?.name || flashComplaint.citizenName}</strong></span>
+                  <span>{language === 'hi' ? 'नागरिक:' : 'Citizen:'} <strong>{language === 'hi' ? 'सुरक्षित नागरिक 🔒' : 'Protected Citizen 🔒'}</strong></span>
                 </span>
-                <span className="font-mono text-[#0047ab] font-bold">{currentUser?.phone || flashComplaint.citizenPhone}</span>
+                <span className="font-mono text-emerald-700 font-semibold">{language === 'hi' ? 'गोपनीय संपर्क 🔒' : 'Confidential 🔒'}</span>
               </div>
             </div>
 
