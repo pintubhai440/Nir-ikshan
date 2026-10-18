@@ -204,15 +204,6 @@ export default function App() {
     setCurrentRole('overview');
   };
 
-  // Clear all complaints for clean testing
-  const handleClearAllComplaints = () => {
-    setComplaints([]);
-    try {
-      localStorage.setItem('nir_complaints', JSON.stringify([]));
-    } catch (err) {
-      console.error('Failed to clear complaints in localStorage', err);
-    }
-  };
 
   // --- Complaint & Workflow Handlers (Synced to Supabase Cloud) ---
 
@@ -500,7 +491,6 @@ export default function App() {
             onOpenLoginModal={() => setIsOtpModalOpen(true)}
             onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
             onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
-            onClearComplaints={handleClearAllComplaints}
           />
         )}
 

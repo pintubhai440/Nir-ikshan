@@ -33,8 +33,7 @@ import {
   ChevronLeft,
   Copy,
   Lock,
-  LogIn,
-  Trash2
+  LogIn
 } from 'lucide-react';
 
 interface CitizenDashboardProps {
@@ -45,7 +44,6 @@ interface CitizenDashboardProps {
   currentUser?: { name: string; phone: string } | null;
   isLoggedIn?: boolean;
   onOpenLoginModal?: () => void;
-  onClearComplaints?: () => void;
 }
 
 export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
@@ -56,7 +54,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   currentUser,
   isLoggedIn = false,
   onOpenLoginModal,
-  onClearComplaints,
 }) => {
   const { t, language } = useLanguage();
 
@@ -461,16 +458,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <span>{tr('Permanent Government Record • Immutable', 'स्थायी सरकारी रिकॉर्ड • सुरक्षित', 'శాశ్వత ప్రభుత్వ రికార్డు • మార్చలేనిది')}</span>
             </div>
 
-            {onClearComplaints && complaints.length > 0 && (
-              <button
-                onClick={onClearComplaints}
-                className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                title="Clear all test complaints to start fresh"
-              >
-                <Trash2 className="w-4 h-4 text-rose-600" />
-                <span>{tr('Clear All Complaints', 'सभी शिकायतें हटाएं', 'అన్ని ఫిర్యాదులను తొలగించండి')}</span>
-              </button>
-            )}
 
             <button
               onClick={onOpenLodgeModal}
