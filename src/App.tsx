@@ -15,7 +15,8 @@ import {
 import { 
   INITIAL_WATER_BODIES, 
   INITIAL_OFFICER_CONTACTS, 
-  INITIAL_CITIZEN_COMPLAINTS 
+  INITIAL_CITIZEN_COMPLAINTS,
+  SAMPLE_CITIZEN_COMPLAINTS
 } from './data/nirikshanData';
 import { NirikshanHeader } from './components/NirikshanHeader';
 import { NirikshanSlideDrawer } from './components/NirikshanSlideDrawer';
@@ -37,19 +38,9 @@ export default function App() {
   // Default to overview landing page (national map and executive command, not user data)
   const [currentRole, setCurrentRole] = useState<UserRoleType>('overview');
 
-  // Cache version to automatically purge stale mock data from previous sessions
-  const STORAGE_VERSION = 'v12_zero_complaints_testing_clean';
-
-  // Load persisted state or initial seed data with version check
+  // Load persisted state or initial seed data
   const [waterBodies, setWaterBodies] = useState<WaterBody[]>(() => {
     try {
-      const version = localStorage.getItem('nir_storage_version');
-      if (version !== STORAGE_VERSION) {
-        localStorage.setItem('nir_storage_version', STORAGE_VERSION);
-        localStorage.setItem('nir_water_bodies', JSON.stringify(INITIAL_WATER_BODIES));
-        localStorage.setItem('nir_complaints', JSON.stringify([]));
-        return INITIAL_WATER_BODIES;
-      }
       const saved = localStorage.getItem('nir_water_bodies');
       return saved ? JSON.parse(saved) : INITIAL_WATER_BODIES;
     } catch {
@@ -57,26 +48,19 @@ export default function App() {
     }
   });
 
-  // Zero complaints initial state for testing as requested by user
+  // Permanent complaints storage: Saved forever in localStorage, cannot be deleted by users
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
-      const version = localStorage.getItem('nir_storage_version');
-      if (version !== STORAGE_VERSION) {
-        localStorage.setItem('nir_storage_version', STORAGE_VERSION);
-        localStorage.setItem('nir_complaints', JSON.stringify([]));
-        return [];
-      }
       const saved = localStorage.getItem('nir_complaints');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return SAMPLE_CITIZEN_COMPLAINTS;
     } catch {
-      return [];
+      return SAMPLE_CITIZEN_COMPLAINTS;
     }
   });
-
-  const handleClearAllComplaints = () => {
-    setComplaints([]);
-    localStorage.setItem('nir_complaints', JSON.stringify([]));
-  };
 
   const [officers] = useState<OfficerContact[]>(INITIAL_OFFICER_CONTACTS);
 
@@ -164,9 +148,17 @@ export default function App() {
 
   // --- Complaint & Workflow Handlers ---
 
-  // 1. Citizen submits complaint
+  // 1. Citizen submits complaint (Permanently persisted so data is never lost)
   const handleComplaintSubmitted = (newComplaint: CitizenComplaint) => {
-    setComplaints([newComplaint, ...complaints]);
+    setComplaints((prev) => {
+      const updated = [newComplaint, ...prev];
+      try {
+        localStorage.setItem('nir_complaints', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to write complaint to localStorage', err);
+      }
+      return updated;
+    });
   };
 
   // 2. Nodal Officer assigns Inspector
@@ -392,7 +384,6 @@ export default function App() {
             onOpenLoginModal={() => setIsOtpModalOpen(true)}
             onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
             onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
-            onClearAllComplaints={handleClearAllComplaints}
           />
         )}
 
@@ -503,12 +494,18 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Lodge Complaint Modal (No login required) */}
+      {/* Lodge Complaint Modal (Login Required Flow) */}
       <LodgeComplaintModal
         isOpen={isLodgeModalOpen}
         onClose={() => setIsLodgeModalOpen(false)}
         onComplaintSubmitted={handleComplaintSubmitted}
         currentUser={currentUser}
+        isLoggedIn={isLoggedIn}
+        onOpenLoginModal={() => {
+          setIsLodgeModalOpen(false);
+          setIsOtpModalOpen(true);
+        }}
+        onLoginSuccess={handleOtpLoginSuccess}
       />
 
       {/* Officer Directory Modal */}

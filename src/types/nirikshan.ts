@@ -91,6 +91,7 @@ export interface CitizenComplaint {
   village: string;
   locationLandmark: string;
   coordinates: { lat: number; lng: number };
+  wasteType?: string;
   shortDescription: string;
   photoUrl?: string;
   submittedAt: string;

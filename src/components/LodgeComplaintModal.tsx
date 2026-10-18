@@ -17,7 +17,13 @@ import {
   Map as MapIcon,
   CheckCircle2,
   Compass,
-  Loader2
+  Loader2,
+  Lock,
+  ShieldCheck,
+  KeyRound,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -26,34 +32,224 @@ interface LodgeComplaintModalProps {
   onClose: () => void;
   onComplaintSubmitted: (complaint: CitizenComplaint) => void;
   currentUser?: { name: string; phone: string } | null;
+  isLoggedIn?: boolean;
+  onOpenLoginModal?: () => void;
+  onLoginSuccess?: (userData: { name: string; phone: string }) => void;
 }
+
+// Major causes of water pollution / hazard categories (Pure English, Pure Hindi, Pure Telugu)
+export const HAZARD_WASTE_CATEGORIES = [
+  {
+    id: 'plastic',
+    label: 'Plastic & Polythene Waste (Bottles & Bags)',
+    labelHi: 'प्लास्टिक एवं पॉलीथीन अपशिष्ट (बोतलें व थैलियां)',
+    labelTe: 'ప్లాస్టిక్ & పాలిథిన్ వ్యర్థాలు (బాటిళ్లు & సంచులు)',
+    cause: 'Single-use plastic bottles, polybags, synthetic wrappers choking canal bed or inlet',
+    causeHi: 'एकल-उपयोग प्लास्टिक की बोतलें, थैलियां व रैपर नहर के तल या मुहाने को अवरुद्ध कर रहे हैं',
+    causeTe: 'సింగిల్ యూజ్ ప్లాస్టిక్ బాటిళ్లు, సంచులు కాలువ ప్రవాహాన్ని అడ్డుకుంటున్నాయి',
+    remedy: 'Physical mechanical boom collection & municipal solid waste disposal',
+    remedyHi: 'यांत्रिक बूम संग्रहण एवं ठोस अपशिष्ट निपटान',
+    remedyTe: 'మెకానికల్ బూమ్ సేకరణ & మున్సిపల్ వ్యర్థాల పారవేయడం',
+    icon: '🥤',
+  },
+  {
+    id: 'chemical',
+    label: 'Industrial Chemical Effluent / Factory Dye Discharge',
+    labelHi: 'औद्योगिक रासायनिक अपशिष्ट / डाई रसायन बहाव',
+    labelTe: 'పారిశ్రామిక రసాయన వ్యర్థాలు / ఫ్యాక్టరీ రంగు నీరు',
+    cause: 'Direct untreated chemical effluent, toxic colored dye runoff, acidic toxic wash',
+    causeHi: 'सीधे अनुपचारित रासायनिक अपशिष्ट, विषैला रंगीन डाई व अम्लीय जहरीला पानी',
+    causeTe: 'శుద్ధి చేయని రసాయన వ్యర్థాలు, విషపూరిత రంగుల ప్రవాహం',
+    remedy: 'Immediate TDS/pH laboratory testing, pipeline sealing & APPCB notice',
+    remedyHi: 'तत्काल टीडीएस/पीएच परीक्षण, पाइपलाइन सील एवं प्रदूषण नियंत्रण नोटिस',
+    remedyTe: 'తక్షణ TDS/pH ప్రయోగశాల పరీక్ష, పైప్‌లైన్ సీలింగ్ & APPCB నోటీసు',
+    icon: '🏭',
+  },
+  {
+    id: 'sewage',
+    label: 'Domestic Raw Sewage & Septic Blackwater Drain',
+    labelHi: 'घरेलू सीवेज एवं सेप्टिक गंदा पानी नाला',
+    labelTe: 'గృహ మురుగునీరు & సెప్టిక్ వ్యర్థాల కాలువ',
+    cause: 'Untreated municipal drain lines or septic overflows emptying into drinking water body',
+    causeHi: 'अनुपचारित नाली का गंदा पानी या सेप्टिक ओवरफ्लो पेयजल स्रोत में गिरना',
+    causeTe: 'శుద్ధి చేయని మురుగునీరు లేదా సెప్టిక్ ట్యాంక్ వ్యర్థాలు తాగునీటిలో కలవడం',
+    remedy: 'Drain diversion, mobile suction tanker deployment & bio-remediation',
+    remedyHi: 'नाली डायवर्जन, सक्शन टैंकर तैनाती एवं जैव-उपचार',
+    remedyTe: 'మురుగు మళ్లింపు, సక్షన్ ట్యాంకర్ల మోహరింపు & బయో-రెమిడియేషన్',
+    icon: '🚽',
+  },
+  {
+    id: 'construction',
+    label: 'Construction Debris & Bitumen Encroachment (Malba)',
+    labelHi: 'निर्माण मलबा एवं डामर भराव अतिक्रमण',
+    labelTe: 'భవన నిర్మాణ వ్యర్థాలు & ఆక్రమణలు (మట్టి/రాళ్ళు)',
+    cause: 'Illegal dumping of concrete rubble, bricks, bitumen mix encroaching on lake perimeter',
+    causeHi: 'जल निकाय की परिधि पर कंक्रीट, ईंट, मलबे का अवैध डंपिंग व अतिक्रमण',
+    causeTe: 'చెరువు పరిధిలో కాంక్రీట్ శిథిలాలు, ఇటుకలు అక్రమంగా వేయడం & ఆక్రమణ',
+    remedy: 'Heavy JCB earthmover clearance & cadastral boundary fencing',
+    remedyHi: 'जेसीबी मशीन से मलबा हटाना एवं सीमा घेराबंदी',
+    remedyTe: 'JCB యంత్రాలతో తొలగింపు & హద్దుల రక్షణ కంచె',
+    icon: '🧱',
+  },
+  {
+    id: 'biomass',
+    label: 'Invasive Water Hyacinth Weeds & Algal Scum',
+    labelHi: 'जलकुंभी खरपतवार एवं काई की मोटी परत',
+    labelTe: 'గుర్రపు డెక్క కలుపు మొక్కలు & నాచు పొర',
+    cause: 'Thick mats of invasive hyacinth choking oxygen supply, causing fish mortality',
+    causeHi: 'जलकुंभी की मोटी परत से ऑक्सीजन की कमी और जलीय जीवों का संकट',
+    causeTe: 'దట్టమైన గుర్రపు డెక్క ఆక్సిజన్‌ను తగ్గించి జలచరాల మరణానికి కారణమవుతోంది',
+    remedy: 'De-weeding harvester deployment & aeration pump installation',
+    remedyHi: 'डी-वीडिंग हार्वेस्टर मशीन द्वारा सफाई एवं वायु संचार पंप लगाना',
+    remedyTe: 'కలుపు తొలగింపు యంత్రాల మోహరింపు & ఎయిరేషన్ పంపుల ఏర్పాటు',
+    icon: '🌿',
+  },
+  {
+    id: 'breach',
+    label: 'Broken Sluice Gate / Canal Bund Breach Risk',
+    labelHi: 'टूटा हुआ स्लूस गेट / नहर तटबंध टूटने का खतरा',
+    labelTe: 'విరిగిన తూము గేటు / కాలువ గట్టు తెగిపోయే ప్రమాదం',
+    cause: 'Cracked masonry in check dam, broken regulator gate, imminent flooding hazard',
+    causeHi: 'चेक डैम की टूटी दीवार, क्षतिग्रस्त रेगुलेटर गेट और बाढ़ का खतरा',
+    causeTe: 'చెక్ డ్యామ్ గోడ పగుళ్లు, విరిగిన గేటు మరియు వరద ముప్పు',
+    remedy: 'Urgent sandbag bund fortification & irrigation engineer repair dispatch',
+    remedyHi: 'रेत की बोरियों से तटबंध सुदृढ़ीकरण एवं सिंचाई इंजीनियरों द्वारा मरम्मत',
+    remedyTe: 'ఇసుక బస్తాలతో గట్టు పటిష్టం & నీటిపారుదల ఇంజనీర్ల మరమ్మతు',
+    icon: '🌊',
+  },
+  {
+    id: 'dry_tank',
+    label: 'Dried Up Tank Bed Encroachment & Collapsed Borewell',
+    labelHi: 'सूखा तालाब तल अतिक्रमण एवं खुला असुरक्षित बोरवेल',
+    labelTe: 'ఎండిన చెరువు ఆక్రమణ & ప్రమాదకర తెరిచిన బోరుబావి',
+    cause: 'Completely dried public percolation tank or abandoned hazardous open borewell',
+    causeHi: 'पूरी तरह सूखा सार्वजनिक रिसाव तालाब या खुला खतरनाक लावारिस बोरवेल',
+    causeTe: 'పూర్తిగా ఎండిపోయిన ఊర చెరువు లేదా వదిలేసిన ప్రమాదకరమైన బోరుబావి',
+    remedy: 'Protective borewell capping & tank desilting rejuvenation project',
+    remedyHi: 'बोरवेल को सुरक्षित रूप से ढकना एवं तालाब का पुनर्जीवन कार्य',
+    remedyTe: 'బోరుబావికి రక్షణ మూత & చెరువు పూడికతీత పునరుజ్జీవన ప్రాజెక్ట్',
+    icon: '☀️',
+  },
+  {
+    id: 'agriculture',
+    label: 'Agricultural Pesticide & Fertilizer Chemical Runoff',
+    labelHi: 'कृषि कीटनाशक एवं रासायनिक उर्वरक बहाव',
+    labelTe: 'వ్యవసాయ పురుగుమందులు & ఎరువుల రసాయన ప్రవాహం',
+    cause: 'Intensive weedicide and high-nitrogen chemical runoff poisoning public pond',
+    causeHi: 'अत्यधिक खरपतवार नाशक व रासायनिक उर्वरकों से तालाब का पानी जहरीला होना',
+    causeTe: 'పురుగుమందులు మరియు అధిక రసాయన ఎరువులు చెరువు నీటిని కలుషితం చేయడం',
+    remedy: 'Water chemistry screening & buffer bio-swale filtration berm creation',
+    remedyHi: 'जल रसायन परीक्षण एवं प्राकृतिक बायो-फिल्टर तटबंध निर्माण',
+    remedyTe: 'నీటి పరీక్ష & సహజ బయో-స్వేల్ వడపోత కట్ట నిర్మాణం',
+    icon: '🚜',
+  },
+  {
+    id: 'biomedical',
+    label: 'Hospital Bio-Medical Waste & Decomposing Animal Carcass',
+    labelHi: 'अस्पताल बायोमेडिकल कचरा एवं मृत पशु अपशिष्ट',
+    labelTe: 'ఆసుపత్రి బయో-మెడికల్ వ్యర్థాలు & మృత జంతు కళేబరాలు',
+    cause: 'Infectious clinical syringes, hospital packaging or floating dead livestock',
+    causeHi: 'संक्रामक सिरिंज, अस्पताल का कचरा या पानी में तैरते मृत मवेशी',
+    causeTe: 'ఇన్ఫెక్షన్ కలిగించే సిరంజిలు, ఆసుపత్రి వ్యర్థాలు లేదా చనిపోయిన జంతువులు',
+    remedy: 'Hazmat bio-safety removal & immediate water body disinfection protocol',
+    remedyHi: 'बायो-सेफ्टी दस्ता द्वारा तुरंत सफाई एवं कीटाणुशोधन प्रक्रिया',
+    remedyTe: 'బయో-సేఫ్టీ బృందంతో తొలగింపు & తక్షణ క్రిమిసంహారక చర్యలు',
+    icon: '☣️',
+  },
+  {
+    id: 'mining',
+    label: 'Illegal Riverbed Sand Mining & Bank Erosion',
+    labelHi: 'अवैध नदी रेत खनन एवं किनारों का कटाव',
+    labelTe: 'అక్రమ నదీ ఇసుక తవ్వకాలు & నదీ గట్ల కోత',
+    cause: 'Unauthorized heavy machinery riverbed excavation destabilizing water table',
+    causeHi: 'भारी मशीनों से नदी तल की अवैध खुदाई जिससे भूजल स्तर गिर रहा है',
+    causeTe: 'యంత్రాలతో అనుమతి లేని ఇసుక తవ్వకాలు, భూగర్భ జలాల అస్థిరత',
+    remedy: 'Mining enforcement seizure & revenue inspector ground survey',
+    remedyHi: 'खनन प्रवर्तन दल द्वारा जब्ती एवं राजस्व निरीक्षक द्वारा स्थल जांच',
+    remedyTe: 'మైనింగ్ ఎన్‌ఫోర్స్‌మెంట్ స్వాధీనం & రెవెన్యూ తనిఖీ',
+    icon: '🚜',
+  },
+  {
+    id: 'other',
+    label: 'Other Environmental Water Contamination',
+    labelHi: 'अन्य पर्यावरणीय जल प्रदूषण / संकट',
+    labelTe: 'ఇతర పర్యావరణ జల కాలుష్యం / ప్రమాదం',
+    cause: 'Uncategorized toxic contamination, illegal discharge pipe, or public hazard',
+    causeHi: 'अन्य प्रकार का विषैला प्रदूषण, अवैध निकास पाइप या जल संकट',
+    causeTe: 'ఇతర రకాల కాలుష్యం, అక్రమ పైపులైన్ లేదా బహిరంగ ప్రమాదం',
+    remedy: 'Multi-departmental joint inspection team dispatch',
+    remedyHi: 'संयुक्त विभागीय निरीक्षण दल की तत्काल रवानगी',
+    remedyTe: 'వివిధ శాఖల సంయుక్త తనిఖీ బృందం పంపడం',
+    icon: '⚠️',
+  },
+];
 
 export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
   isOpen,
   onClose,
   onComplaintSubmitted,
   currentUser,
+  isLoggedIn = false,
+  onOpenLoginModal,
+  onLoginSuccess,
 }) => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
+
+  // Pure Multi-Language Translator: 100% Pure English, Pure Hindi, and Pure Telugu
+  const tr = (en: string, hi: string, te: string) => {
+    if (language === 'hi') return hi;
+    if (language === 'te') return te;
+    return en;
+  };
+  
+  // Tab state: If user is not logged in, prompt login first; else show complaint form
+  const [activeTab, setActiveTab] = useState<'login_required' | 'form'>('form');
+
+  // Sync active tab with login state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (!isLoggedIn) {
+        setActiveTab('login_required');
+      } else {
+        setActiveTab('form');
+      }
+    }
+  }, [isOpen, isLoggedIn]);
+
+  // Inline Quick Login State (so user can login seamlessly without leaving modal)
+  const [inlineName, setInlineName] = useState(currentUser?.name || '');
+  const [inlinePhone, setInlinePhone] = useState(currentUser?.phone || '');
+  const [inlineOtpStep, setInlineOtpStep] = useState<'phone' | 'otp'>('phone');
+  const [inlineOtp, setInlineOtp] = useState(['', '', '', '']);
+  const [inlineGeneratedOtp, setInlineGeneratedOtp] = useState('4402');
+  const [inlineError, setInlineError] = useState('');
+  const [inlineLoading, setInlineLoading] = useState(false);
+
+  // Form Fields State
   const [citizenName, setCitizenName] = useState(currentUser?.name || '');
-  const [citizenAge, setCitizenAge] = useState<number | ''>('');
+  const [citizenAge, setCitizenAge] = useState<number | ''>(32);
   const [citizenGender, setCitizenGender] = useState<'Male' | 'Female' | 'Other'>('Male');
   const [citizenPhone, setCitizenPhone] = useState(currentUser?.phone || '');
 
   // Keep synced with currentUser if logged in
   useEffect(() => {
     if (isOpen && currentUser) {
-      if (!citizenName && currentUser.name) setCitizenName(currentUser.name);
-      if (!citizenPhone && currentUser.phone) setCitizenPhone(currentUser.phone);
+      if (currentUser.name) setCitizenName(currentUser.name);
+      if (currentUser.phone) setCitizenPhone(currentUser.phone);
+      if (currentUser.name && !inlineName) setInlineName(currentUser.name);
+      if (currentUser.phone && !inlinePhone) setInlinePhone(currentUser.phone);
     }
   }, [isOpen, currentUser]);
 
   const [district, setDistrict] = useState<string>('Vizianagaram');
-  const [mandal, setMandal] = useState('');
-  const [locationLandmark, setLocationLandmark] = useState('');
-  const [shortDescription, setShortDescription] = useState('');
-  const [photoUrl, setPhotoUrl] = useState('https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&auto=format&fit=crop');
-  
+  const [mandal, setMandal] = useState('Gantyada');
+  const [locationLandmark, setLocationLandmark] = useState('Champavathi River Basin Weir');
+  const [shortDescription, setShortDescription] = useState('Heavy plastic bottle choke and untreated domestic runoff near the main weir channel.');
+  const [wasteType, setWasteType] = useState<string>('Plastic & Polythene Waste (Bottles & Bags)');
+  const [photoUrl, setPhotoUrl] = useState('https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=800&auto=format&fit=crop');
+  const [showWastePrompt, setShowWastePrompt] = useState(false);
+  const wasteDropdownRef = useRef<HTMLSelectElement | null>(null);
+
   // GPS Coordinates & Status State (Default Vizianagaram District Center)
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number }>({
     lat: 18.1124,
@@ -71,9 +267,9 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
-  // Initialize or re-center interactive mini-map with ONLY Street Map
+  // Initialize or re-center interactive mini-map with SATELLITE IMAGERY ONLY
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || activeTab !== 'form') {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -96,25 +292,35 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
       try {
         const map = L.map(mapContainerRef.current, {
           center: [coordinates.lat, coordinates.lng],
-          zoom: 12,
+          zoom: 13,
           zoomControl: true,
           attributionControl: false,
         });
 
-        // 100% Reliable, Free, High-Quality Street Map (Esri World Street Map - No API key required!)
+        // High-Resolution Esri World Imagery (Satellite from space - 100% Free)
         L.tileLayer(
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
           {
             maxZoom: 19,
-            attribution: 'Tiles &copy; Esri &mdash; Streets',
+            attribution: 'Tiles &copy; Esri &mdash; Satellite',
+          }
+        ).addTo(map);
+
+        // English Reference Boundaries & Place Labels
+        L.tileLayer(
+          'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+          {
+            maxZoom: 19,
+            attribution: '',
+            opacity: 0.95,
           }
         ).addTo(map);
 
         const customHazardIcon = L.divIcon({
           html: `
             <div style="
-              width: 34px;
-              height: 34px;
+              width: 36px;
+              height: 36px;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -122,31 +328,31 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
             ">
               <div style="
                 position: absolute;
-                width: 30px;
-                height: 30px;
+                width: 32px;
+                height: 32px;
                 border-radius: 50%;
-                background: rgba(239, 68, 68, 0.45);
+                background: rgba(239, 68, 68, 0.5);
                 animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
               "></div>
               <div style="
-                width: 24px;
-                height: 24px;
+                width: 26px;
+                height: 26px;
                 border-radius: 50%;
                 background: #dc2626;
-                border: 2px solid #ffffff;
+                border: 2.5px solid #ffffff;
                 color: #ffffff;
-                font-size: 11px;
+                font-size: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.6);
                 font-weight: bold;
               ">⚠️</div>
             </div>
           `,
           className: 'hazard-pin-marker',
-          iconSize: [34, 34],
-          iconAnchor: [17, 17],
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
         });
 
         const marker = L.marker([coordinates.lat, coordinates.lng], {
@@ -155,11 +361,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
         }).addTo(map);
 
         marker.bindTooltip(
-          language === 'hi' 
-            ? '📍 खींचें या स्ट्रीट मैप पर कहीं भी क्लिक करें' 
-            : language === 'te' 
-            ? '📍 స్ట్రీట్ మ్యాప్‌పై పిన్ చేయండి' 
-            : '📍 Drag pin or click anywhere on street map',
+          '📍 Drag pin or click anywhere on satellite map to set site',
           { direction: 'top', offset: [0, -14], permanent: false }
         );
 
@@ -171,11 +373,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
           setCoordinates({ lat: newLat, lng: newLng });
           setGpsFeedback({
             type: 'success',
-            message: language === 'hi' 
-              ? `स्ट्रीट मैप पर पिन सेट किया गया: ${newLat}° N, ${newLng}° E` 
-              : language === 'te'
-              ? `స్ట్రీట్ మ్యాప్‌పై పిన్ సెట్ చేయబడింది: ${newLat}° N, ${newLng}° E`
-              : `Point pinned on street map: ${newLat}° N, ${newLng}° E`,
+            message: `Pin set on satellite map: ${newLat}° N, ${newLng}° E`,
           });
         });
 
@@ -187,23 +385,18 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
           setCoordinates({ lat: newLat, lng: newLng });
           setGpsFeedback({
             type: 'success',
-            message: language === 'hi' 
-              ? `नक्शे से चुना गया स्थान: ${newLat}° N, ${newLng}° E` 
-              : language === 'te'
-              ? `మ్యాప్‌లో ఎంచుకున్న స్థానం: ${newLat}° N, ${newLng}° E`
-              : `Location selected on street map: ${newLat}° N, ${newLng}° E`,
+            message: `Location set on satellite map: ${newLat}° N, ${newLng}° E`,
           });
         });
 
         mapInstanceRef.current = map;
         markerRef.current = marker;
 
-        // Force a resize after tile load
         setTimeout(() => {
           map.invalidateSize();
         }, 300);
       } catch (err) {
-        console.error('Mini map initialization error:', err);
+        console.error('Mini satellite map error:', err);
       }
     }, 250);
 
@@ -215,9 +408,9 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
         markerRef.current = null;
       }
     };
-  }, [isOpen, showMiniMap, language]);
+  }, [isOpen, activeTab, showMiniMap]);
 
-  // Sync marker position and map center when coordinates change
+  // Sync marker position when coordinates change
   useEffect(() => {
     if (markerRef.current && mapInstanceRef.current) {
       markerRef.current.setLatLng([coordinates.lat, coordinates.lng]);
@@ -237,14 +430,9 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
       setCoordinates(newCoord);
       setGpsFeedback({
         type: 'info',
-        message: language === 'hi' 
-          ? `${found.name} जिला केंद्र के निर्देशांक लागू किए गए (${newCoord.lat}° N, ${newCoord.lng}° E)` 
-          : language === 'te'
-          ? `${found.name} జిల్లా కేంద్రం కోఆర్డినేట్స్ వర్తింపజేయబడ్డాయి (${newCoord.lat}° N, ${newCoord.lng}° E)`
-          : `Applied ${found.name} district center coordinates (${newCoord.lat}° N, ${newCoord.lng}° E)`,
+        message: `Applied ${found.name} district center coordinates (${newCoord.lat}° N, ${newCoord.lng}° E)`,
       });
 
-      // Fly map smoothly to newly selected district center
       if (mapInstanceRef.current) {
         mapInstanceRef.current.flyTo([newCoord.lat, newCoord.lng], 12, { duration: 1 });
       }
@@ -260,111 +448,133 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
     setCoordinates(defaultCoord);
     setGpsFeedback({
       type: 'info',
-      message: language === 'hi'
-        ? `${district} जिला केंद्र पर रीसेट किया गया (${defaultCoord.lat}° N, ${defaultCoord.lng}° E)`
-        : language === 'te'
-        ? `${district} జిల్లా కేంద్రానికి రీసెట్ చేయబడింది (${defaultCoord.lat}° N, ${defaultCoord.lng}° E)`
-        : `Reset to ${district} center coordinates (${defaultCoord.lat}° N, ${defaultCoord.lng}° E)`,
+      message: `Reset coordinates to ${district} district center (${defaultCoord.lat}° N, ${defaultCoord.lng}° E)`,
     });
     if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo([defaultCoord.lat, defaultCoord.lng], 12, { duration: 1 });
     }
   };
 
-  // GPS Auto-Fetch: Live Device GPS or clean District fallback (No random external IP)
+  // Auto-Fetch My GPS Location with Browser Geolocation & Safe Fallbacks
   const handleFetchCurrentGps = () => {
     setIsFetchingLocation(true);
     setGpsFeedback({
       type: 'loading',
-      message: language === 'hi' 
-        ? 'लाइव जीपीएस सिग्नल खोज रहे हैं...' 
-        : language === 'te'
-        ? 'లైవ్ GPS సంకేతాలను శోధిస్తోంది...'
-        : 'Detecting live GPS signal from device...',
+      message: 'Accessing device GPS receiver for high-precision satellite coordinates...',
     });
 
-    const tryBrowserGeolocation = (highAccuracy: boolean) => {
-      if (!('geolocation' in navigator)) {
-        fallbackToDistrict('Geolocation not supported in browser');
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = Number(pos.coords.latitude.toFixed(4));
-          const lng = Number(pos.coords.longitude.toFixed(4));
-          const acc = Math.round(pos.coords.accuracy || 15);
-          setCoordinates({ lat, lng });
-          setIsFetchingLocation(false);
-          setGpsFeedback({
-            type: 'success',
-            message: language === 'hi'
-              ? `🟢 लाइव जीपीएस प्राप्त हुआ: ${lat}° N, ${lng}° E (सटीकता: ±${acc}m)`
-              : language === 'te'
-              ? `🟢 లైవ్ GPS కనుగొనబడింది: ${lat}° N, ${lng}° E (ఖచ్చితత్వం: ±${acc}m)`
-              : `🟢 Live GPS Locked: ${lat}° N, ${lng}° E (Accuracy: ±${acc}m)`,
-          });
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.flyTo([lat, lng], 14, { duration: 1.2 });
-          }
-        },
-        (err) => {
-          if (highAccuracy) {
-            // High accuracy timed out, retry with standard cellular/wifi
-            tryBrowserGeolocation(false);
-          } else {
-            fallbackToDistrict(err.message);
-          }
-        },
-        {
-          enableHighAccuracy: highAccuracy,
-          timeout: highAccuracy ? 5000 : 7000,
-          maximumAge: 30000,
-        }
-      );
-    };
-
-    const fallbackToDistrict = (reason?: string) => {
-      // Fallback directly to chosen District center coordinates
-      const currentDistObj = ANDHRA_PRADESH_26_DISTRICTS.find(
-        (d) => d.name.toLowerCase() === district.toLowerCase()
-      );
-      const defaultCoord = currentDistObj?.centerCoords || { lat: 18.1124, lng: 83.4022 };
-      setCoordinates(defaultCoord);
+    const applyCoords = (lat: number, lng: number, sourceLabel: string) => {
+      const roundedLat = Number(lat.toFixed(4));
+      const roundedLng = Number(lng.toFixed(4));
+      setCoordinates({ lat: roundedLat, lng: roundedLng });
       setIsFetchingLocation(false);
       setGpsFeedback({
+        type: 'success',
+        message: `✓ High-precision GPS acquired via ${sourceLabel}: ${roundedLat}° N, ${roundedLng}° E`,
+      });
+
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo([roundedLat, roundedLng], 14, { duration: 1.2 });
+      }
+    };
+
+    const fallbackToDistrictCenter = (reason?: string) => {
+      setIsFetchingLocation(false);
+      const found = ANDHRA_PRADESH_26_DISTRICTS.find(
+        (d) => d.name.toLowerCase() === district.toLowerCase()
+      );
+      const defaultCoord = found?.centerCoords || { lat: 18.1124, lng: 83.4022 };
+      setCoordinates(defaultCoord);
+      setGpsFeedback({
         type: 'info',
-        message: language === 'hi'
-          ? `⚠️ डिवाइस जीपीएस अनुपलब्ध। ${district} जिला केंद्र निर्देशांक लागू किए गए। आप मान टाइप कर सकते हैं या नक्शे पर क्लिक कर सकते हैं।`
-          : language === 'te'
-          ? `⚠️ పరికర GPS అందుబాటులో లేదు. ${district} జిల్లా కేంద్రం కోఆర్డినేట్స్ వర్తింపజేయబడ్డాయి.`
-          : `⚠️ Browser GPS unavailable (${reason || 'permission blocked'}). Applied ${district} district coordinates. You can edit Lat/Lng directly or click on the map to pin.`,
+        message: `Device GPS restricted (${reason || 'permission denied'}). Applied ${district} district coordinates. You can edit Lat/Lng directly or click on the satellite map to pin.`,
       });
       if (mapInstanceRef.current) {
         mapInstanceRef.current.flyTo([defaultCoord.lat, defaultCoord.lng], 12, { duration: 1 });
       }
     };
 
+    if (!('geolocation' in navigator)) {
+      fallbackToDistrictCenter('Browser does not support Geolocation API');
+      return;
+    }
+
+    const tryBrowserGeolocation = (highAccuracy: boolean) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          applyCoords(
+            position.coords.latitude,
+            position.coords.longitude,
+            highAccuracy ? 'Device GPS' : 'Network Geolocation'
+          );
+        },
+        (error) => {
+          if (highAccuracy) {
+            tryBrowserGeolocation(false);
+          } else {
+            fallbackToDistrictCenter(error.message);
+          }
+        },
+        {
+          enableHighAccuracy: highAccuracy,
+          timeout: highAccuracy ? 5000 : 8000,
+          maximumAge: 10000,
+        }
+      );
+    };
+
     tryBrowserGeolocation(true);
   };
 
+  // Handle file upload & actively prompt user to select waste type from dropdown
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoUrl(reader.result as string);
+        setShowWastePrompt(true);
+        // Scroll or focus waste dropdown so user specifies what type of trash it is
+        setTimeout(() => {
+          if (wasteDropdownRef.current) {
+            wasteDropdownRef.current.focus();
+            wasteDropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Sample proof photos with matching automatic waste type selection
   const sampleProofPhotos = [
-    { label: language === 'hi' ? 'प्लास्टिक कचरा' : language === 'te' ? 'ప్లాస్టిక్ వ్యర్థాలు' : 'Plastic Waste Inflow', url: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=800&auto=format&fit=crop' },
-    { label: language === 'hi' ? 'रासायनिक प्रदूषण' : language === 'te' ? 'రసాయన కాలుష్యం' : 'Industrial Chemical Dumping', url: 'https://images.unsplash.com/photo-1605371924599-2d0365da1ae0?w=800&auto=format&fit=crop' },
-    { label: language === 'hi' ? 'टूटा बांध / गेट' : language === 'te' ? 'విరిగిన ఆనకట్ట' : 'Broken Sluice Gate / Canal', url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?w=800&auto=format&fit=crop' },
-    { label: language === 'hi' ? 'सूखा तालाब' : language === 'te' ? 'ఎండిన జలాశయం' : 'Dry Tank Encroachment', url: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&auto=format&fit=crop' },
+    { 
+      label: 'Plastic Waste Inflow', 
+      wasteCategory: 'Plastic & Polythene Waste (Bottles & Bags)',
+      url: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=800&auto=format&fit=crop' 
+    },
+    { 
+      label: 'Industrial Chemical Dumping', 
+      wasteCategory: 'Industrial Chemical Effluent / Factory Dye Discharge',
+      url: 'https://images.unsplash.com/photo-1605371924599-2d0365da1ae0?w=800&auto=format&fit=crop' 
+    },
+    { 
+      label: 'Domestic Sewage Drain', 
+      wasteCategory: 'Domestic Raw Sewage & Septic Blackwater Drain',
+      url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?w=800&auto=format&fit=crop' 
+    },
+    { 
+      label: 'Dry Tank Bed Encroachment', 
+      wasteCategory: 'Dried Up Tank Bed Encroachment & Collapsed Borewell',
+      url: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&auto=format&fit=crop' 
+    },
   ];
+
+  const handleSelectSamplePhoto = (sample: typeof sampleProofPhotos[0]) => {
+    setPhotoUrl(sample.url);
+    setWasteType(sample.wasteCategory);
+    setShowWastePrompt(true);
+  };
 
   // Helper to determine Nodal Officer for the district
   const getNodalOfficer = (distName: string) => {
@@ -380,17 +590,71 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
     return `District Nodal Officer (IAS), ${distName}`;
   };
 
+  // Handle Quick Inline OTP Login
+  const handleRequestInlineOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inlineName.trim()) {
+      setInlineError('Please enter your full citizen name');
+      return;
+    }
+    const cleanPhone = inlinePhone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setInlineError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    setInlineError('');
+    const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    setInlineGeneratedOtp(randomCode);
+    setInlineOtpStep('otp');
+    setInlineOtp(['', '', '', '']);
+  };
+
+  const handleVerifyInlineOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setInlineLoading(true);
+    setInlineError('');
+
+    const enteredOtp = inlineOtp.join('');
+    if (enteredOtp.length === 4) {
+      setTimeout(() => {
+        const userData = {
+          name: inlineName.trim() || 'Verified Citizen',
+          phone: inlinePhone.trim() || '9848012345',
+        };
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        if (onLoginSuccess) {
+          onLoginSuccess(userData);
+        }
+        setCitizenName(userData.name);
+        setCitizenPhone(userData.phone);
+        setInlineLoading(false);
+        setActiveTab('form');
+      }, 400);
+    } else {
+      setInlineLoading(false);
+      setInlineError('Please enter the 4-digit verification OTP');
+    }
+  };
+
+  // Submit Complaint
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Guard: Must be logged in to lodge complaint
+    if (!isLoggedIn) {
+      setActiveTab('login_required');
+      return;
+    }
 
     const newId = `CMP-AP-2026-${Math.floor(100 + Math.random() * 900)}`;
 
     const newComplaint: CitizenComplaint = {
       id: newId,
-      citizenName: citizenName.trim(),
-      citizenAge: Number(citizenAge) || 30,
+      citizenName: citizenName.trim() || currentUser?.name || 'Verified Citizen',
+      citizenAge: Number(citizenAge) || 32,
       citizenGender,
-      citizenPhone: citizenPhone.trim(),
+      citizenPhone: citizenPhone.trim() || currentUser?.phone || '9848012345',
       district,
       mandal: mandal.trim() || 'Headquarters Mandal',
       village: locationLandmark.trim() || 'Main Village',
@@ -399,6 +663,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
         lat: Number(coordinates.lat) || 18.1124,
         lng: Number(coordinates.lng) || 83.4022,
       },
+      wasteType,
       shortDescription: shortDescription.trim(),
       photoUrl,
       submittedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
@@ -412,414 +677,756 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/65 backdrop-blur-xs">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        
         {/* Modal Top Header */}
         <div className="bg-gradient-to-r from-[#03045E] via-[#0077B6] to-[#00B4D8] p-4 sm:p-5 flex items-start justify-between text-white shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="p-1 rounded-md bg-rose-500 text-white">
+              <span className="p-1 rounded-md bg-rose-500 text-white shadow-xs">
                 <AlertTriangle className="w-4 h-4" />
               </span>
               <span className="text-[10px] font-mono tracking-widest text-sky-200 uppercase font-bold">
-                {language === 'hi' ? 'नीर-ईक्षण नागरिक जल शिकायत' : language === 'te' ? 'నీర్-ఈక్షణ్ పౌర సమస్య నివేదిక' : 'NIR-IKSHAN CITIZEN WATER COMPLAINT'}
+                NIR-IKSHAN CITIZEN WATER COMPLAINT
               </span>
             </div>
             <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              {language === 'hi' ? 'जल संकट / प्रदूषण शिकायत दर्ज करें' : language === 'te' ? 'నీటి కాలుష్య లేదా సంక్షోభ ఫిర్యాదు చేయండి' : 'Lodge Water Body Hazard Complaint'}
+              Lodge Water Body Hazard Complaint
             </h2>
             <p className="text-[11px] sm:text-xs text-sky-200">
-              {language === 'hi' ? 'विषाक्त अपशिष्ट, नाले में रुकावट या सूखे कुओं की रिपोर्ट सीधे अपने जिला नोडल अधिकारी को भेजें।' : language === 'te' ? 'వ్యర్థాలు, మురుగు అడ్డంకులు లేదా ఎండిపోయిన బావుల గురించి నేరుగా జిల్లా నోడల్ అధికారికి తెలియజేయండి.' : 'Report toxic waste, chokes, dry collapsed wells or dam breaches directly to your District Nodal Officer.'}
+              Report toxic waste, chokes, dry collapsed wells or dam breaches directly to your District Nodal Officer.
             </p>
           </div>
 
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
-            title={language === 'hi' ? 'बंद करें' : language === 'te' ? 'మూసివేయి' : 'Close'}
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs">
-          {/* User Basic Info Row */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-3">
-            <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-[#0047ab]" />
-              <span>{language === 'hi' ? '1. नागरिक का विवरण' : language === 'te' ? '1. పౌరుడి వివరాలు' : '1. Citizen Details'}</span>
-            </div>
+        {/* 2 Dedicated Tabs: Tab 1 (Login Required) & Tab 2 (Complaint Form) */}
+        <div className="bg-slate-100/90 border-b border-slate-200 px-4 py-2 flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('login_required')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'login_required'
+                ? 'bg-white text-[#03045E] shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-[#03045E]'
+            }`}
+          >
+            {isLoggedIn ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-amber-600" />
+            )}
+            <span>
+              {isLoggedIn ? 'Account Verified' : '1. Login Required'}
+            </span>
+          </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'पूरा नाम' : language === 'te' ? 'పూర్తి పేరు' : 'Full Name'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={language === 'hi' ? 'जैसे रमेश नायडू' : language === 'te' ? 'ఉదా: రమేష్ నాయుడు' : 'e.g. Ramesh Naidu'}
-                  value={citizenName}
-                  onChange={(e) => setCitizenName(e.target.value)}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white"
-                />
-              </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (isLoggedIn) {
+                setActiveTab('form');
+              } else {
+                setActiveTab('login_required');
+              }
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'form'
+                ? 'bg-white text-[#03045E] shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-[#03045E]'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+            <span>2. Complaint Form</span>
+            {!isLoggedIn && (
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-200">
+                Login First
+              </span>
+            )}
+          </button>
+        </div>
 
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'मोबाइल नंबर (ट्रैकिंग हेतु)' : language === 'te' ? 'మొబైల్ సంఖ్య (ట్రాకింగ్ కొరకు)' : 'Mobile Number (for tracking)'}
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="98480 12345"
-                  value={citizenPhone}
-                  onChange={(e) => setCitizenPhone(e.target.value)}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'आयु' : language === 'te' ? 'వయస్సు' : 'Age'}
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={14}
-                  max={100}
-                  placeholder="35"
-                  value={citizenAge}
-                  onChange={(e) => setCitizenAge(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'लिंग' : language === 'te' ? 'లింగం' : 'Gender'}
-                </label>
-                <select
-                  value={citizenGender}
-                  onChange={(e) => setCitizenGender(e.target.value as any)}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-semibold bg-white cursor-pointer"
-                >
-                  <option value="Male">{language === 'hi' ? 'पुरुष' : language === 'te' ? 'పురుషుడు' : 'Male'}</option>
-                  <option value="Female">{language === 'hi' ? 'महिला' : language === 'te' ? 'మహిళ' : 'Female'}</option>
-                  <option value="Other">{language === 'hi' ? 'अन्य' : language === 'te' ? 'ఇతర' : 'Other'}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* District & Location */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-3">
-            <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-[#0047ab]" />
-              <span>{language === 'hi' ? '2. जिला एवं भौगोलिक स्थान' : language === 'te' ? '2. जिल्हा మరియు భౌగోళిక స్థానం' : '2. District & Geographic Location'}</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'जिला' : language === 'te' ? 'జిల్లా' : 'District'}
-                </label>
-                <select
-                  value={district}
-                  onChange={(e) => handleDistrictChange(e.target.value)}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg font-semibold focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer"
-                >
-                  <optgroup label={language === 'hi' ? 'आंध्र प्रदेश के जिले' : language === 'te' ? 'ఆంధ్రప్రదేశ్ జిల్లాలు' : 'Andhra Pradesh Districts'}>
-                    {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
-                      <option key={d.id} value={d.name}>
-                        {language === 'te' && d.teluguName ? `${d.name} (${d.teluguName})` : d.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <option value="Other">{language === 'hi' ? 'अन्य / आंध्र प्रदेश से बाहर' : language === 'te' ? 'ఇతర / ఏపీ వెలుపల' : 'Other / Outside AP'}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'मंडल' : language === 'te' ? 'మండలం' : 'Mandal'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Nellimarla / Salur / Gantyada"
-                  value={mandal}
-                  onChange={(e) => setMandal(e.target.value)}
-                  className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                {language === 'hi' ? 'ग्राम एवं पहचान स्थल' : language === 'te' ? 'గ్రామం మరియు సమీప ల్యాండ్‌మార్క్' : 'Village & Landmark'}
-              </label>
-              <input
-                type="text"
-                required
-                placeholder={language === 'hi' ? 'जैसे चंपावती नदी पुल के पास' : language === 'te' ? 'ఉదా: చంపావతి నది వంతెన సమీపంలో' : 'e.g. Near Champavathi River Bridge'}
-                value={locationLandmark}
-                onChange={(e) => setLocationLandmark(e.target.value)}
-                className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white"
-              />
-            </div>
-
-            {/* GPS Coordinates & Interactive Street Map Box */}
-            <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5 shadow-2xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{language === 'hi' ? 'जीपीएस निर्देशांक' : language === 'te' ? 'GPS కోఆర్డినేట్స్' : 'GPS Coordinates (Lat / Lng)'}</span>
+        {/* ============================================================== */}
+        {/* TAB 1: LOGIN REQUIRED VIEW (When citizen is not logged in)       */}
+        {/* ============================================================== */}
+        {activeTab === 'login_required' && (
+          <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-xs">
+            {/* High-visibility Warning Notice Banner */}
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xs">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0 mt-0.5 shadow-sm">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-amber-800 font-extrabold bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200 inline-block">
+                    CITIZEN AUTHENTICATION MANDATORY
                   </span>
-                  <p className="text-[10px] text-slate-500">
-                    {language === 'hi' 
-                      ? 'ऑटो-फेच करें, मान टाइप करें या नीचे स्ट्रीट मैप पर क्लिक करके सटीक स्थान पिन करें।' 
-                      : language === 'te'
-                      ? 'ఆటో-ఫెచ్ చేయండి లేదా నేరుగా స్ట్రీట్ మ్యాప్‌పై క్లిక్ చేసి పిన్ చేయండి.'
-                      : 'Auto-fetch, type coordinates directly, or click/drag anywhere on the street map to pin.'}
+                  <h3 className="text-base sm:text-lg font-extrabold text-amber-950">
+                    Please Login First to Lodge Complaint
+                  </h3>
+                  <p className="text-xs text-amber-900 leading-relaxed">
+                    Under Government of Andhra Pradesh Water Security Guidelines, grievances cannot be lodged anonymously. 
+                    Your verified mobile number connects your report directly to the District Nodal Officer and ensures only you can view your personal complaint on the hazard map.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Pillars of Security */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200 space-y-1">
+                  <span className="font-bold text-amber-950 flex items-center gap-1 text-[11px]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Private Map View</span>
+                  </span>
+                  <p className="text-[10px] text-slate-600">
+                    Only your complaints appear on your map. Nobody else can see your filed report.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {/* Auto-Fetch GPS Button */}
-                  <button
-                    type="button"
-                    onClick={handleFetchCurrentGps}
-                    disabled={isFetchingLocation}
-                    className="px-2.5 py-1.5 bg-[#0047ab] hover:bg-blue-700 active:scale-95 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                  >
-                    {isFetchingLocation ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Crosshair className="w-3.5 h-3.5" />
-                    )}
-                    <span>
-                      {isFetchingLocation
-                        ? (language === 'hi' ? 'खोज रहे हैं...' : language === 'te' ? 'శోధిస్తోంది...' : 'Detecting GPS...')
-                        : (language === 'hi' ? 'मेरा GPS स्थान प्राप्त करें' : language === 'te' ? 'నా GPS లొకేషన్ తీసుకోండి' : 'Auto-Fetch My GPS Location')}
-                    </span>
-                  </button>
+                <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200 space-y-1">
+                  <span className="font-bold text-amber-950 flex items-center gap-1 text-[11px]">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Real-Time SMS</span>
+                  </span>
+                  <p className="text-[10px] text-slate-600">
+                    Receive SMS alerts when an on-site Field Inspector tests TDS and takes action.
+                  </p>
+                </div>
 
-                  {/* Reset to district center */}
-                  <button
-                    type="button"
-                    onClick={handleResetToDistrictCenter}
-                    className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                    title={language === 'hi' ? 'चुने गए जिले के केंद्र पर रीसेट करें' : 'Reset coordinates to selected district center'}
-                  >
-                    <RotateCcw className="w-3 h-3 text-slate-500" />
-                    <span>{language === 'hi' ? 'जिला केंद्र' : language === 'te' ? 'జిల్లా కేంద్రం' : 'District Center'}</span>
-                  </button>
+                <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200 space-y-1">
+                  <span className="font-bold text-amber-950 flex items-center gap-1 text-[11px]">
+                    <Camera className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Photo Proof</span>
+                  </span>
+                  <p className="text-[10px] text-slate-600">
+                    Inspect before-and-after photo evidence certified by Action Engineers.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-                  {/* Toggle Mini-Map Collapse */}
+            {/* If user is already logged in, show status & unlock button */}
+            {isLoggedIn && currentUser ? (
+              <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 text-emerald-950 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <div>
+                      <h4 className="font-bold text-sm">Account Verified & Active</h4>
+                      <p className="text-xs text-emerald-800">
+                        Logged in as <strong>{currentUser.name}</strong> ({currentUser.phone})
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setShowMiniMap((prev) => !prev)}
-                    className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0077B6] rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                    onClick={() => setActiveTab('form')}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
                   >
-                    <MapIcon className="w-3 h-3" />
-                    <span>{showMiniMap ? (language === 'hi' ? 'नक्शा छुपाएं' : language === 'te' ? 'మ్యాప్ దాచు' : 'Hide Map') : (language === 'hi' ? 'नक्शा दिखाएं' : language === 'te' ? 'మ్యాప్ చూపు' : 'Show Map')}</span>
+                    <span>Proceed to Form</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
-
-              {/* Editable Latitude and Longitude input fields */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
-                    {language === 'hi' ? 'अक्षांश / Latitude (°N)' : language === 'te' ? 'అక్షాంశం (°N)' : 'Latitude (°N)'}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.0001"
-                      required
-                      value={coordinates.lat}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        setCoordinates((prev) => ({ ...prev, lat: isNaN(val) ? 0 : val }));
-                      }}
-                      className="w-full text-xs font-mono font-bold p-2 pl-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-800"
-                      placeholder="e.g. 18.1124"
-                    />
-                    <span className="absolute right-2 top-2 text-[10px] font-mono font-bold text-slate-400">°N</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
-                    {language === 'hi' ? 'देशांतर / Longitude (°E)' : language === 'te' ? 'రేఖాంశం (°E)' : 'Longitude (°E)'}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.0001"
-                      required
-                      value={coordinates.lng}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        setCoordinates((prev) => ({ ...prev, lng: isNaN(val) ? 0 : val }));
-                      }}
-                      className="w-full text-xs font-mono font-bold p-2 pl-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-800"
-                      placeholder="e.g. 83.4022"
-                    />
-                    <span className="absolute right-2 top-2 text-[10px] font-mono font-bold text-slate-400">°E</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status feedback banner */}
-              {gpsFeedback && (
-                <div
-                  className={`text-[11px] p-2 rounded-lg flex items-start gap-2 animate-in fade-in duration-200 ${
-                    gpsFeedback.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-                      : gpsFeedback.type === 'loading'
-                      ? 'bg-blue-50 text-blue-900 border border-blue-200'
-                      : 'bg-amber-50 text-amber-900 border border-amber-200'
-                  }`}
-                >
-                  {gpsFeedback.type === 'success' ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  ) : gpsFeedback.type === 'loading' ? (
-                    <Loader2 className="w-4 h-4 text-blue-600 shrink-0 animate-spin mt-0.5" />
-                  ) : (
-                    <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  )}
-                  <div className="flex-1 leading-snug">
-                    <span>{gpsFeedback.message}</span>
-                  </div>
+            ) : (
+              /* Inline Mobile OTP Form for Instant Frictionless Login */
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                    <KeyRound className="w-4 h-4 text-[#0077B6]" />
+                    <span>Quick Mobile OTP Verification</span>
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setGpsFeedback(null)}
-                    className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                    onClick={() => {
+                      if (onOpenLoginModal) onOpenLoginModal();
+                    }}
+                    className="text-[11px] font-bold text-[#0077B6] hover:underline cursor-pointer"
                   >
-                    <X className="w-3 h-3" />
+                    Open Full Login Screen
                   </button>
                 </div>
-              )}
 
-              {/* Interactive Street Mini-Map with Click-to-Pin (ONLY Streets, No API Key Error!) */}
-              {showMiniMap && (
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-600 px-0.5">
-                    <span className="font-semibold text-slate-700 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span>
-                        {language === 'hi' 
-                          ? '🗺️ स्ट्रीट मैप: सटीक स्थान हेतु नक्शे पर कहीं भी क्लिक करें या पिन खींचें' 
-                          : language === 'te'
-                          ? '🗺️ స్ట్రీట్ మ్యాప్: ఖచ్చితమైన ప్రదేశం కోసం మ్యాప్‌పై క్లిక్ చేయండి'
-                          : '🗺️ Street Map: Click or drag pin anywhere on map to set exact site'}
-                      </span>
-                    </span>
-                    <span className="font-mono text-slate-700 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                      [{coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}]
-                    </span>
+                {inlineError && (
+                  <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-semibold">
+                    ⚠️ {inlineError}
                   </div>
-                  <div
-                    ref={mapContainerRef}
-                    className="h-48 sm:h-56 w-full rounded-xl border border-slate-300 overflow-hidden relative shadow-inner z-0"
-                    style={{ minHeight: '190px' }}
+                )}
+
+                {inlineOtpStep === 'phone' ? (
+                  <form onSubmit={handleRequestInlineOtp} className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          Full Citizen Name
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Ramesh Naidu"
+                          value={inlineName}
+                          onChange={(e) => setInlineName(e.target.value)}
+                          className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          10-Digit Mobile Number
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="98480 12345"
+                          value={inlinePhone}
+                          onChange={(e) => setInlinePhone(e.target.value)}
+                          className="w-full text-xs p-2.5 border border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                    >
+                      <span>Send OTP to Mobile</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifyInlineOtp} className="space-y-3">
+                    <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 flex items-center justify-between text-xs text-sky-900">
+                      <div>
+                        <span>OTP sent to: <strong>{inlinePhone}</strong></span>
+                        <div className="text-[10px] text-sky-700 font-mono">Demo OTP: {inlineGeneratedOtp}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const digits = inlineGeneratedOtp.split('');
+                          setInlineOtp(digits);
+                        }}
+                        className="px-2.5 py-1 bg-[#0077B6] text-white rounded-lg text-[10px] font-bold hover:bg-[#03045E] cursor-pointer"
+                      >
+                        Auto-Fill OTP
+                      </button>
+                    </div>
+
+                    <div className="flex justify-center gap-2 py-1">
+                      {inlineOtp.map((digit, idx) => (
+                        <input
+                          key={idx}
+                          id={`inline-otp-${idx}`}
+                          type="text"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => {
+                            const val = e.target.value.slice(-1);
+                            const updated = [...inlineOtp];
+                            updated[idx] = val;
+                            setInlineOtp(updated);
+                            if (val && idx < 3) {
+                              document.getElementById(`inline-otp-${idx + 1}`)?.focus();
+                            }
+                          }}
+                          className="w-11 h-12 text-center text-lg font-bold font-mono border-2 border-slate-300 focus:border-[#0077B6] rounded-xl focus:ring-2 focus:ring-[#0077B6]/30 bg-white"
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setInlineOtpStep('phone')}
+                        className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl cursor-pointer"
+                      >
+                        Change Number
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={inlineLoading}
+                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {inlineLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4" />
+                        )}
+                        <span>Verify OTP & Unlock Complaint Form</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 2: COMPLAINT FORM (Unlocked & 100% Pure English)            */}
+        {/* ============================================================== */}
+        {activeTab === 'form' && (
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs">
+            
+            {/* User Basic Info Row */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-[#0077B6]" />
+                  <span>1. Citizen Verification Details</span>
+                </span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span>Verified Citizen Account</span>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Ramesh Naidu"
+                    value={citizenName}
+                    onChange={(e) => setCitizenName(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-500 bg-white"
                   />
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Short Description */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 block mb-1">
-              {language === 'hi' ? 'समस्या का संक्षिप्त विवरण' : language === 'te' ? 'సమస్య యొక్క సంక్షిప్త వివరణ' : 'Short Description of Problem'}
-            </label>
-            <textarea
-              required
-              rows={3}
-              placeholder={language === 'hi' ? 'समस्या का वर्णन करें: जैसे नहर में रंगाई का कचरा, टूटा तटबंध या प्लास्टिक प्रदूषण...' : language === 'te' ? 'సమస్యను వివరించండి: కాల్వలో రసాయనాలు వేయడం, చెరువు కట్ట తెగిపోవడం లేదా చెత్త పేరుకుపోవడం...' : 'Describe the issue: e.g. textile dye dumping into canal, broken weir wall, plastic choking drinking water tank...'}
-              value={shortDescription}
-              onChange={(e) => setShortDescription(e.target.value)}
-              className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white"
-            />
-          </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Mobile Number (Tracking & Private Map)
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="98480 12345"
+                    value={citizenPhone}
+                    onChange={(e) => setCitizenPhone(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-500 bg-white font-mono font-bold"
+                  />
+                </div>
+              </div>
 
-          {/* Screenshot / Photo Proof Upload */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                <Camera className="w-3.5 h-3.5 text-rose-600" />
-                <span>{language === 'hi' ? 'समस्या का फोटो प्रमाण' : language === 'te' ? 'సమస్య యొక్క ఫోటో సాక్ష్యం' : 'Photo Proof of Hazard'}</span>
-              </label>
-              <label className="text-[11px] font-bold text-[#0047ab] hover:underline cursor-pointer flex items-center gap-1">
-                <Upload className="w-3 h-3" />
-                <span>{language === 'hi' ? 'फोटो अपलोड करें' : language === 'te' ? 'ఫైల్ అప్‌లోడ్ చేయండి' : 'Upload File'}</span>
-                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-              </label>
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={14}
+                    max={100}
+                    placeholder="32"
+                    value={citizenAge}
+                    onChange={(e) => setCitizenAge(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full text-xs p-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-500 bg-white font-mono"
+                  />
+                </div>
 
-            <div className="relative h-36 w-full rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
-              <img src={photoUrl} alt="Complaint Evidence" className="w-full h-full object-cover" />
-              <div className="absolute top-2 left-2 bg-slate-900/80 text-white text-[10px] font-mono px-2 py-0.5 rounded">
-                GEOTAGGED EVIDENCE
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Gender
+                  </label>
+                  <select
+                    value={citizenGender}
+                    onChange={(e) => setCitizenGender(e.target.value as any)}
+                    className="w-full text-xs p-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-500 font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Quick sample photo selector */}
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1">
-              <span className="text-[10px] text-slate-500 whitespace-nowrap">
-                {language === 'hi' ? 'नमूना फोटो:' : language === 'te' ? 'నమూనా ఫోటోలు:' : 'Sample photos:'}
-              </span>
-              {sampleProofPhotos.map((s, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setPhotoUrl(s.url)}
-                  className="px-2 py-0.5 text-[10px] bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded border border-slate-200 whitespace-nowrap cursor-pointer"
-                >
-                  {s.label}
-                </button>
-              ))}
+            {/* District & Geographic Location */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-4 space-y-3">
+              <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
+                <span>2. District & Geographic Location</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    District
+                  </label>
+                  <select
+                    value={district}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl font-semibold focus:ring-1 focus:ring-blue-500 bg-white cursor-pointer"
+                  >
+                    <optgroup label="Andhra Pradesh (26 Districts)">
+                      {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
+                        <option key={d.id} value={d.name}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <option value="Other">Other / Outside AP</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Mandal
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Gantyada / Nellimarla"
+                    value={mandal}
+                    onChange={(e) => setMandal(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  Village & Nearby Landmark
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Champavathi River Bridge, Near Irrigation Canal Sluice"
+                  value={locationLandmark}
+                  onChange={(e) => setLocationLandmark(e.target.value)}
+                  className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </div>
+
+              {/* GPS Coordinates & Interactive SATELLITE Map Box */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-3.5 space-y-3 shadow-2xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                      <Compass className="w-3.5 h-3.5 text-[#0077B6]" />
+                      <span>GPS Coordinates (Satellite View)</span>
+                    </span>
+                    <p className="text-[10px] text-slate-500">
+                      Auto-fetch, type coordinates directly, or click/drag anywhere on the satellite map to pin.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Auto-Fetch GPS Button */}
+                    <button
+                      type="button"
+                      onClick={handleFetchCurrentGps}
+                      disabled={isFetchingLocation}
+                      className="px-2.5 py-1.5 bg-[#0077B6] hover:bg-[#03045E] active:scale-95 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      {isFetchingLocation ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Crosshair className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {isFetchingLocation ? 'Detecting GPS...' : 'Auto-Fetch My GPS Location'}
+                      </span>
+                    </button>
+
+                    {/* Reset to district center */}
+                    <button
+                      type="button"
+                      onClick={handleResetToDistrictCenter}
+                      className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Reset coordinates to selected district center"
+                    >
+                      <RotateCcw className="w-3 h-3 text-slate-500" />
+                      <span>District Center</span>
+                    </button>
+
+                    {/* Toggle Mini-Map Collapse */}
+                    <button
+                      type="button"
+                      onClick={() => setShowMiniMap((prev) => !prev)}
+                      className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0077B6] rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <MapIcon className="w-3 h-3" />
+                      <span>{showMiniMap ? 'Hide Map' : 'Show Map'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Editable Latitude and Longitude input fields */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                      Latitude (°N)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.0001"
+                        required
+                        value={coordinates.lat}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setCoordinates((prev) => ({ ...prev, lat: isNaN(val) ? 0 : val }));
+                        }}
+                        className="w-full text-xs font-mono font-bold p-2 pl-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white text-slate-800"
+                        placeholder="e.g. 18.1124"
+                      />
+                      <span className="absolute right-2.5 top-2 text-[10px] font-mono font-bold text-slate-400">°N</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                      Longitude (°E)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.0001"
+                        required
+                        value={coordinates.lng}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setCoordinates((prev) => ({ ...prev, lng: isNaN(val) ? 0 : val }));
+                        }}
+                        className="w-full text-xs font-mono font-bold p-2 pl-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white text-slate-800"
+                        placeholder="e.g. 83.4022"
+                      />
+                      <span className="absolute right-2.5 top-2 text-[10px] font-mono font-bold text-slate-400">°E</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status feedback banner */}
+                {gpsFeedback && (
+                  <div
+                    className={`text-[11px] p-2.5 rounded-xl flex items-start gap-2 animate-in fade-in duration-200 ${
+                      gpsFeedback.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                        : gpsFeedback.type === 'loading'
+                        ? 'bg-blue-50 text-blue-900 border border-blue-200'
+                        : 'bg-amber-50 text-amber-900 border border-amber-200'
+                    }`}
+                  >
+                    {gpsFeedback.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : gpsFeedback.type === 'loading' ? (
+                      <Loader2 className="w-4 h-4 text-blue-600 shrink-0 animate-spin mt-0.5" />
+                    ) : (
+                      <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1 leading-snug">
+                      <span>{gpsFeedback.message}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setGpsFeedback(null)}
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Pure SATELLITE Mini-Map with Click-to-Pin (Esri World Imagery + English Reference Labels) */}
+                {showMiniMap && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-600 px-0.5">
+                      <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>🛰️ High-Resolution Satellite Map: Click or drag pin anywhere to set exact site</span>
+                      </span>
+                      <span className="font-mono text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                        [{coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}]
+                      </span>
+                    </div>
+                    <div
+                      ref={mapContainerRef}
+                      className="h-48 sm:h-56 w-full rounded-2xl border border-slate-300 overflow-hidden relative shadow-inner z-0"
+                      style={{ minHeight: '190px' }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Submission Dispatch Info */}
-          <div className="bg-sky-50 border border-sky-200 p-2.5 rounded-xl text-[11px] text-sky-950 flex items-start gap-2">
-            <Info className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
-            <span>
-              {language === 'hi' 
-                ? `यह शिकायत सीधे नोडल अधिकारी (${getNodalOfficer(district)}) को भेजी जाएगी, जो तुरंत जांच के लिए फील्ड इंस्पेक्टर नियुक्त करेंगे।`
-                : language === 'te'
-                ? `ఈ ఫిర్యాదు నేరుగా నోడల్ అధికారికి (${getNodalOfficer(district)}) సమర్పించబడుతుంది, వారు తక్షణమే తనిఖీకి ఫీల్డ్ ఇన్స్పెక్టర్‌ను పంపుతారు.`
-                : `This complaint will be directly submitted to the Nodal Officer (${getNodalOfficer(district)}), who will immediately dispatch a Field Inspector to investigate.`}
-            </span>
-          </div>
+            {/* 3. Photo Proof of Hazard & Waste Type Selection (Major Cause) */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-4 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-rose-600" />
+                  <span>3. Photo Evidence & Waste Type Identification</span>
+                </span>
+                <label className="text-[11px] font-bold text-white bg-[#0077B6] hover:bg-[#03045E] px-3.5 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs transition-colors">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Hazard Photo</span>
+                  <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                </label>
+              </div>
 
-          {/* Submit Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-            >
-              {language === 'hi' ? 'रद्द करें' : language === 'te' ? 'రద్దు చేయి' : 'Cancel'}
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-              <span>{language === 'hi' ? 'शिकायत दर्ज करें और ट्रैकिंग आईडी पाएं' : language === 'te' ? 'ఫిర్యాదు సమర్పించి ట్రాకింగ్ ఐడీ పొందండి' : 'Submit Complaint & Get Tracking ID'}</span>
-            </button>
-          </div>
-        </form>
+              {/* Mandatory Prompt Banner when photo is uploaded or selected */}
+              {showWastePrompt && (
+                <div className="p-3 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200 shadow-xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-0.5">
+                    <h5 className="font-extrabold text-amber-950">
+                      Photo Uploaded! Please Select Major Waste Cause Below
+                    </h5>
+                    <p className="text-[11px] text-amber-900 leading-snug">
+                      To help the District Nodal Officer dispatch the correct remediation team, select the primary cause of contamination shown in your photo from the dropdown below.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowWastePrompt(false)}
+                    className="text-amber-700 hover:text-amber-950 font-bold text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* Photo Preview Card */}
+              <div className="relative h-44 w-full rounded-2xl overflow-hidden border border-slate-300 bg-slate-900 shadow-inner">
+                <img src={photoUrl} alt="Complaint Evidence" className="w-full h-full object-cover" />
+                <div className="absolute top-2.5 left-2.5 bg-slate-900/85 backdrop-blur-xs text-white text-[10px] font-mono px-2.5 py-0.5 rounded-md border border-white/20 flex items-center gap-1.5 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>GEOTAGGED EVIDENCE</span>
+                </div>
+                <div className="absolute bottom-2.5 right-2.5 bg-slate-900/85 backdrop-blur-xs text-amber-300 text-[11px] font-bold px-3 py-1 rounded-lg border border-amber-400/30 shadow-sm">
+                  {wasteType}
+                </div>
+              </div>
+
+              {/* Quick sample photo selector with auto-category sync */}
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-500 font-semibold block">
+                  Or select a sample photo for testing (auto-syncs waste type):
+                </span>
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
+                  {sampleProofPhotos.map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectSamplePhoto(s)}
+                      className={`px-3 py-1.5 text-[11px] font-semibold rounded-xl border whitespace-nowrap transition-all cursor-pointer ${
+                        photoUrl === s.url
+                          ? 'bg-[#03045E] text-white border-[#03045E] shadow-xs'
+                          : 'bg-white hover:bg-blue-50 hover:text-[#0077B6] text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Major Waste Cause Dropdown (Mandatory user selection as requested) */}
+              <div className="pt-2 border-t border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-extrabold text-slate-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>What type of waste / problem is this? (Major Cause)</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                    Mandatory Selection
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <select
+                    ref={wasteDropdownRef}
+                    required
+                    value={wasteType}
+                    onChange={(e) => setWasteType(e.target.value)}
+                    className="w-full text-xs p-3 pr-8 border-2 border-[#0077B6]/40 hover:border-[#0077B6] rounded-xl font-bold text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-2xs cursor-pointer transition-colors"
+                  >
+                    {HAZARD_WASTE_CATEGORIES.map((cat) => (
+                      <option key={cat.id} value={cat.label} className="font-semibold text-slate-800 py-1.5">
+                        {cat.icon} {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Dynamic Detailed Explanation of Selected Hazard Category */}
+                {(() => {
+                  const selectedCat = HAZARD_WASTE_CATEGORIES.find((c) => c.label === wasteType);
+                  return selectedCat ? (
+                    <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-[11px] text-sky-950 space-y-1 shadow-2xs">
+                      <div className="flex items-center gap-1.5 font-extrabold text-[#0077B6]">
+                        <span className="text-base">{selectedCat.icon}</span>
+                        <span>{selectedCat.label}</span>
+                      </div>
+                      <p className="text-slate-700 leading-snug">
+                        <strong>Primary Cause:</strong> {selectedCat.cause}
+                      </p>
+                      <p className="text-[#03045E] font-semibold leading-snug">
+                        <strong>Action Protocol:</strong> {selectedCat.remedy}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+
+            {/* 4. Short Description */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-700 block">
+                4. Problem Description & Critical Observations
+              </label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Describe the issue in detail: e.g. textile dye dumping into canal, broken weir wall, single-use plastic clogging drinking water tank..."
+                value={shortDescription}
+                onChange={(e) => setShortDescription(e.target.value)}
+                className="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-500 bg-white leading-relaxed"
+              />
+            </div>
+
+            {/* Submission Dispatch Info */}
+            <div className="bg-sky-50 border border-sky-200 p-3 rounded-2xl text-[11px] text-sky-950 flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <span>
+                  This complaint will be officially dispatched to the <strong>District Nodal Officer ({getNodalOfficer(district)})</strong>.
+                  Upon submission, your complaint marker will appear exclusively on your private map view.
+                </span>
+              </div>
+            </div>
+
+            {/* Submit Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Submit Complaint & Get Tracking ID</span>
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

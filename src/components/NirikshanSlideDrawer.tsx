@@ -134,7 +134,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                       {currentUser.name || t('verifiedCitizen', 'Verified Citizen')}
                     </h4>
                     <p className="text-[11px] text-[#CAF0F8] font-mono truncate">
-                      +91 {currentUser.phone || '6268025669'}
+                      {currentUser.phone ? `+91 ${currentUser.phone}` : ''}
                     </p>
                   </div>
                 </div>

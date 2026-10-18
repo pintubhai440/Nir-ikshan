@@ -31,7 +31,9 @@ import {
   Maximize2,
   ArrowLeft,
   ChevronLeft,
-  Copy
+  Copy,
+  Lock,
+  LogIn
 } from 'lucide-react';
 
 interface CitizenDashboardProps {
@@ -42,7 +44,6 @@ interface CitizenDashboardProps {
   currentUser?: { name: string; phone: string } | null;
   isLoggedIn?: boolean;
   onOpenLoginModal?: () => void;
-  onClearAllComplaints?: () => void;
 }
 
 export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
@@ -53,20 +54,20 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   currentUser,
   isLoggedIn = false,
   onOpenLoginModal,
-  onClearAllComplaints,
 }) => {
   const { t, language } = useLanguage();
-  const [searchPhone, setSearchPhone] = useState(currentUser?.phone || '');
+
+  // Pure Multi-Language Translator: 100% Pure English, Pure Hindi, and Pure Telugu
+  const tr = (en: string, hi: string, te: string) => {
+    if (language === 'hi') return hi;
+    if (language === 'te') return te;
+    return en;
+  };
+
+  const [searchPhone, setSearchPhone] = useState('');
   const [selectedState, setSelectedState] = useState('All India');
   const [selectedDistrict, setSelectedDistrict] = useState('All Districts');
   const [trackedComplaint, setTrackedComplaint] = useState<CitizenComplaint | null>(complaints[0] || null);
-
-  // Keep searchPhone synced if currentUser changes (e.g. on mobile OTP login)
-  React.useEffect(() => {
-    if (currentUser?.phone && !searchPhone) {
-      setSearchPhone(currentUser.phone);
-    }
-  }, [currentUser?.phone]);
   const [selectedDossierId, setSelectedDossierId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'RESOLVED'>('ALL');
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
@@ -124,7 +125,23 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     return `${((realVerifiedClosures / complaints.length) * 100).toFixed(1)}%`;
   }, [complaints.length, realVerifiedClosures]);
 
-  // Filter complaints based on mobile or ID search + Status Tab
+  // User Complaints Scope: Under citizen data protection, only complaints filed by this user are displayed
+  const userComplaints = useMemo(() => {
+    if (!isLoggedIn || !currentUser?.phone) return [];
+    const userPhoneClean = currentUser.phone.replace(/\D/g, '');
+    return complaints.filter((c) => {
+      const compPhoneClean = (c.citizenPhone || '').replace(/\D/g, '');
+      if (userPhoneClean && compPhoneClean) {
+        return compPhoneClean.endsWith(userPhoneClean.slice(-10)) || userPhoneClean.endsWith(compPhoneClean.slice(-10));
+      }
+      if (currentUser.name && c.citizenName) {
+        return currentUser.name.trim().toLowerCase() === c.citizenName.trim().toLowerCase();
+      }
+      return false;
+    });
+  }, [complaints, isLoggedIn, currentUser]);
+
+  // Filter complaints based on Ticket ID / Landmark search + Status Tab (Visible to all citizens)
   const cleanSearch = searchPhone.trim().toLowerCase();
   const filteredComplaints = useMemo(() => {
     return complaints.filter((c) => {
@@ -132,13 +149,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       if (statusFilter === 'RESOLVED' && c.status !== 'RESOLVED') return false;
 
       if (!cleanSearch) return true;
-      const phoneDigits = c.citizenPhone.replace(/\D/g, '');
       const searchDigits = cleanSearch.replace(/\D/g, '');
-      if (searchDigits && phoneDigits.includes(searchDigits)) return true;
+      if (searchDigits && c.id.replace(/\D/g, '').includes(searchDigits)) return true;
       if (c.id.toLowerCase().includes(cleanSearch)) return true;
-      if (c.citizenName.toLowerCase().includes(cleanSearch)) return true;
       if (c.locationLandmark.toLowerCase().includes(cleanSearch)) return true;
       if (c.district.toLowerCase().includes(cleanSearch)) return true;
+      if (c.mandal?.toLowerCase().includes(cleanSearch)) return true;
+      if (c.wasteType?.toLowerCase().includes(cleanSearch)) return true;
       return false;
     });
   }, [complaints, statusFilter, cleanSearch]);
@@ -169,7 +186,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const prevDossier = currentDossierIndex > 0 ? filteredComplaints[currentDossierIndex - 1] : null;
   const nextDossier = currentDossierIndex >= 0 && currentDossierIndex < filteredComplaints.length - 1 ? filteredComplaints[currentDossierIndex + 1] : null;
 
+  // Clicking "View Details" prompts login if user is not authenticated
   const handleOpenDossier = (c: CitizenComplaint) => {
+    if (!isLoggedIn) {
+      if (onOpenLoginModal) {
+        onOpenLoginModal();
+      }
+      return;
+    }
     setSelectedDossierId(c.id);
     setTrackedComplaint(c);
     const el = document.getElementById('citizen-tracker-section');
@@ -256,22 +280,26 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             {/* Tag Pill Badge */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-100/80 text-[#0077B6] border border-sky-200/70">
               <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
-              <span>GIS-Based Public Hydrology Assurance</span>
+              <span>{tr('GIS-Based Public Hydrology Assurance', 'जीआईएस-आधारित सार्वजनिक जलविज्ञान आश्वासन', 'GIS-ఆధారిత ప్రజా జలవనరుల హామీ')}</span>
             </div>
 
             {/* Main Title */}
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#03045E] tracking-tight leading-tight">
-              Track, fix and verify public water assets
+              {tr('Track, fix and verify public water assets', 'सार्वजनिक जल परिसंपत्तियों को ट्रैक करें, सुधारें और सत्यापित करें', 'ప్రజా జల వనరులను ట్రాక్ చేయండి, సరిదిద్దండి మరియు ధృవీకరించండి')}
             </h1>
 
             {/* Cyan/Blue Subtitle */}
             <h2 className="text-base sm:text-lg lg:text-xl font-bold text-[#0077B6] tracking-tight">
-              Inspect. Act. Verify. Restore.
+              {tr('Inspect. Act. Verify. Restore.', 'निरीक्षण। कार्रवाई। सत्यापन। पुनर्बहाली।', 'పరిశీలన. చర్య. ధృవీకరణ. పునరుద్ధరణ.')}
             </h2>
 
             {/* Description Paragraph */}
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal pt-0.5">
-              Community-driven transparency for recharge structures, percolation tanks, and village check dams. Inspect ground truth, monitor civil tasks, and ensure sustainable water recovery.
+              {tr(
+                'Community-driven transparency for recharge structures, percolation tanks, and village check dams. Inspect ground truth, monitor civil tasks, and ensure sustainable water recovery.',
+                'भूजल पुनर्भरण संरचनाओं, रिसाव तालाबों और ग्राम चेक डैम के लिए समुदाय-संचालित पारदर्शिता। धरातलीय स्थिति का निरीक्षण करें, निर्माण कार्यों की निगरानी करें और सतत जल संरक्षण सुनिश्चित करें।',
+                'భూగర్భ జల రీఛార్జ్ నిర్మాణాలు, ఇంకుడు చెరువులు మరియు గ్రామీణ చెక్ డ్యామ్‌ల కోసం ప్రజల పారదర్శకత. క్షేత్రస్థాయి పరిశీలన, పనుల పురోగతి పర్యవేక్షణ మరియు సుస్థిర జల పునరుద్ధరణ నిర్ధారణ.'
+              )}
             </p>
           </div>
 
@@ -282,7 +310,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               onClick={onOpenLodgeModal}
               className="px-5 py-2.5 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-1.5 transition-all hover:scale-102 active:scale-98 cursor-pointer"
             >
-              <span>Report a problem</span>
+              <span>{tr('Report a problem', 'समस्या दर्ज करें', 'సమస్యను నివేదించండి')}</span>
               <Plus className="w-4 h-4" />
             </button>
 
@@ -294,7 +322,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               }}
               className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs sm:text-sm shadow-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>View status</span>
+              <span>{tr('View status', 'स्थिति देखें', 'స్థితిని చూడండి')}</span>
               <ChevronDown className="w-4 h-4 text-slate-600" />
             </button>
 
@@ -308,12 +336,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               {pdfDownloaded ? (
                 <>
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>PDF Downloaded</span>
+                  <span>{tr('PDF Downloaded', 'पीडीएफ डाउनलोड हो गया', 'PDF డౌన్‌లోడ్ అయింది')}</span>
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4 text-[#0077B6]" />
-                  <span>{isPdfGenerating ? 'Generating...' : 'Audit PDF'}</span>
+                  <span>{isPdfGenerating ? tr('Generating...', 'तैयार हो रहा है...', 'రూపొందిస్తోంది...') : tr('Audit PDF', 'ऑडिट पीडीएफ', 'ఆడిట్ PDF')}</span>
                 </>
               )}
             </button>
@@ -326,13 +354,15 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                ASSETS TRACKED
+                {tr('ASSETS TRACKED', 'ट्रैक किए गए जल निकाय', 'ట్రాక్ చేయబడిన జలాశయాలు')}
               </span>
               <div className="text-2xl font-black text-[#03045E]">
                 {realTrackedAssets.toLocaleString('en-IN')}
               </div>
               <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                {selectedState === 'All India' ? 'National Grid • 28 States & UTs' : `${selectedState} Telemetry Grid`}
+                {selectedState === 'All India' 
+                  ? tr('National Grid • 28 States & UTs', 'राष्ट्रीय ग्रिड • 28 राज्य व केंद्र शासित प्रदेश', 'జాతీయ గ్రిడ్ • 28 రాష్ట్రాలు & కేం.పా.') 
+                  : `${selectedState} ${tr('Telemetry Grid', 'टेलीमेट्री ग्रिड', 'టెలిమెట్రీ గ్రిడ్')}`}
               </span>
             </div>
             <div className="w-11 h-11 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-[#0077B6] shrink-0">
@@ -344,13 +374,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                OPEN ISSUES
+                {tr('OPEN ISSUES', 'सक्रिय जल संकट', 'క్రియాశీల జల సమస్యలు')}
               </span>
               <div className="text-2xl font-black text-amber-500">
                 {realOpenIssues}
               </div>
               <span className="text-xs font-medium text-slate-500">
-                Active in field redressal
+                {tr('Active in field redressal', 'मैदानी समाधान में सक्रिय', 'పరిష్కారంలో ఉన్నవి')}
               </span>
             </div>
             <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 shrink-0">
@@ -362,13 +392,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                OVERDUE TASKS
+                {tr('OVERDUE TASKS', 'लंबित कार्य', 'గడువు మించిన పనులు')}
               </span>
               <div className="text-2xl font-black text-rose-600">
                 {realActiveTasks}
               </div>
               <span className="text-xs font-medium text-slate-500">
-                Officers & workers on-site
+                {tr('Officers & workers on-site', 'अधिकारी एवं कामगार मौके पर', 'ఫీల్డ్‌లో ఉన్న అధికారులు')}
               </span>
             </div>
             <div className="w-11 h-11 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 shrink-0">
@@ -380,13 +410,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                VERIFIED CLOSURES
+                {tr('VERIFIED CLOSURES', 'सत्यापित समाधान', 'ధృవీకరించిన పరిష్కారాలు')}
               </span>
               <div className="text-2xl font-black text-emerald-600">
                 {realVerifiedClosures}
               </div>
               <span className="text-xs font-semibold text-emerald-600">
-                {realSlaAdherence} SLA adherence
+                {realSlaAdherence} {tr('SLA adherence', 'समय-सीमा अनुपालन', 'SLA సమయపాలన')}
               </span>
             </div>
             <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
@@ -408,36 +438,32 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-100/90 text-[#0077B6] border border-sky-200/80">
               <ShieldCheck className="w-3.5 h-3.5 text-[#0077B6]" />
-              <span>{language === 'hi' ? 'नागरिक शिकायत निवारण सेल • भू-सत्यापन' : 'Citizen Grievance Redressal Cell • Ground Truth'}</span>
+              <span>{tr('Citizen Grievance Redressal Cell • Ground Truth', 'नागरिक शिकायत निवारण सेल • भू-सत्यापन', 'పౌర ఫిర్యాదుల పరిష్కార విభాగం • క్షేత్రస్థాయి ధృవీకరణ')}</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-[#03045E] tracking-tight">
-              {language === 'hi' ? 'शिकायत समाधान एवं स्थिति ट्रैकर' : 'Grievance Tracking & Resolution Truth'}
+              {tr('Grievance Tracking & Resolution Truth', 'शिकायत समाधान एवं स्थिति ट्रैकर', 'ఫిర్యాదుల పరిష్కారం & క్షేత్రస్థాయి వాస్తవాలు')}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 font-normal mt-0.5 max-w-2xl">
-              {language === 'hi'
-                ? 'अपने 10-अंकों के मोबाइल नंबर से दर्ज शिकायतें देखें, ऑन-साइट निरीक्षण रिपोर्ट और कार्य पूर्ण होने की वास्तविक फ़ोटो सत्यापित करें।'
-                : 'Track field progress, inspect ground truth reports, and view authentic before-and-after photographic evidence.'}
+              {tr(
+                'Track field progress, inspect ground truth reports, and view authentic before-and-after photographic evidence.',
+                'मैदानी प्रगति को ट्रैक करें, ऑन-साइट निरीक्षण रिपोर्ट देखें और कार्य पूर्ण होने की वास्तविक फ़ोटो सत्यापित करें।',
+                'ఫీల్డ్ పురోగతిని ట్రాక్ చేయండి, క్షేత్రస్థాయి నివేదికలను పరిశీలించండి మరియు పనుల ముందు-తర్వాత నిజమైన ఫోటో ఆధారాలను వీక్షించండి.'
+              )}
             </p>
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-center flex-wrap">
-            {complaints.length > 0 && onClearAllComplaints && (
-              <button
-                onClick={onClearAllComplaints}
-                className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Reset all complaints back to zero for testing"
-              >
-                <span>🗑️</span>
-                <span>{language === 'hi' ? 'सभी हटाएं (0 करें)' : 'Clear to 0'}</span>
-              </button>
-            )}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{tr('Permanent Government Record • Immutable', 'स्थायी सरकारी रिकॉर्ड • सुरक्षित', 'శాశ్వత ప్రభుత్వ రికార్డు • మార్చలేనిది')}</span>
+            </div>
 
             <button
               onClick={onOpenLodgeModal}
               className="px-5 py-2.5 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>{language === 'hi' ? 'नई शिकायत दर्ज करें' : 'Lodge New Grievance'}</span>
+              <span>{tr('Lodge New Grievance', 'नई शिकायत दर्ज करें', 'కొత్త ఫిర్యాదు నమోదు చేయండి')}</span>
             </button>
           </div>
         </div>
@@ -451,7 +477,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             </div>
             <input
               type="text"
-              placeholder={language === 'hi' ? '10-अंकों का मोबाइल नंबर या टिकट ID खोजें...' : 'Search by 10-digit mobile or Ticket ID (e.g. 94412...)'}
+              placeholder={tr('Search by Ticket ID or Landmark (e.g. CMP-AP-2026-101)...', 'टिकट ID या स्थान से खोजें (उदा. CMP-AP-2026-101)...', 'టికెట్ ID లేదా ప్రాంతంతో వెతకండి (ఉదా. CMP-AP-2026-101)...')}
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
               className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm font-semibold bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] text-slate-800 placeholder-slate-400 transition-all"
@@ -460,7 +486,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <button 
                 onClick={() => setSearchPhone('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-                title="Clear Search"
+                title={tr('Clear Search', 'सर्च हटाएं', 'శోధన క్లియర్ చేయండి')}
               >
                 ✕
               </button>
@@ -477,7 +503,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   : 'text-slate-600 hover:text-[#03045E] hover:bg-white'
               }`}
             >
-              {language === 'hi' ? 'सभी' : 'All'} ({complaints.length})
+              {tr('All', 'सभी', 'అన్నీ')} ({complaints.length})
             </button>
             <button
               onClick={() => setStatusFilter('ACTIVE')}
@@ -488,7 +514,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span>{language === 'hi' ? 'प्रगति पर' : 'Active'} ({complaints.filter(c => c.status !== 'RESOLVED').length})</span>
+              <span>{tr('Active', 'प्रगति पर', 'క్రియాశీల')} ({complaints.filter(c => c.status !== 'RESOLVED').length})</span>
             </button>
             <button
               onClick={() => setStatusFilter('RESOLVED')}
@@ -499,7 +525,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{language === 'hi' ? 'निराकृत' : 'Resolved'} ({complaints.filter(c => c.status === 'RESOLVED').length})</span>
+              <span>{tr('Resolved', 'निराकृत', 'పరిష్కరించబడినవి')} ({complaints.filter(c => c.status === 'RESOLVED').length})</span>
             </button>
           </div>
         </div>
@@ -510,14 +536,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#0077B6] animate-pulse"></span>
               <span>
-                {language === 'hi' ? 'सर्च फ़िल्टर:' : 'Filtering records for:'} <strong>"{searchPhone}"</strong> — {filteredComplaints.length} {language === 'hi' ? 'मामले पाए गए' : 'cases found'}
+                {tr('Filtering records for:', 'सर्च फ़िल्टर:', 'ఫిల్టర్ రికార్డులు:')} <strong>"{searchPhone}"</strong> — {filteredComplaints.length} {tr('cases found', 'मामले पाए गए', 'కేసులు కనుగొనబడ్డాయి')}
               </span>
             </div>
             <button
               onClick={() => setSearchPhone('')}
               className="text-xs font-bold text-[#0077B6] hover:underline cursor-pointer"
             >
-              {language === 'hi' ? 'फ़िल्टर हटाएं' : 'Reset Search'}
+              {tr('Reset Search', 'फ़िल्टर हटाएं', 'ఫిల్టర్ రీసెట్ చేయండి')}
             </button>
           </div>
         )}
@@ -535,16 +561,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
                   <FileText className="w-4 h-4 text-[#0077B6]" />
-                  <span>{language === 'hi' ? 'शिकायतों की सूची' : 'Grievance Dossier Grid'}</span>
+                  <span>{tr('Grievance Dossier Grid', 'शिकायतों की सूची', 'ఫిర్యాదుల జాబితా')}</span>
                 </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-[#0077B6] border border-sky-200">
-                  {filteredComplaints.length} {filteredComplaints.length === 1 ? 'record' : 'records'}
+                  {filteredComplaints.length} {filteredComplaints.length === 1 ? tr('record', 'मामला', 'రికార్డు') : tr('records', 'मामले', 'రికార్డులు')}
                 </span>
               </div>
               <div className="text-xs text-slate-500 font-medium">
-                {language === 'hi'
-                  ? 'किसी भी शिकायत का पूरा विवरण देखने के लिए नीचे "विवरण देखें" बटन दबाएं'
-                  : 'Click "View Details" on any grievance card to inspect full technical dossier'}
+                {tr(
+                  'Click "View Details" on any grievance card to inspect full technical dossier',
+                  'किसी भी शिकायत का पूरा विवरण देखने के लिए नीचे "विवरण देखें" बटन दबाएं',
+                  'పూర్తి సాంకేతిక వివరాల కోసం ఏదైనా కార్డుపై "వివరాలు చూడండి" బటన్ నొక్కండి'
+                )}
               </div>
             </div>
 
@@ -555,14 +583,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                 </div>
                 <div>
                   <p className="font-extrabold text-[#03045E] text-lg">
-                    {language === 'hi' ? 'शिकायत डेटाबेस पूरी तरह शून्य है (0 Records)' : 'Grievance Database is Clean (0 Records)'}
+                    {tr('No Grievance Records Found', 'कोई शिकायत रिकॉर्ड नहीं मिला', 'ఫిర్యాదుల రికార్డులేవీ కనుగొనబడలేదు')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1.5 max-w-md mx-auto">
                     {cleanSearch
-                      ? `No records found matching "${searchPhone}". Try checking the phone number or Ticket ID.`
-                      : (language === 'hi'
-                          ? 'टेस्टिंग के लिए सभी शिकायतें हटा दी गई हैं। नीचे दिए गए बटन पर क्लिक करके नई शिकायत दर्ज करें और मानचित्र पर लाइव टेस्ट करें!'
-                          : 'All complaints have been reset to 0 for your live testing. Click "Lodge Test Complaint" to file a water grievance and verify live telemetry & map tracking!')}
+                      ? tr(`No records found matching "${searchPhone}". Try checking Ticket ID or Landmark.`, `"${searchPhone}" से मेल खाने वाला कोई रिकॉर्ड नहीं मिला। कृपया टिकट ID या स्थान जांचें।`, `"${searchPhone}" తో సరిపోలే రికార్డులు లేవు. టికెట్ ID లేదా ప్రాంతాన్ని తనిఖీ చేయండి.`)
+                      : tr('No active complaints in the system. Click "Lodge Water Complaint" to file a new water hazard grievance!', 'वर्तमान में कोई शिकायत दर्ज नहीं है। नीचे दिए गए बटन पर क्लिक करके नई शिकायत दर्ज करें!', 'ప్రస్తుతం ఎటువంటి ఫిర్యాదులు లేవు. కొత్త ఫిర్యాదును నమోదు చేయడానికి క్రింది బటన్ నొక్కండి!')}
                   </p>
                 </div>
                 <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
@@ -571,7 +597,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       onClick={() => setSearchPhone('')}
                       className="px-4 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold cursor-pointer transition-colors"
                     >
-                      Clear Filter
+                      {tr('Clear Filter', 'फ़िल्टर हटाएं', 'ఫిల్టర్ తొలగించు')}
                     </button>
                   )}
                   <button
@@ -579,7 +605,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     className="px-6 py-2.5 bg-gradient-to-r from-[#0077B6] to-[#03045E] hover:from-[#03045E] hover:to-[#0077B6] text-white rounded-xl text-xs font-extrabold cursor-pointer transition-all shadow-md flex items-center gap-2 hover:scale-102 active:scale-98"
                   >
                     <span>➕</span>
-                    <span>{language === 'hi' ? 'नई शिकायत दर्ज करें (Test)' : 'Lodge Test Complaint'}</span>
+                    <span>{tr('Lodge Water Complaint', 'नई शिकायत दर्ज करें', 'కొత్త ఫిర్యాదు నమోదు చేయండి')}</span>
                   </button>
                 </div>
               </div>
@@ -611,12 +637,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             {isResolved ? (
                               <>
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>Resolved</span>
+                                <span>{tr('Resolved', 'निराकृत', 'పరిష్కరించబడింది')}</span>
                               </>
                             ) : (
                               <>
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                <span>In Progress</span>
+                                <span>{tr('In Progress', 'प्रगति पर', 'పురోగతిలో ఉంది')}</span>
                               </>
                             )}
                           </span>
@@ -628,12 +654,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             onClick={() => {
                               setPreviewPhoto({
                                 url: c.photoUrl || '',
-                                title: `Citizen Evidence: ${c.locationLandmark}`,
+                                title: `${tr('Citizen Evidence', 'नागरिक साक्ष्य', 'పౌర ఆధారం')}: ${c.locationLandmark}`,
                                 subtitle: c.shortDescription
                               });
                             }}
                             className="relative aspect-16/9 rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer group-hover:border-[#0077B6]/40 transition-colors"
-                            title="Click to Zoom Ground Evidence"
+                            title={tr('Click to Zoom Ground Evidence', 'धरातलीय साक्ष्य ज़ूम करने के लिए क्लिक करें', 'ఆధారాన్ని జూమ్ చేయడానికి క్లిక్ చేయండి')}
                           >
                             <img
                               src={c.photoUrl}
@@ -645,17 +671,25 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               }}
                             />
                             <div className="absolute top-2 left-2 bg-[#03045E]/85 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-2xs">
-                              📸 Ground Evidence
+                              {tr('📸 Ground Evidence', '📸 धरातलीय साक्ष्य', '📸 క్షేత్రస్థాయి ఆధారం')}
                             </div>
                             <div className="absolute inset-0 bg-[#03045E]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
                               <Maximize2 className="w-3.5 h-3.5" />
-                              <span>Zoom</span>
+                              <span>{tr('Zoom', 'ज़ूम करें', 'జూమ్')}</span>
                             </div>
                           </div>
                         )}
 
                         {/* Landmark Title */}
                         <div>
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            {c.wasteType && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
+                                <span>⚠️</span>
+                                <span>{c.wasteType}</span>
+                              </span>
+                            )}
+                          </div>
                           <h4 className="text-sm font-extrabold text-[#03045E] group-hover:text-[#0077B6] transition-colors line-clamp-2 leading-snug">
                             {c.locationLandmark}
                           </h4>
@@ -673,8 +707,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         {/* Mini Lifecycle Progress Bar */}
                         <div className="pt-2 border-t border-slate-100 space-y-1">
                           <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500">
-                            <span>Lifecycle Pipeline</span>
-                            <span className="text-[#0077B6] font-bold">Step {stepNum} of 4</span>
+                            <span>{tr('Lifecycle Pipeline', 'निवारण जीवनचक्र', 'పరిష్కార దశలు')}</span>
+                            <span className="text-[#0077B6] font-bold">{tr(`Step ${stepNum} of 4`, `चरण ${stepNum}/4`, `దశ ${stepNum}/4`)}</span>
                           </div>
                           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex gap-0.5">
                             <div className={`h-full flex-1 rounded-full ${stepNum >= 1 ? 'bg-[#0077B6]' : 'bg-slate-200'}`} />
@@ -684,26 +718,74 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           </div>
                         </div>
 
-                        {/* Key Finding or Reporter Info */}
+                        {/* Key Finding or Reporter Info (User Privacy Protected - No username/mobile) */}
                         <div className="text-[11px] text-slate-500 flex items-center justify-between">
-                          <span>Reporter: <strong className="text-slate-700">{c.citizenName}</strong></span>
+                          <span className="flex items-center gap-1 text-emerald-800 font-semibold">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{tr('Reporter: Protected Citizen 🔒', 'शिकायतकर्ता: सुरक्षित नागरिक 🔒', 'ఫిర్యాదుదారు: ధృవీకరించిన పౌరుడు 🔒')}</span>
+                          </span>
                           <span className="text-slate-400 font-medium">{c.submittedAt}</span>
                         </div>
                       </div>
 
-                      {/* Detail Button (The exact button requested by the user!) */}
+                      {/* Detail Button (Prompts login if not logged in) */}
                       <button
                         onClick={() => handleOpenDossier(c)}
                         className="w-full mt-4 py-2.5 px-4 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs hover:shadow transition-all hover:scale-101 active:scale-99 cursor-pointer"
                       >
-                        <span>{language === 'hi' ? 'विवरण देखें (पूरा विवरण)' : 'View Full Details'}</span>
-                        <ChevronRight className="w-4 h-4 text-sky-200 group-hover:translate-x-0.5 transition-transform" />
+                        {!isLoggedIn && <Lock className="w-3.5 h-3.5 text-amber-300" />}
+                        <span>{tr('View Full Details', 'विवरण देखें (पूरा विवरण)', 'పూర్తి వివరాలు చూడండి')}</span>
+                        {!isLoggedIn && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold ml-1 shadow-2xs">
+                            {tr('Login to View', 'लॉगिन आवश्यक', 'లాగిన్ చేయండి')}
+                          </span>
+                        )}
+                        {isLoggedIn && <ChevronRight className="w-4 h-4 text-sky-200 group-hover:translate-x-0.5 transition-transform" />}
                       </button>
                     </div>
                   );
                 })}
               </div>
             )}
+          </div>
+        ) : !isLoggedIn ? (
+          <div className="p-8 sm:p-12 text-center text-xs sm:text-sm text-slate-600 bg-white rounded-3xl border-2 border-amber-300 space-y-4 shadow-sm max-w-xl mx-auto my-6">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600 shadow-xs">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-extrabold text-[#03045E] text-lg sm:text-xl">
+                {tr(
+                  'Login Required to View Technical Dossier',
+                  'तकनीकी विवरण देखने के लिए कृपया लॉगिन करें',
+                  'సాంకేతిక వివరాలు చూడటానికి దయచేసి లాగిన్ చేయండి'
+                )}
+              </h3>
+              <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+                {tr(
+                  'To inspect on-site technical field reports, TDS water quality testing, and before-and-after photo verification, please log in with your mobile number.',
+                  'ऑन-साइट तकनीकी निरीक्षण रिपोर्ट, टीडीएस जल गुणवत्ता परीक्षण और कार्य पूर्ण होने की फ़ोटो देखने के लिए कृपया अपने मोबाइल नंबर से लॉगिन करें।',
+                  'క్షేత్రస్థాయి సాంకేతిక నివేదికలు, TDS నీటి నాణ్యత పరీక్ష మరియు ఫోటో ఆధారాలను పరిశీలించడానికి దయచేసి మీ మొబైల్ నంబర్‌తో లాగిన్ చేయండి.'
+                )}
+              </p>
+            </div>
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              {onOpenLoginModal && (
+                <button
+                  onClick={onOpenLoginModal}
+                  className="px-6 py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md flex items-center gap-2 hover:scale-102 active:scale-98"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>{tr('Login with Mobile OTP', 'मोबाइल OTP से लॉगिन करें', 'మొబైల్ OTPతో లాగిన్ చేయండి')}</span>
+                </button>
+              )}
+              <button
+                onClick={handleBackToGrid}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              >
+                {tr('Back to Grievance List', 'शिकायत सूची पर वापस जाएं', 'ఫిర్యాదుల జాబితాకు తిరిగి వెళ్లండి')}
+              </button>
+            </div>
           </div>
         ) : (
           /* ============================================================ */
@@ -719,7 +801,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   className="px-4 py-2 bg-sky-50 hover:bg-[#0077B6] text-[#03045E] hover:text-white border border-sky-200 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs shrink-0"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>{language === 'hi' ? 'सभी शिकायतों की सूची पर वापस जाएं' : 'Back to All Grievances'}</span>
+                  <span>{tr('Back to All Grievances', 'सभी शिकायतों की सूची पर वापस जाएं', 'అన్ని ఫిర్యాదుల జాబితాకు తిరిగి వెళ్లండి')}</span>
                 </button>
 
                 {/* Case Switcher Pagination */}
@@ -728,21 +810,21 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     disabled={!prevDossier}
                     onClick={() => prevDossier && handleOpenDossier(prevDossier)}
                     className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer flex items-center gap-1"
-                    title="Previous Case"
+                    title={tr('Previous Case', 'पिछला मामला', 'మునుపటి కేసు')}
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Prev</span>
+                    <span className="hidden md:inline">{tr('Prev', 'पिछला', 'మునుపటి')}</span>
                   </button>
                   <span className="px-2 font-mono text-slate-700 bg-slate-100 rounded py-1">
-                    Case {currentDossierIndex + 1} / {filteredComplaints.length}
+                    {tr('Case', 'मामला', 'కేసు')} {currentDossierIndex + 1} / {filteredComplaints.length}
                   </span>
                   <button
                     disabled={!nextDossier}
                     onClick={() => nextDossier && handleOpenDossier(nextDossier)}
                     className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer flex items-center gap-1"
-                    title="Next Case"
+                    title={tr('Next Case', 'अगला मामला', 'తదుపరి కేసు')}
                   >
-                    <span className="hidden md:inline">Next</span>
+                    <span className="hidden md:inline">{tr('Next', 'अगला', 'తదుపరి')}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -754,13 +836,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                   >
                     <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
-                    <span>Focus on Map Below 📍</span>
+                    <span>{tr('Focus on Map Below 📍', 'नीचे मानचित्र पर देखें 📍', 'క్రింది మ్యాప్‌లో చూడండి 📍')}</span>
                   </button>
                   <button
                     onClick={onOpenDirectoryModal}
                     className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-2xs"
                   >
-                    Official Directory
+                    {tr('Official Directory', 'अधिकारी डायरेक्टरी', 'అధికారుల డైరెక్టరీ')}
                   </button>
                 </div>
               </div>
@@ -784,12 +866,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         {activeDossier.status === 'RESOLVED' ? (
                           <>
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>✓ Case Resolved & Ground Restored</span>
+                            <span>{tr('✓ Case Resolved & Ground Restored', '✓ मामला निराकृत एवं स्थल पुनर्स्थापित', '✓ కేసు పరిష్కరించబడింది & పునరుద్ధరించబడింది')}</span>
                           </>
                         ) : (
                           <>
                             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                            <span>⚠️ Field Action In Progress</span>
+                            <span>{tr('⚠️ Field Action In Progress', '⚠️ मैदानी कार्रवाई प्रगति पर है', '⚠️ క్షేత్రస్థాయి చర్య పురోగతిలో ఉంది')}</span>
                           </>
                         )}
                       </span>
@@ -799,10 +881,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       <button
                         onClick={() => handleCopyGps(activeDossier.coordinates.lat, activeDossier.coordinates.lng)}
                         className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Copy GPS Coordinates"
+                        title={tr('Copy GPS Coordinates', 'जीपीएस निर्देशांक कॉपी करें', 'GPS కోఆర్డినేట్లను కాపీ చేయండి')}
                       >
                         <Copy className="w-3 h-3 text-slate-500" />
-                        <span>{copiedGps ? 'Copied GPS!' : 'Copy GPS'}</span>
+                        <span>{copiedGps ? tr('Copied GPS!', 'जीपीएस कॉपी हुआ!', 'GPS కాపీ అయింది!') : tr('Copy GPS', 'जीपीएस कॉपी करें', 'GPS కాపీ చేయండి')}</span>
                       </button>
                     </div>
                   </div>
@@ -821,9 +903,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         GPS: {activeDossier.coordinates.lat.toFixed(4)}°N, {activeDossier.coordinates.lng.toFixed(4)}°E
                       </span>
                       <span>•</span>
-                      <span>Citizen: <strong className="text-slate-800">{activeDossier.citizenName}</strong> ({activeDossier.citizenPhone})</span>
+                      <span className="flex items-center gap-1 text-emerald-800 font-semibold">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{tr('Citizen:', 'नागरिक:', 'పౌరుడు:')} <strong>{tr('Protected Identity 🔒', 'सुरक्षित पहचान 🔒', 'రక్షించబడిన గుర్తింపు 🔒')}</strong></span>
+                      </span>
                       <span>•</span>
-                      <span className="text-slate-500">Logged: {activeDossier.submittedAt}</span>
+                      <span className="text-slate-500">{tr('Logged:', 'पंजीकृत दिनांक:', 'నమోదు తేదీ:')} {activeDossier.submittedAt}</span>
                     </div>
                   </div>
                 </div>
@@ -833,10 +918,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
                       <FileCheck className="w-4 h-4 text-[#0077B6]" />
-                      <span>{language === 'hi' ? 'निवारण प्रगति चरण (4-स्तरीय प्रक्रिया)' : 'Redressal Progress Lifecycle (4-Step Pipeline)'}</span>
+                      <span>{tr('Redressal Progress Lifecycle (4-Step Pipeline)', 'निवारण प्रगति जीवनचक्र (4-स्तरीय प्रक्रिया)', 'పరిష్కార పురోగతి దశలు (4-దశల ప్రక్రియ)')}</span>
                     </span>
                     <span className="text-xs font-bold text-[#0077B6] bg-sky-100 px-3 py-1 rounded-full border border-sky-200">
-                      Step {getStatusStepNumber(activeDossier.status)} of 4
+                      {tr(`Step ${getStatusStepNumber(activeDossier.status)} of 4`, `चरण ${getStatusStepNumber(activeDossier.status)} / 4`, `దశ ${getStatusStepNumber(activeDossier.status)} / 4`)}
                     </span>
                   </div>
 
@@ -863,8 +948,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         1. {t('stepSubmitted')}
                       </div>
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 mx-auto my-1" />
-                      <div className="text-[11px] text-slate-800 font-bold truncate">
-                        {activeDossier.citizenName}
+                      <div className="text-[11px] text-emerald-800 font-bold truncate">
+                        {tr('Verified Citizen 🔒', 'सत्यापित नागरिक 🔒', 'ధృవీకరించబడిన పౌరుడు 🔒')}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
                         {activeDossier.submittedAt}
@@ -895,7 +980,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         {activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        Field Ground Survey
+                        {tr('Field Ground Survey', 'धरातलीय सर्वेक्षण', 'క్షేత్రస్థాయి సర్వే')}
                       </div>
                     </div>
 
@@ -923,7 +1008,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         {activeDossier.assignedEngineer || 'P. Venkat & Crew'}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        Civil Work Force
+                        {tr('Civil Work Force', 'निर्माण कार्य दल', 'సివిల్ పనుల బృందం')}
                       </div>
                     </div>
 
@@ -948,10 +1033,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         }`}
                       />
                       <div className="text-[11px] text-slate-800 font-extrabold truncate">
-                        {activeDossier.status === 'RESOLVED' ? 'Verified & Closed' : 'Audit Pending'}
+                        {activeDossier.status === 'RESOLVED' ? tr('Verified & Closed', 'सत्यापित एवं समाप्त', 'ధృవీకరించబడింది & ముగిసింది') : tr('Audit Pending', 'ऑडिट लंबित', 'ఆడిట్ పెండింగ్‌లో ఉంది')}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        TDS & Soil Buffer
+                        {tr('TDS & Soil Buffer', 'टीडीएस एवं मृदा सुरक्षा', 'TDS & మట్టి రక్షణ')}
                       </div>
                     </div>
                   </div>
@@ -962,10 +1047,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold uppercase tracking-wider text-[#03045E] flex items-center gap-1.5">
                       <Layers className="w-4 h-4 text-[#0077B6]" />
-                      <span>{language === 'hi' ? 'भू-सत्यापन एवं समाधान साक्ष्य फ़ोटो' : 'Ground Truth & Photographic Evidence'}</span>
+                      <span>{tr('Ground Truth & Photographic Evidence', 'धरातलीय साक्ष्य एवं छायाचित्र प्रमाण', 'క్షేత్రస్థాయి వాస్తవాలు & ఫోటో ఆధారాలు')}</span>
                     </span>
                     <span className="text-xs text-slate-500 font-medium">
-                      Official Geotagged Records
+                      {tr('Official Geotagged Records', 'आधिकारिक जियोटैग्ड रिकॉर्ड', 'అధికారిక జియోట్యాగ్ రికార్డులు')}
                     </span>
                   </div>
 
@@ -975,7 +1060,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-extrabold text-[#03045E] flex items-center gap-1.5">
-                            <span>📸 Citizen Lodged Proof</span>
+                            <span>{tr('📸 Citizen Lodged Proof', '📸 नागरिक द्वारा प्रस्तुत साक्ष्य', '📸 పౌరుడు సమర్పించిన ఆధారం')}</span>
                           </span>
                           <span className="text-[10px] font-mono text-slate-600 bg-white px-2.5 py-0.5 rounded border border-slate-200">
                             {activeDossier.submittedAt}
@@ -987,7 +1072,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             if (activeDossier.photoUrl) {
                               setPreviewPhoto({
                                 url: activeDossier.photoUrl,
-                                title: `Citizen Evidence: ${activeDossier.locationLandmark}`,
+                                title: `${tr('Citizen Evidence', 'नागरिक साक्ष्य', 'పౌర ఆధారం')}: ${activeDossier.locationLandmark}`,
                                 subtitle: activeDossier.shortDescription
                               });
                             }
@@ -1001,12 +1086,20 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           />
                           <div className="absolute inset-0 bg-[#03045E]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
                             <Maximize2 className="w-4 h-4" />
-                            <span>Click to Zoom</span>
+                            <span>{tr('Click to Zoom', 'ज़ूम करने के लिए क्लिक करें', 'జూమ్ చేయడానికి క్లిక్ చేయండి')}</span>
                           </div>
                         </div>
 
-                        <div className="bg-white p-3.5 rounded-xl border border-sky-100 text-xs text-slate-700 space-y-1.5">
-                          <div className="font-bold text-[#03045E] text-sm">Reported Problem:</div>
+                        <div className="bg-white p-3.5 rounded-xl border border-sky-100 text-xs text-slate-700 space-y-2">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="font-bold text-[#03045E] text-sm">{tr('Reported Problem:', 'दर्ज समस्या:', 'నివేదించబడిన సమస్య:')}</span>
+                            {activeDossier.wasteType && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
+                                <span>⚠️</span>
+                                <span>{activeDossier.wasteType}</span>
+                              </span>
+                            )}
+                          </div>
                           <p className="text-slate-600 leading-relaxed text-xs">
                             {activeDossier.shortDescription}
                           </p>
@@ -1014,8 +1107,11 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       </div>
 
                       <div className="text-xs text-slate-500 pt-2 border-t border-sky-100/60 flex items-center justify-between">
-                        <span>Reporter: <strong>{activeDossier.citizenName}</strong></span>
-                        <span className="font-mono text-slate-700 font-semibold">{activeDossier.citizenPhone}</span>
+                        <span className="flex items-center gap-1 text-emerald-800 font-semibold">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{tr('Reporter:', 'शिकायतकर्ता:', 'ఫిర్యాదుదారు:')} <strong>{tr('Citizen Identity Protected 🔒', 'नागरिक पहचान सुरक्षित 🔒', 'పౌరుడి గుర్తింపు రక్షించబడింది 🔒')}</strong></span>
+                        </span>
+                        <span className="font-mono text-slate-500 text-[11px]">{tr('Confidential Grievance', 'गोपनीय शिकायत', 'రహస్య ఫిర్యాదు')}</span>
                       </div>
                     </div>
 
@@ -1026,10 +1122,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <div className="flex items-center justify-between text-emerald-900">
                             <span className="text-xs font-extrabold flex items-center gap-1.5">
                               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                              <span>📸 Restoration Proof (After Action)</span>
+                              <span>{tr('📸 Restoration Proof (After Action)', '📸 स्थल बहाली साक्ष्य (कार्य पश्चात)', '📸 పునరుద్ధరణ ఆధారం (పని పూర్తయిన తర్వాత)')}</span>
                             </span>
                             <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 border border-emerald-300">
-                              Verified Closure
+                              {tr('Verified Closure', 'सत्यापित समाधान', 'ధృవీకరించిన పరిష్కారం')}
                             </span>
                           </div>
 
@@ -1039,8 +1135,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 activeDossier.inspectionReport?.postWorkVerification?.verificationPhotoUrl ||
                                 activeDossier.inspectionReport?.sitePhotoUrl ||
                                 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-                              title: `Work Restored: ${activeDossier.locationLandmark}`,
-                              subtitle: `Verified by ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'Water Inspector'}`
+                              title: `${tr('Work Restored', 'स्थल पुनर्स्थापित', 'పునరుద్ధరించబడిన పని')}: ${activeDossier.locationLandmark}`,
+                              subtitle: `${tr('Verified by', 'सत्यापनकर्ता:', 'ధృవీకరించిన వారు:')} ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'Water Inspector'}`
                             })}
                             className="relative group rounded-xl overflow-hidden cursor-pointer bg-emerald-950 border border-emerald-300 aspect-16/10"
                           >
@@ -1056,13 +1152,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             />
                             <div className="absolute inset-0 bg-[#03045E]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
                               <Maximize2 className="w-4 h-4" />
-                              <span>Click to Zoom</span>
+                              <span>{tr('Click to Zoom', 'ज़ूम करने के लिए क्लिक करें', 'జూమ్ చేయడానికి క్లిక్ చేయండి')}</span>
                             </div>
                           </div>
 
                           <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-2 text-xs text-emerald-950">
                             <div className="flex items-center justify-between text-xs">
-                              <span>Inspector: <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}</strong></span>
+                              <span>{tr('Inspector:', 'निरीक्षक:', 'ఇన్స్పెక్టర్:')} <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}</strong></span>
                               <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
                                 TDS: {activeDossier.inspectionReport?.tdsReadingPpm || 210} ppm
                               </span>
@@ -1070,14 +1166,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             <p className="text-xs text-emerald-900 leading-relaxed">
                               {activeDossier.inspectionReport?.postWorkVerification?.remarks ||
                                 activeDossier.workExecution?.workSummary ||
-                                'Water body fully desilted, contaminated inflow isolated. Soil buffer created, water testing normal. Case officially closed.'}
+                                tr('Water body fully desilted, contaminated inflow isolated. Soil buffer created, water testing normal. Case officially closed.', 'जल निकाय से गाद पूरी तरह हटाई गई, दूषित प्रवाह अलग किया गया। मृदा सुरक्षा बांध निर्मित, जल परीक्षण सामान्य। मामला आधिकारिक तौर पर बंद।', 'జలాశయం నుండి పూడిక పూర్తిగా తీసివేయబడింది, కాలుష్య ప్రవాహం నిరోధించబడింది. నీటి నాణ్యత సాధారణం. కేసు అధికారికంగా మూసివేయబడింది.')}
                             </p>
                           </div>
                         </div>
 
                         <div className="text-xs text-emerald-800 pt-2 border-t border-emerald-200 flex items-center justify-between font-medium">
-                          <span>Status: <strong>Clean Potable Standard</strong></span>
-                          <span>✓ Verified by Nodal Cell</span>
+                          <span>{tr('Status:', 'स्थिति:', 'స్థితి:')} <strong>{tr('Clean Potable Standard', 'स्वच्छ पेयजल मानक', 'స్వచ్ఛమైన తాగునీటి ప్రమాణం')}</strong></span>
+                          <span>{tr('✓ Verified by Nodal Cell', '✓ नोडल सेल द्वारा सत्यापित', '✓ నోడల్ విభాగం ద్వారా ధృవీకరించబడింది')}</span>
                         </div>
                       </div>
                     ) : (
@@ -1087,10 +1183,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <div className="flex items-center justify-between text-amber-950">
                             <span className="text-xs font-extrabold flex items-center gap-1.5">
                               <Wrench className="w-4 h-4 text-amber-600" />
-                              <span>🔍 Field Inspection & Action Status</span>
+                              <span>{tr('🔍 Field Inspection & Action Status', '🔍 फील्ड निरीक्षण एवं कार्रवाई स्थिति', '🔍 ఫీల్డ్ తనిఖీ & చర్య స్థితి')}</span>
                             </span>
                             <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
-                              Active in Field
+                              {tr('Active in Field', 'मैदान में सक्रिय', 'ఫీల్డ్‌లో క్రియాశీలం')}
                             </span>
                           </div>
 
@@ -1100,8 +1196,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               const photo = activeDossier.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80';
                               setPreviewPhoto({
                                 url: photo,
-                                title: `Field Survey: ${activeDossier.locationLandmark}`,
-                                subtitle: `Inspector: ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}`
+                                title: `${tr('Field Survey', 'फील्ड सर्वेक्षण', 'ఫీల్డ్ సర్వే')}: ${activeDossier.locationLandmark}`,
+                                subtitle: `${tr('Inspector:', 'निरीक्षक:', 'ఇన్స్పెక్టర్:')} ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}`
                               });
                             }}
                             className="relative group rounded-xl overflow-hidden cursor-pointer bg-slate-900 border border-amber-200 aspect-16/10"
@@ -1113,30 +1209,30 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             />
                             <div className="absolute inset-0 bg-[#03045E]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
                               <Maximize2 className="w-4 h-4" />
-                              <span>Click to Zoom</span>
+                              <span>{tr('Click to Zoom', 'ज़ूम करने के लिए क्लिक करें', 'జూమ్ చేయడానికి క్లిక్ చేయండి')}</span>
                             </div>
                           </div>
 
                           {/* Ground Truth Findings Grid */}
                           <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-2 text-xs text-amber-950">
                             <div className="flex items-center justify-between text-xs">
-                              <span>Inspector: <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}</strong></span>
+                              <span>{tr('Inspector:', 'निरीक्षक:', 'ఇన్స్పెక్టర్:')} <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}</strong></span>
                               <span className="font-extrabold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
                                 TDS: {activeDossier.inspectionReport?.tdsReadingPpm || 640} ppm
                               </span>
                             </div>
                             <div className="text-xs text-slate-700">
-                              <strong>Waste Source:</strong> {activeDossier.inspectionReport?.wasteLevel || 'Severe'} ({activeDossier.inspectionReport?.wasteType || 'Agricultural Runoff & Silt Encroachment'})
+                              <strong>{tr('Waste Source:', 'अपशिष्ट स्रोत:', 'వ్యర్థాల మూలం:')}</strong> {activeDossier.inspectionReport?.wasteLevel || 'Severe'} ({activeDossier.inspectionReport?.wasteType || 'Agricultural Runoff & Silt Encroachment'})
                             </div>
                             <p className="text-xs text-amber-900 leading-relaxed bg-amber-50/80 p-2 rounded-lg border border-amber-200/60">
-                              {activeDossier.inspectionReport?.validationRemarks || 'Site surveyed by field officer. Heavy silt and debris blocking natural percolation. Action crew dispatched with excavation machinery.'}
+                              {activeDossier.inspectionReport?.validationRemarks || tr('Site surveyed by field officer. Heavy silt and debris blocking natural percolation. Action crew dispatched with excavation machinery.', 'फील्ड अधिकारी द्वारा स्थल का निरीक्षण किया गया। भारी गाद व कचरा प्राकृतिक रिसाव को रोक रहा है। मशीनरी के साथ कार्य दल भेजा गया।', 'క్షేత్రస్థాయి అధికారి పరిశీలించారు. పూడిక మరియు వ్యర్థాలు నీటి ఇంకుడును అడ్డుకుంటున్నాయి. యంత్రాలతో సహాయక బృందం చేరుకుంది.')}
                             </p>
                           </div>
                         </div>
 
                         <div className="text-xs text-amber-800 pt-2 border-t border-amber-200 flex items-center justify-between font-medium">
-                          <span>Action Crew: <strong>{activeDossier.assignedEngineer || 'P. Venkat & Team'}</strong></span>
-                          <span>Machinery On-Site</span>
+                          <span>{tr('Action Crew:', 'कार्य दल:', 'పనుల బృందం:')} <strong>{activeDossier.assignedEngineer || 'P. Venkat & Team'}</strong></span>
+                          <span>{tr('Machinery On-Site', 'मशीनरी मौके पर', 'యంత్రాలు ఆన్-సైట్')}</span>
                         </div>
                       </div>
                     )}
@@ -1150,7 +1246,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       SE
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Assigned Nodal Cell</span>
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">{tr('Assigned Nodal Cell', 'आवंटित नोडल सेल', 'కేటాయించిన నోడల్ విభాగం')}</span>
                       <span className="font-extrabold text-[#03045E] text-sm">{activeDossier.assignedNodalOfficer}</span>
                     </div>
                   </div>
@@ -1161,20 +1257,20 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      <span>{language === 'hi' ? 'शिकायतों की सूची' : 'Back to Grid'}</span>
+                      <span>{tr('Back to Grid', 'शिकायतों की सूची', 'గ్రిడ్‌కు తిరిగి వెళ్లండి')}</span>
                     </button>
                     <button
                       onClick={onOpenDirectoryModal}
                       className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold transition-colors cursor-pointer shadow-2xs"
                     >
-                      Official Directory
+                      {tr('Official Directory', 'अधिकारी डायरेक्टरी', 'అధికారుల డైరెక్టరీ')}
                     </button>
                     <button
                       onClick={() => handleScrollToMap(activeDossier)}
                       className="px-5 py-2.5 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer hover:scale-102 active:scale-98"
                     >
                       <MapPin className="w-4 h-4 text-[#CAF0F8]" />
-                      <span>Pin on Map 📍</span>
+                      <span>{tr('Pin on Map 📍', 'मानचित्र पर देखें 📍', 'మ్యాప్‌లో గుర్తించండి 📍')}</span>
                     </button>
                   </div>
                 </div>
@@ -1191,25 +1287,36 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 px-1">
           <div>
             <h3 className="font-extrabold text-[#03045E] text-lg sm:text-xl flex items-center gap-2">
-              <span>🇮🇳 {language === 'hi' ? 'राष्ट्रीय जल ग्रिड एवं शिकायत मानचित्र' : 'National Water Grid & Grievance Map'}</span>
+              <span>🇮🇳 {tr('National Water Grid & Grievance Map', 'राष्ट्रीय जल ग्रिड एवं शिकायत मानचित्र', 'జాతీయ జల గ్రిడ్ & ఫిర్యాదుల మ్యాప్')}</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              {language === 'hi'
-                ? 'राज्य या ज़िला चुनें (सीमा रेखा हाइलाइट होगी, स्वतंत्र ज़ूम-इन/आउट)। "आपकी शिकायतें" केवल पंजीकृत शिकायतकर्ता को दिखाई देगी।'
-                : 'Select State or District (boundary line highlighted with smooth zoom-in/out). "Your Complaints" is automatically tracked for verified mobile users.'}
+              {tr(
+                'Select State or District (boundary line highlighted with smooth zoom-in/out). "Your Complaints" is automatically tracked for verified mobile users.',
+                'राज्य या जिला चुनें (सीमा रेखा हाइलाइट होगी, स्मूथ ज़ूम-इन/आउट)। "आपकी शिकायतें" सत्यापित मोबाइल उपयोगकर्ताओं के लिए स्वतः ट्रैक की जाती हैं।',
+                'రాష్ట్రం లేదా జిల్లాను ఎంచుకోండి (సరిహద్దు రేఖ హైలైట్ చేయబడుతుంది, జూమ్ చేయవచ్చు). "మీ ఫిర్యాదులు" ధృవీకరించబడిన మొబైల్ వినియోగదారుల కోసం స్వయంచాలకంగా ట్రాక్ చేయబడతాయి.'
+              )}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              <span>⚠️ {complaints.filter(c => c.status !== 'RESOLVED').length} Active Grievances</span>
-            </span>
+            {isLoggedIn ? (
+              <>
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>⚠️ {userComplaints.filter(c => c.status !== 'RESOLVED').length} {tr('Your Active Grievances', 'आपकी सक्रिय शिकायतें', 'మీ క్రియాశీల ఫిర్యాదులు')}</span>
+                </span>
 
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>✓ {complaints.filter(c => c.status === 'RESOLVED').length} Resolved & Verified</span>
-            </span>
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>✓ {userComplaints.filter(c => c.status === 'RESOLVED').length} {tr('Resolved & Verified', 'निराकृत एवं सत्यापित', 'పరిష్కరించబడినవి & ధృవీకరించబడినవి')}</span>
+                </span>
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                <Lock className="w-3.5 h-3.5 text-amber-600" />
+                <span>{tr('Login to View Your Map Markers', 'अपने मानचित्र मार्कर देखने के लिए लॉगिन करें', 'మీ మ్యాప్ మార్కర్లను చూడటానికి లాగిన్ చేయండి')}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -1277,7 +1384,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                 onClick={() => setPreviewPhoto(null)}
                 className="px-4 py-2 bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold rounded-xl cursor-pointer transition-colors"
               >
-                Close Preview
+                {tr('Close Preview', 'पूर्वावलोकन बंद करें', 'ప్రివ్యూ మూసివేయి')}
               </button>
             </div>
           </div>
