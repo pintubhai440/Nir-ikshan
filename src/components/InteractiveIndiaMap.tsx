@@ -1006,40 +1006,28 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     setSearchQuery('');
   };
 
-  // Sync tracked complaint from props
+  // Sync tracked complaint from props ONLY when explicitly changed by user action
+  const prevTrackedIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (trackedComplaintId && complaints && complaints.length > 0) {
+    // Prevent auto-opening on initial mount or page refresh
+    if (!prevTrackedIdRef.current) {
+      prevTrackedIdRef.current = trackedComplaintId;
+      return;
+    }
+    if (trackedComplaintId && trackedComplaintId !== prevTrackedIdRef.current && complaints && complaints.length > 0) {
+      prevTrackedIdRef.current = trackedComplaintId;
       const found = complaints.find((c) => c.id === trackedComplaintId);
       if (found) {
         setFlashStation(null);
         setFlashComplaint(found);
         setActiveFilterTab('complaints');
         const map = mapInstanceRef.current;
-        if (map) {
-          map.flyTo([found.coordinates.lat, found.coordinates.lng], 10, { animate: true, duration: 1.2 });
+        if (map && found.coordinates) {
+          map.flyTo([found.coordinates.lat, found.coordinates.lng], 10, { animate: true, duration: 1.0 });
         }
       }
     }
   }, [trackedComplaintId, complaints]);
-
-  // Sync tracked mobile from props
-  useEffect(() => {
-    if (trackedMobile && complaints && complaints.length > 0) {
-      const cleanMobile = trackedMobile.replace(/\D/g, '');
-      if (cleanMobile.length >= 4) {
-        const matched = complaints.find((c) => c.citizenPhone.replace(/\D/g, '').includes(cleanMobile));
-        if (matched) {
-          setFlashStation(null);
-          setFlashComplaint(matched);
-          setActiveFilterTab('complaints');
-          const map = mapInstanceRef.current;
-          if (map) {
-            map.flyTo([matched.coordinates.lat, matched.coordinates.lng], 10, { animate: true, duration: 1.2 });
-          }
-        }
-      }
-    }
-  }, [trackedMobile, complaints]);
 
   // Fetch real-time live weather & catchment precipitation for exact station coordinates
   const fetchLiveCatchmentTelemetry = useCallback(async (lat: number, lng: number) => {

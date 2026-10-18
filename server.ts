@@ -12,7 +12,7 @@ import bhuvanHandler from './api/bhuvan.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = Number(process.env.PORT) || Number(process.env.DEFAULT_APP_PORT) || 3000;
+const PORT = 3000;
 
 async function startServer() {
   const app = express();

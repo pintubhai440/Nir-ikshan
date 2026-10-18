@@ -30,13 +30,21 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { LodgeComplaintModal } from './components/LodgeComplaintModal';
 import { OfficerDirectoryModal } from './components/OfficerDirectoryModal';
 import { AuthModal } from './components/AuthModal';
+import { SupabaseSyncModal } from './components/SupabaseSyncModal';
+import { 
+  isSupabaseConfigured, 
+  fetchComplaintsFromSupabase, 
+  saveComplaintToSupabase, 
+  subscribeToComplaints 
+} from './lib/supabase';
 import { useLanguage } from './context/LanguageContext';
-import { Droplets, Phone, AlertTriangle, ShieldCheck, Globe, Menu, Layers } from 'lucide-react';
+import { Droplets, Phone, AlertTriangle, ShieldCheck, Globe, Menu, Layers, Database } from 'lucide-react';
 
 export default function App() {
   const { t, language } = useLanguage();
   // Default to overview landing page (national map and executive command, not user data)
   const [currentRole, setCurrentRole] = useState<UserRoleType>('overview');
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
 
   // Load persisted state or initial seed data
   const [waterBodies, setWaterBodies] = useState<WaterBody[]>(() => {
@@ -48,17 +56,27 @@ export default function App() {
     }
   });
 
-  // Permanent complaints storage: Saved forever in localStorage, cannot be deleted by users
+  // Clean complaints state: Defaults to empty [] for fresh testing with Supabase/user submissions
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
+      // One-time purge of old hardcoded mock complaints
+      const isCleared = localStorage.getItem('nir_mock_purged_v1') === 'true';
+      if (!isCleared) {
+        localStorage.setItem('nir_mock_purged_v1', 'true');
+        localStorage.setItem('nir_complaints', JSON.stringify([]));
+        return [];
+      }
       const saved = localStorage.getItem('nir_complaints');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          // Exclude any hardcoded sample complaints
+          return parsed.filter((c) => !SAMPLE_CITIZEN_COMPLAINTS.some((sc) => sc.id === c.id));
+        }
       }
-      return SAMPLE_CITIZEN_COMPLAINTS;
+      return [];
     } catch {
-      return SAMPLE_CITIZEN_COMPLAINTS;
+      return [];
     }
   });
 
@@ -113,6 +131,46 @@ export default function App() {
     localStorage.setItem('nir_complaints', JSON.stringify(complaints));
   }, [complaints]);
 
+  // Realtime Supabase Database Synchronization across all connected devices
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    if (isSupabaseConfigured()) {
+      fetchComplaintsFromSupabase().then((remoteComplaints) => {
+        if (remoteComplaints && remoteComplaints.length > 0) {
+          setComplaints(remoteComplaints);
+          try {
+            localStorage.setItem('nir_complaints', JSON.stringify(remoteComplaints));
+          } catch (e) {
+            console.error('Failed to sync complaints to localStorage cache', e);
+          }
+        }
+      });
+
+      unsubscribe = subscribeToComplaints(
+        (inserted) => {
+          setComplaints((prev) => {
+            if (prev.some((c) => c.id === inserted.id)) return prev;
+            const updated = [inserted, ...prev];
+            localStorage.setItem('nir_complaints', JSON.stringify(updated));
+            return updated;
+          });
+        },
+        (updated) => {
+          setComplaints((prev) => {
+            const next = prev.map((c) => (c.id === updated.id ? updated : c));
+            localStorage.setItem('nir_complaints', JSON.stringify(next));
+            return next;
+          });
+        }
+      );
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   // Role selection logic with auth gate
   const handleSelectRole = (role: UserRoleType) => {
     // If not logged in and choosing any protected dashboard, prompt OTP login modal
@@ -146,7 +204,17 @@ export default function App() {
     setCurrentRole('overview');
   };
 
-  // --- Complaint & Workflow Handlers ---
+  // Clear all complaints for clean testing
+  const handleClearAllComplaints = () => {
+    setComplaints([]);
+    try {
+      localStorage.setItem('nir_complaints', JSON.stringify([]));
+    } catch (err) {
+      console.error('Failed to clear complaints in localStorage', err);
+    }
+  };
+
+  // --- Complaint & Workflow Handlers (Synced to Supabase Cloud) ---
 
   // 1. Citizen submits complaint (Permanently persisted so data is never lost)
   const handleComplaintSubmitted = (newComplaint: CitizenComplaint) => {
@@ -159,6 +227,9 @@ export default function App() {
       }
       return updated;
     });
+
+    // Save permanently in Supabase PostgreSQL
+    saveComplaintToSupabase(newComplaint);
   };
 
   // 2. Nodal Officer assigns Inspector
@@ -167,33 +238,47 @@ export default function App() {
     inspectorName: string,
     inspectorPhone: string
   ) => {
+    let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
-      prev.map((c) =>
-        c.id === complaintId
-          ? {
-              ...c,
-              status: 'INSPECTOR_ASSIGNED',
-              assignedInspector: inspectorName,
-              assignedInspectorPhone: inspectorPhone,
-            }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id === complaintId) {
+          const updated: CitizenComplaint = {
+            ...c,
+            status: 'INSPECTOR_ASSIGNED',
+            assignedInspector: inspectorName,
+            assignedInspectorPhone: inspectorPhone,
+          };
+          targetComplaint = updated;
+          return updated;
+        }
+        return c;
+      })
     );
+    if (targetComplaint) {
+      saveComplaintToSupabase(targetComplaint);
+    }
   };
 
   // 3. Inspector conducts inspection & logs TDS/Waste source
   const handleSubmitInspectionReport = (complaintId: string, report: InspectorReport) => {
+    let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
-      prev.map((c) =>
-        c.id === complaintId
-          ? {
-              ...c,
-              status: 'INSPECTION_COMPLETED',
-              inspectionReport: report,
-            }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id === complaintId) {
+          const updated: CitizenComplaint = {
+            ...c,
+            status: 'INSPECTION_COMPLETED',
+            inspectionReport: report,
+          };
+          targetComplaint = updated;
+          return updated;
+        }
+        return c;
+      })
     );
+    if (targetComplaint) {
+      saveComplaintToSupabase(targetComplaint);
+    }
   };
 
   // 4. Nodal Officer deploys Action Engineer
@@ -203,6 +288,7 @@ export default function App() {
     engineerPhone: string,
     deadline: string
   ) => {
+    let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
         if (c.id !== complaintId) return c;
@@ -215,23 +301,29 @@ export default function App() {
           status: 'PENDING_ACCEPTANCE',
           beforePhotoUrl: c.photoUrl,
         };
-        return {
+        const updated: CitizenComplaint = {
           ...c,
           status: 'WORKER_IN_PROGRESS',
           assignedEngineer: engineerName,
           assignedEngineerPhone: engineerPhone,
           workExecution: workExec,
         };
+        targetComplaint = updated;
+        return updated;
       })
     );
+    if (targetComplaint) {
+      saveComplaintToSupabase(targetComplaint);
+    }
   };
 
   // 5. Engineer accepts task with Before Photo
   const handleAcceptTask = (complaintId: string, beforePhotoUrl: string) => {
+    let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
         if (c.id !== complaintId || !c.workExecution) return c;
-        return {
+        const updated: CitizenComplaint = {
           ...c,
           status: 'WORKER_IN_PROGRESS',
           workExecution: {
@@ -241,16 +333,22 @@ export default function App() {
             startedAt: new Date().toISOString().slice(0, 10),
           },
         };
+        targetComplaint = updated;
+        return updated;
       })
     );
+    if (targetComplaint) {
+      saveComplaintToSupabase(targetComplaint);
+    }
   };
 
   // 6. Engineer blocks task with reason
   const handleBlockTask = (complaintId: string, reason: string) => {
+    let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
         if (c.id !== complaintId || !c.workExecution) return c;
-        return {
+        const updated: CitizenComplaint = {
           ...c,
           workExecution: {
             ...c.workExecution,
@@ -258,16 +356,22 @@ export default function App() {
             blockReason: reason,
           },
         };
+        targetComplaint = updated;
+        return updated;
       })
     );
+    if (targetComplaint) {
+      saveComplaintToSupabase(targetComplaint);
+    }
   };
 
   // 7. Engineer completes work with After Photo
   const handleCompleteTask = (complaintId: string, afterPhotoUrl: string, workSummary: string) => {
+    let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
         if (c.id !== complaintId || !c.workExecution) return c;
-        return {
+        const updated: CitizenComplaint = {
           ...c,
           status: 'VERIFICATION_PENDING',
           workExecution: {
@@ -278,8 +382,13 @@ export default function App() {
             completedAt: new Date().toISOString().slice(0, 10),
           },
         };
+        targetComplaint = updated;
+        return updated;
       })
     );
+    if (targetComplaint) {
+      saveComplaintToSupabase(targetComplaint);
+    }
   };
 
   // 8. Inspector performs post-work site verification
@@ -289,6 +398,7 @@ export default function App() {
     photoUrl: string,
     remarks: string
   ) => {
+    let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
         if (c.id !== complaintId) return c;
@@ -305,13 +415,18 @@ export default function App() {
             }
           : undefined;
 
-        return {
+        const updated: CitizenComplaint = {
           ...c,
           status: isSatisfactory ? 'RESOLVED' : 'WORKER_IN_PROGRESS',
           inspectionReport: updatedReport,
         };
+        targetComplaint = updated;
+        return updated;
       })
     );
+    if (targetComplaint) {
+      saveComplaintToSupabase(targetComplaint);
+    }
   };
 
   return (
@@ -324,6 +439,7 @@ export default function App() {
         currentUser={currentUser}
         onOpenLoginModal={() => setIsOtpModalOpen(true)}
         onOpenDrawer={() => setIsDrawerOpen(true)}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
 
       {/* Main Dashboard Body Container */}
@@ -384,6 +500,7 @@ export default function App() {
             onOpenLoginModal={() => setIsOtpModalOpen(true)}
             onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
             onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
+            onClearComplaints={handleClearAllComplaints}
           />
         )}
 
@@ -529,6 +646,7 @@ export default function App() {
         onSelectNodalDistrict={setSelectedNodalDistrict}
         isLoggedIn={isLoggedIn}
         onOpenLogin={() => setIsOtpModalOpen(true)}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
 
       {/* Citizen Mobile OTP Login Modal (Image 3 -> Login Page Flow) */}
@@ -544,6 +662,20 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         targetRole={pendingAuthRole}
         onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Supabase Cloud Database Status & Configuration Guide Modal */}
+      <SupabaseSyncModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        complaintCount={complaints.length}
+        onRefresh={() => {
+          if (isSupabaseConfigured()) {
+            fetchComplaintsFromSupabase().then((data) => {
+              if (data && data.length > 0) setComplaints(data);
+            });
+          }
+        }}
       />
     </div>
   );
