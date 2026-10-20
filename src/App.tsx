@@ -56,19 +56,24 @@ export default function App() {
     }
   });
 
-  // Complaints state: Clean 2 real complaints from database (CMP-AP-2026-403 & CMP-AP-2026-788)
+  // Complaints state: Clean complaints from database, strictly deduplicated by ID
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
       const saved = localStorage.getItem('nir_complaints');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Filter out any stale mock complaints (e.g. CMP-AP-2026-101 .. 109)
-          const valid = parsed.filter(
-            (c: CitizenComplaint) => !c.id.startsWith('CMP-AP-2026-10')
-          );
-          if (valid.length > 0) {
-            return valid;
+          // Filter out stale mock prefix if needed and deduplicate by ID
+          const seen = new Set<string>();
+          const unique: CitizenComplaint[] = [];
+          for (const c of parsed) {
+            if (c?.id && !seen.has(c.id) && !c.id.startsWith('CMP-AP-2026-10')) {
+              seen.add(c.id);
+              unique.push(c);
+            }
+          }
+          if (unique.length > 0) {
+            return unique;
           }
         }
       }
@@ -136,9 +141,17 @@ export default function App() {
     if (isSupabaseConfigured()) {
       fetchComplaintsFromSupabase().then((remoteComplaints) => {
         if (remoteComplaints && remoteComplaints.length > 0) {
-          setComplaints(remoteComplaints);
+          // Strictly deduplicate remote complaints by ID
+          const uniqueRemoteMap = new Map<string, CitizenComplaint>();
+          for (const item of remoteComplaints) {
+            if (item && item.id && !uniqueRemoteMap.has(item.id)) {
+              uniqueRemoteMap.set(item.id, item);
+            }
+          }
+          const deduplicated = Array.from(uniqueRemoteMap.values());
+          setComplaints(deduplicated);
           try {
-            localStorage.setItem('nir_complaints', JSON.stringify(remoteComplaints));
+            localStorage.setItem('nir_complaints', JSON.stringify(deduplicated));
           } catch (e) {
             console.error('Failed to sync complaints to localStorage cache', e);
           }
@@ -205,9 +218,32 @@ export default function App() {
 
   // --- Complaint & Workflow Handlers (Synced to Supabase Cloud) ---
 
-  // 1. Citizen submits complaint (Permanently persisted so data is never lost)
+  // 1. Citizen submits complaint (Permanently persisted without duplicates)
   const handleComplaintSubmitted = (newComplaint: CitizenComplaint) => {
+    // 1. Check ID collision
+    if (complaints.some((c) => c.id === newComplaint.id)) {
+      console.warn('[Anti-Duplicate] Skipped complaint with existing ID:', newComplaint.id);
+      return;
+    }
+
+    // 2. Check identical duplicate submission (same phone, landmark/desc within 2 mins)
+    const isRapidDuplicate = complaints.some((c) => {
+      const sameUser = c.citizenPhone === newComplaint.citizenPhone;
+      const sameDesc = c.shortDescription?.trim().toLowerCase() === newComplaint.shortDescription?.trim().toLowerCase();
+      const sameLandmark = c.locationLandmark?.trim().toLowerCase() === newComplaint.locationLandmark?.trim().toLowerCase();
+      const timeDiff = Math.abs(new Date(c.submittedAt).getTime() - new Date(newComplaint.submittedAt).getTime());
+      return sameUser && (sameDesc || sameLandmark) && (isNaN(timeDiff) || timeDiff < 120000);
+    });
+
+    if (isRapidDuplicate) {
+      console.warn('[Anti-Duplicate] Blocked duplicate submission with identical content');
+      return;
+    }
+
     setComplaints((prev) => {
+      if (prev.some((c) => c.id === newComplaint.id)) {
+        return prev;
+      }
       const updated = [newComplaint, ...prev];
       try {
         localStorage.setItem('nir_complaints', JSON.stringify(updated));
@@ -217,7 +253,7 @@ export default function App() {
       return updated;
     });
 
-    // Save permanently in Supabase PostgreSQL
+    // Save permanently in Supabase PostgreSQL (only non-duplicate records)
     saveComplaintToSupabase(newComplaint);
   };
 
@@ -499,6 +535,7 @@ export default function App() {
             officers={officers}
             onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
             onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
+            onOpenDrawer={() => setIsDrawerOpen(true)}
           />
         )}
 

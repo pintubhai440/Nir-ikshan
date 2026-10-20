@@ -118,6 +118,13 @@ export function mapComplaintToRow(c: CitizenComplaint) {
 /**
  * Fetch all complaints from Supabase
  */
+// In-memory registry to prevent duplicate concurrent saves or redundant identical payloads to Supabase
+const inFlightSaves = new Set<string>();
+const lastSavedSignature = new Map<string, string>();
+
+/**
+ * Fetch all complaints from Supabase with strict ID deduplication
+ */
 export async function fetchComplaintsFromSupabase(): Promise<CitizenComplaint[] | null> {
   if (!supabase) return null;
 
@@ -133,7 +140,14 @@ export async function fetchComplaintsFromSupabase(): Promise<CitizenComplaint[] 
     }
 
     if (Array.isArray(data)) {
-      return data.map(mapRowToComplaint);
+      // Deduplicate rows by ID — ensures zero duplicates in application state
+      const uniqueMap = new Map<string, CitizenComplaint>();
+      for (const row of data) {
+        if (row && row.id && !uniqueMap.has(row.id)) {
+          uniqueMap.set(row.id, mapRowToComplaint(row));
+        }
+      }
+      return Array.from(uniqueMap.values());
     }
     return [];
   } catch (err) {
@@ -143,23 +157,47 @@ export async function fetchComplaintsFromSupabase(): Promise<CitizenComplaint[] 
 }
 
 /**
- * Upsert / Save complaint to Supabase
+ * Upsert / Save complaint to Supabase with strict anti-duplicate protections:
+ * 1. Checks in-flight requests to prevent double-click / rapid parallel writes
+ * 2. Checks data signature to skip redundant identical network writes
+ * 3. Enforces PostgreSQL upsert ON CONFLICT (id) DO UPDATE to prevent duplicate rows
  */
 export async function saveComplaintToSupabase(complaint: CitizenComplaint): Promise<boolean> {
-  if (!supabase) return false;
+  if (!supabase || !complaint?.id) return false;
+
+  const row = mapComplaintToRow(complaint);
+  const rowSignature = JSON.stringify(row);
+
+  // Skip redundant save if exact same data was already successfully synced
+  if (lastSavedSignature.get(complaint.id) === rowSignature) {
+    return true;
+  }
+
+  // Prevent parallel in-flight duplicate calls for the same ID
+  if (inFlightSaves.has(complaint.id)) {
+    console.warn(`[Supabase Anti-Duplicate] Save already in-flight for complaint ID: ${complaint.id}. Skipping duplicate.`);
+    return true;
+  }
+
+  inFlightSaves.add(complaint.id);
 
   try {
-    const row = mapComplaintToRow(complaint);
     const { error } = await supabase
       .from('citizen_complaints')
       .upsert(row, { onConflict: 'id' });
+
+    inFlightSaves.delete(complaint.id);
 
     if (error) {
       console.error('[Supabase] Error saving complaint:', error.message);
       return false;
     }
+
+    // Cache the successfully saved signature
+    lastSavedSignature.set(complaint.id, rowSignature);
     return true;
   } catch (err) {
+    inFlightSaves.delete(complaint.id);
     console.error('[Supabase] Network exception saving complaint:', err);
     return false;
   }

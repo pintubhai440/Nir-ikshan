@@ -4,6 +4,7 @@ import { InteractiveIndiaMap } from './InteractiveIndiaMap';
 import { useLanguage } from '../context/LanguageContext';
 import { generateWatershedPdfReport } from '../utils/generateWatershedPdf';
 import { RAW_MICRO_WATERSHEDS_DATA } from '../data/watershedData';
+import confetti from 'canvas-confetti';
 import { 
   AlertTriangle, 
   Search, 
@@ -236,13 +237,22 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     setIsPdfGenerating(true);
     try {
       const baseWatershed = RAW_MICRO_WATERSHEDS_DATA[0];
+      const targetDistrict = selectedDistrict && selectedDistrict !== 'All Districts' 
+        ? selectedDistrict 
+        : 'Vizianagaram';
+      
       generateWatershedPdfReport({
         ...baseWatershed,
+        name: `${targetDistrict} Micro-Watershed & Aquifer Audit`,
+        state: 'Andhra Pradesh',
+        district: targetDistrict,
+        basin: 'Krishna, Godavari & Pennar River Basin',
         stakeholders: [],
         upcomingMeetings: [],
       });
       setPdfDownloaded(true);
-      setTimeout(() => setPdfDownloaded(false), 3000);
+      confetti({ particleCount: 50, spread: 55, origin: { y: 0.7 } });
+      setTimeout(() => setPdfDownloaded(false), 3500);
     } catch (err) {
       console.error('Error generating PDF:', err);
     } finally {
@@ -356,7 +366,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               ) : (
                 <>
                   <Download className="w-4 h-4 text-[#0077B6]" />
-                  <span>{isPdfGenerating ? tr('Generating...', 'तैयार हो रहा है...', 'రూపొందిస్తోంది...') : tr('Audit PDF', 'ऑडिट पीडीएफ', 'ఆడిట్ PDF')}</span>
+                  <span>{isPdfGenerating ? tr('Generating Dossier...', 'तैयार हो रहा है...', 'రూపొందిస్తోంది...') : tr('Nir-ikshan Audit PDF', 'नीर-ईक्षण ऑडिट रिपोर्ट', 'నీర్-ఈక్షణ్ ఆడిట్ రిపోర్ట్')}</span>
                 </>
               )}
             </button>

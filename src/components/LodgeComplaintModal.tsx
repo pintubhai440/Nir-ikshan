@@ -248,6 +248,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
   const [wasteType, setWasteType] = useState<string>('Plastic & Polythene Waste (Bottles & Bags)');
   const [photoUrl, setPhotoUrl] = useState('https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=800&auto=format&fit=crop');
   const [showWastePrompt, setShowWastePrompt] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const wasteDropdownRef = useRef<HTMLSelectElement | null>(null);
 
   // GPS Coordinates & Status State (Default Vizianagaram District Center)
@@ -637,9 +638,11 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
     }
   };
 
-  // Submit Complaint
+  // Submit Complaint (with strict anti-duplicate locking & unique ID generation)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
 
     // Guard: Must be logged in to lodge complaint
     if (!isLoggedIn) {
@@ -647,7 +650,12 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
       return;
     }
 
-    const newId = `CMP-AP-2026-${Math.floor(100 + Math.random() * 900)}`;
+    setIsSubmitting(true);
+
+    // Guaranteed unique non-colliding ID based on epoch timestamp and random suffix
+    const uniqueTime = Date.now().toString(36).toUpperCase();
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const newId = `CMP-AP-2026-${uniqueTime}-${randomSuffix}`;
 
     const newComplaint: CitizenComplaint = {
       id: newId,
@@ -673,6 +681,7 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
 
     onComplaintSubmitted(newComplaint);
     confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -1419,10 +1428,20 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                disabled={isSubmitting}
+                className="px-6 py-2.5 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-md flex items-center gap-2 transition-all hover:scale-102 active:scale-98 cursor-pointer"
               >
-                <Send className="w-4 h-4" />
-                <span>Submit Complaint & Get Tracking ID</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Submitting Complaint...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Submit Complaint & Get Tracking ID</span>
+                  </>
+                )}
               </button>
             </div>
           </form>

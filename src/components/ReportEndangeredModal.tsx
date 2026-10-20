@@ -118,7 +118,9 @@ export const ReportEndangeredModal: React.FC<ReportEndangeredModalProps> = ({
     const now = new Date();
     const timeString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} IST`;
 
-    const ticketId = `CMP-ENDANGERED-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const uniqueTime = Date.now().toString(36).toUpperCase();
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const ticketId = `CMP-ENDANGERED-2026-${uniqueTime}-${randomSuffix}`;
 
     const newComplaint: EndangeredZoneComplaint = {
       id: ticketId,
