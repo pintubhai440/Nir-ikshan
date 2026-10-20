@@ -38,7 +38,7 @@ import {
   subscribeToComplaints 
 } from './lib/supabase';
 import { useLanguage } from './context/LanguageContext';
-import { Droplets, Phone, AlertTriangle, ShieldCheck, Globe, Menu, Layers, Database } from 'lucide-react';
+import { Droplets, Phone, AlertTriangle, ShieldCheck, Globe, Menu, Layers, Database, ArrowLeft } from 'lucide-react';
 
 export default function App() {
   const { t, language } = useLanguage();
@@ -454,6 +454,20 @@ export default function App() {
     }
   };
 
+  // State Admin updates complaint / appends directive memo
+  const handleUpdateComplaint = (updated: CitizenComplaint) => {
+    setComplaints((prev) => {
+      const next = prev.map((c) => (c.id === updated.id ? updated : c));
+      try {
+        localStorage.setItem('nir_complaints', JSON.stringify(next));
+      } catch (e) {
+        console.error('Failed to sync updated complaint', e);
+      }
+      return next;
+    });
+    saveComplaintToSupabase(updated);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif] w-full">
       {/* Top Navigation Bar with Language Toggle & Login / Hamburger Button */}
@@ -468,8 +482,8 @@ export default function App() {
 
       {/* Main Dashboard Body Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-6">
-        {/* Sleek Breadcrumb Bar when viewing any restricted govt sub-dashboard */}
-        {currentRole !== 'overview' && currentRole !== 'user' && (
+        {/* Sleek Breadcrumb Bar when viewing any restricted govt sub-dashboard (hidden on State Admin & Portal Home) */}
+        {currentRole !== 'overview' && currentRole !== 'user' && currentRole !== 'admin' && (
           <div className="bg-white border border-slate-200 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2 text-xs flex-wrap">
               <button 
@@ -483,8 +497,7 @@ export default function App() {
               <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>
-                  {currentRole === 'admin' ? t('breadcrumbAdmin') :
-                   currentRole === 'nodal_vizianagaram' ? t('breadcrumbNodalVzm') :
+                  {currentRole === 'nodal_vizianagaram' ? t('breadcrumbNodalVzm') :
                    currentRole === 'nodal_parvathipuram' ? t('breadcrumbNodalPvm') :
                    currentRole === 'nodal_visakhapatnam' ? t('breadcrumbNodalVskp') :
                    currentRole === 'inspector' ? t('breadcrumbInspector') :
@@ -536,6 +549,7 @@ export default function App() {
             onOpenDirectoryModal={() => setIsDirectoryModalOpen(true)}
             onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
             onOpenDrawer={() => setIsDrawerOpen(true)}
+            onUpdateComplaint={handleUpdateComplaint}
           />
         )}
 

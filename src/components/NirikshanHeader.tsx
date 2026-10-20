@@ -1,4 +1,4 @@
-import { Droplets, LogIn, Menu } from 'lucide-react';
+import { Droplets, LogIn, Menu, ArrowLeft } from 'lucide-react';
 import { UserRoleType } from '../types/nirikshan';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -92,7 +92,7 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
 
 
 
-          {/* Login & Hamburger Menu Action Area */}
+          {/* Login & Actions Area */}
           {!isLoggedIn ? (
             <div className="flex items-center gap-2">
               <button
@@ -103,16 +103,27 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
                 <span>{t('login')}</span>
               </button>
 
-              <button
-                onClick={onOpenDrawer}
-                className="w-10 h-10 rounded-xl bg-[#03045E] hover:bg-[#0077B6] border border-[#00B4D8]/40 flex flex-col items-center justify-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer p-2"
-                title={t('switchPortal')}
-                aria-label="Navigation Menu"
-              >
-                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
-                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
-                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
-              </button>
+              {currentRole === 'admin' ? (
+                <button
+                  onClick={() => onSelectRole('overview')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                  title="Back to Portal Home"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Portal Home</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onOpenDrawer}
+                  className="w-10 h-10 rounded-xl bg-[#03045E] hover:bg-[#0077B6] border border-[#00B4D8]/40 flex flex-col items-center justify-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer p-2"
+                  title={t('switchPortal')}
+                  aria-label="Navigation Menu"
+                >
+                  <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                  <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                  <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -123,16 +134,27 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
                 </span>
               </div>
 
-              <button
-                onClick={onOpenDrawer}
-                className="w-10 h-10 rounded-xl bg-[#03045E] hover:bg-[#0077B6] border border-[#00B4D8]/40 flex flex-col items-center justify-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer p-2"
-                title={t('switchPortal')}
-                aria-label="Navigation Menu"
-              >
-                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
-                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
-                <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
-              </button>
+              {currentRole === 'admin' ? (
+                <button
+                  onClick={() => onSelectRole('overview')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                  title="Back to Portal Home"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Portal Home</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onOpenDrawer}
+                  className="w-10 h-10 rounded-xl bg-[#03045E] hover:bg-[#0077B6] border border-[#00B4D8]/40 flex flex-col items-center justify-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer p-2"
+                  title={t('switchPortal')}
+                  aria-label="Navigation Menu"
+                >
+                  <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                  <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                  <span className="w-5 h-0.5 bg-[#00B4D8] rounded-full transition-all"></span>
+                </button>
+              )}
             </div>
           )}
 
