@@ -469,19 +469,75 @@ export const AP_26_DISTRICT_BOUNDARIES: Record<string, APDistrictBoundary> = {
   }
 };
 
+const AP_DISTRICT_ALIASES: Record<string, string> = {
+  'spsr nellore': 'Sri Potti Sriramulu Nellore',
+  'spsr': 'Sri Potti Sriramulu Nellore',
+  'nellore': 'Sri Potti Sriramulu Nellore',
+  'sri potti sriramulu nellore': 'Sri Potti Sriramulu Nellore',
+  'y.s.r. (kadapa)': 'YSR Kadapa',
+  'y.s.r. kadapa': 'YSR Kadapa',
+  'ysr (kadapa)': 'YSR Kadapa',
+  'ysr kadapa': 'YSR Kadapa',
+  'ysr': 'YSR Kadapa',
+  'kadapa': 'YSR Kadapa',
+  'cuddapah': 'YSR Kadapa',
+  'anantapur': 'Anantapuramu',
+  'anantapuramu': 'Anantapuramu',
+  'anantapuram': 'Anantapuramu',
+  'konaseema': 'Dr. B.R. Ambedkar Konaseema',
+  'dr. b.r. ambedkar konaseema': 'Dr. B.R. Ambedkar Konaseema',
+  'dr. b.r. ambedkar': 'Dr. B.R. Ambedkar Konaseema',
+  'dr br ambedkar konaseema': 'Dr. B.R. Ambedkar Konaseema',
+  'ambedkar konaseema': 'Dr. B.R. Ambedkar Konaseema',
+  'alluri sitarama raju': 'Alluri Sitharama Raju',
+  'alluri sitharama raju': 'Alluri Sitharama Raju',
+  'asr': 'Alluri Sitharama Raju',
+  'parvathipuram manyam': 'Parvathipuram Manyam',
+  'manyam': 'Parvathipuram Manyam',
+  'sri sathya sai': 'Sri Sathya Sai',
+  'sri satya sai': 'Sri Sathya Sai',
+  'sathya sai': 'Sri Sathya Sai',
+  'ntr': 'NTR',
+  'vijayawada': 'NTR',
+};
+
 /**
  * Normalizes input district string to match AP_26_DISTRICT_BOUNDARIES key
  */
 export function findAPDistrictBoundary(districtInput: string): APDistrictBoundary | null {
   if (!districtInput || districtInput === 'all') return null;
-  const clean = districtInput.toLowerCase().trim().replace(' district', '');
+  const raw = districtInput.trim();
+  const clean = raw.toLowerCase().replace(/ district$/i, '').replace(/[().]/g, '').trim();
 
-  for (const [key, b] of Object.entries(AP_26_DISTRICT_BOUNDARIES)) {
-    if (key.toLowerCase() === clean) return b;
-    if (b.id.toLowerCase() === clean) return b;
-    if (b.name.toLowerCase().includes(clean) || clean.includes(b.name.toLowerCase())) return b;
-    if (b.teluguName.includes(clean)) return b;
-    if (b.hindiName.includes(clean)) return b;
+  // 1. Direct alias dictionary lookup
+  const normalizedKey = raw.toLowerCase().replace(/ district$/i, '').trim();
+  if (AP_DISTRICT_ALIASES[normalizedKey]) {
+    const key = AP_DISTRICT_ALIASES[normalizedKey];
+    if (AP_26_DISTRICT_BOUNDARIES[key]) return AP_26_DISTRICT_BOUNDARIES[key];
   }
+  if (AP_DISTRICT_ALIASES[clean]) {
+    const key = AP_DISTRICT_ALIASES[clean];
+    if (AP_26_DISTRICT_BOUNDARIES[key]) return AP_26_DISTRICT_BOUNDARIES[key];
+  }
+
+  // 2. Direct exact and key search
+  for (const [key, b] of Object.entries(AP_26_DISTRICT_BOUNDARIES)) {
+    const kClean = key.toLowerCase().replace(/[().]/g, '').trim();
+    const bClean = b.name.toLowerCase().replace(/[().]/g, '').trim();
+    const idClean = b.id.toLowerCase().replace(/-/g, ' ');
+
+    if (key.toLowerCase() === normalizedKey || kClean === clean) return b;
+    if (b.id.toLowerCase() === normalizedKey || idClean === clean) return b;
+    if (b.name.toLowerCase() === normalizedKey || bClean === clean) return b;
+    if (b.teluguName.includes(raw) || raw.includes(b.teluguName)) return b;
+    if (b.hindiName.includes(raw) || raw.includes(b.hindiName)) return b;
+  }
+
+  // 3. Fallback partial substring matches
+  for (const [, b] of Object.entries(AP_26_DISTRICT_BOUNDARIES)) {
+    const bClean = b.name.toLowerCase().replace(/[().]/g, '').trim();
+    if (bClean.includes(clean) || clean.includes(bClean)) return b;
+  }
+
   return null;
 }

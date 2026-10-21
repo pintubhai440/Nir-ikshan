@@ -222,6 +222,108 @@ export const AP_JURISDICTIONS: HydrologicalJurisdiction[] = [
   }
 ];
 
+// Translations for Andhra Pradesh District Headquarters
+const HEADQUARTERS_TRANSLATIONS: Record<string, { hi: string; te: string }> = {
+  'Srikakulam': { hi: 'श्रीकाकुलम', te: 'శ్రీకాకుళం' },
+  'Parvathipuram': { hi: 'पार्वतीपुरम', te: 'పార్వతీపురం' },
+  'Vizianagaram': { hi: 'विजयनगरम', te: 'విజయనగరం' },
+  'Visakhapatnam': { hi: 'विशाखापट्टनम', te: 'విశాఖపట్నం' },
+  'Paderu': { hi: 'पाडेरू', te: 'పాడేరు' },
+  'Anakapalli': { hi: 'अनकापल्ली', te: 'అనకాపల్లి' },
+  'Kakinada': { hi: 'काकीनाडा', te: 'కాకినాడ' },
+  'Amalapuram': { hi: 'अमलापुरम', te: 'అమలాపురం' },
+  'Rajamahendravaram': { hi: 'राजमहेंद्रवरम', te: 'రాజమహేంద్రవరం' },
+  'Rajahmundry': { hi: 'राजमहेंद्रवरम', te: 'రాజమహేంద్రవరం' },
+  'Bhimavaram': { hi: 'भीमावरम', te: 'భీమవరం' },
+  'Eluru': { hi: 'एलुरु', te: 'ఏలూరు' },
+  'Machilipatnam': { hi: 'मछलीपट्टनम', te: 'మచిలీపట్నం' },
+  'Vijayawada': { hi: 'विजयवाड़ा', te: 'విజయవాడ' },
+  'Guntur': { hi: 'गुंटूर', te: 'గుంటూరు' },
+  'Bapatla': { hi: 'बापटला', te: 'బాపట్ల' },
+  'Narasaraopeta': { hi: 'नरसारावपेटा', te: 'నరసరావుపేట' },
+  'Ongole': { hi: 'ओंगोल', te: 'ఒంగోలు' },
+  'Nellore': { hi: 'नेल्लोर', te: 'నెల్లూరు' },
+  'Kurnool': { hi: 'कुरनूल', te: 'కర్నూలు' },
+  'Nandyal': { hi: 'नंदयाल', te: 'నంద్యాల' },
+  'Anantapur': { hi: 'अनंतपुर', te: 'అనంతపురం' },
+  'Ananthapuramu': { hi: 'अनंतपुर', te: 'అనంతపురం' },
+  'Puttaparthi': { hi: 'पुट्टापर्थी', te: 'పుట్టపర్తి' },
+  'Kadapa': { hi: 'कडपा', te: 'కడప' },
+  'Rayachoti': { hi: 'रायाचोटी', te: 'రాయచోటి' },
+  'Chittoor': { hi: 'चित्तूर', te: 'చిత్తూరు' },
+  'Tirupati': { hi: 'तिरुपति', te: 'తిరుపతి' },
+};
+
+// Hindi translations for all 26 Andhra Pradesh districts (with aliases)
+const DISTRICT_HINDI_NAMES: Record<string, string> = {
+  'Srikakulam': 'श्रीकाकुलम',
+  'Parvathipuram Manyam': 'पार्वतीपुरम मान्यम',
+  'Parvathipuram': 'पार्वतीपुरम',
+  'Vizianagaram': 'विजयनगरम',
+  'Visakhapatnam': 'विशाखापट्टनम',
+  'Alluri Sitharama Raju': 'अल्लूरी सीताराम राजू',
+  'ASR': 'अल्लूरी सीताराम राजू',
+  'Anakapalli': 'अनकापल्ली',
+  'Kakinada': 'काकीनाडा',
+  'Dr. B.R. Ambedkar Konaseema': 'डॉ. बी.आर. अम्बेडकर कोनासीमा',
+  'Konaseema': 'कोनासीमा',
+  'East Godavari': 'पूर्वी गोदावरी',
+  'West Godavari': 'पश्चिम गोदावरी',
+  'Eluru': 'एलुरु',
+  'Krishna': 'कृष्णा',
+  'NTR': 'एनटीआर',
+  'Guntur': 'गुंटूर',
+  'Bapatla': 'बापटला',
+  'Palnadu': 'पलनाडु',
+  'Prakasam': 'प्रकाशम',
+  'SPSR Nellore': 'एसपीएसआर नेल्लोर',
+  'Sri Potti Sriramulu Nellore': 'श्री पोट्टी श्रीरामुलु नेल्लोर',
+  'Nellore': 'नेल्लोर',
+  'Kurnool': 'कुरनूल',
+  'Nandyal': 'नंदयाल',
+  'Ananthapuramu': 'अनंतपुर',
+  'Anantapur': 'अनंतपुर',
+  'Sri Sathya Sai': 'श्री सत्य साई',
+  'Y.S.R. (Kadapa)': 'वाईएसआर कडपा',
+  'Y.S.R.': 'वाईएसआर कडपा',
+  'YSR': 'वाईएसआर कडपा',
+  'YSR Kadapa': 'वाईएसआर कडपा',
+  'Kadapa': 'कडपा',
+  'Annamayya': 'अन्नमय्या',
+  'Chittoor': 'चित्तूर',
+  'Tirupati': 'तिरुपति',
+};
+
+// Pure Hindi & Telugu translations for AP 26 primary reservoirs & water bodies
+const RESERVOIR_TRANSLATIONS: Record<string, { hi: string; te: string }> = {
+  'MADDUVALASA RESERVOIR': { hi: 'मद्दुवलसा जलाशय', te: 'మద్దువలస జలాశయం' },
+  'THOTAPALLI BARRAGE': { hi: 'तोटापल्ली बैराज', te: 'తోటపల్లి బ్యారేజ్' },
+  'TATIPUDI RESERVOIR': { hi: 'तातीपूडी जलाशय', te: 'తాటిపూడి జలాశయం' },
+  'MEGHADRIGEDDA RESERVOIR': { hi: 'मेघाद्रीगेड्डा जलाशय', te: 'మేఘాద్రిగెడ్డ జలాశయం' },
+  'JALAPUT RESERVOIR': { hi: 'जलापुट जलाशय', te: 'జలాపుట్ జలాశయం' },
+  'RAIWADA RESERVOIR': { hi: 'रायवाड़ा जलाशय', te: 'రైవాడ జలాశయం' },
+  'CORINGA ESTUARINE BASIN': { hi: 'कोरिंगा मुहाना बेसिन', te: 'కోరింగ ఎస్చువరీ బేసిన్' },
+  'DOWLESWARAM BARRAGE': { hi: 'धौलेश्वरम बैराज', te: 'ధవళేశ్వరం బ్యారేజ్' },
+  'VASHISHTA GODAVARI CANAL NETWORK': { hi: 'वशिष्ठ गोदावरी नहर नेटवर्क', te: 'వశిష్ట గోదావరి కాలువ నెట్‌వర్క్' },
+  'KOLLERU LAKE NORTH BUFFER': { hi: 'कोल्लेरू झील उत्तर बफर', te: 'కొల్లేరు సరస్సు ఉత్తర బఫర్' },
+  'GOSTHANI DRAIN DELTA COMPLEX': { hi: 'गोस्थानी ड्रेन डेल्टा कॉम्प्लेक्स', te: 'గోస్తనీ డ్రైన్ డెల్టా కాంప్లెక్స్' },
+  'PRAKASAM BARRAGE': { hi: 'प्रकाशम बैराज', te: 'ప్రకాశం బ్యారేజ్' },
+  'BANDAR CANAL TAIL END SYSTEM': { hi: 'बंदर नहर टेल-एंड प्रणाली', te: 'బందరు కాలువ టెయిల్-ఎండ్ సిస్టమ్' },
+  'GUNTUR CHANNEL SYSTEM': { hi: 'गुंटूर चैनल प्रणाली', te: 'గుంటూరు ఛానల్ సిస్టమ్' },
+  'NAGARJUNA SAGAR RIGHT CANAL': { hi: 'नागार्जुन सागर दाईं नहर', te: 'నాగార్జున సాగర్ కుడి కాలువ' },
+  'KOMMAMURU CANAL NETWORK': { hi: 'कोम्मामूरु नहर नेटवर्क', te: 'కొమ్మమూరు కాలువ నెట్‌వర్క్' },
+  'GUNDLAKAMMA RESERVOIR': { hi: 'गुंडलाकम्मा जलाशय', te: 'గుండ్లకమ్మ జలాశయం' },
+  'SOMASILA RESERVOIR': { hi: 'सोमशिला जलाशय', te: 'సోమశిల జలాశయం' },
+  'SRISAILAM RESERVOIR': { hi: 'श्रीशैलम जलाशय', te: 'శ్రీశైలం జలాశయం' },
+  'VELIGODU BALANCING RESERVOIR': { hi: 'वेलीगोडु संतुलन जलाशय', te: 'వెలిగోడు బ్యాలెన్సింగ్ జలాశయం' },
+  'MID PENNAR RESERVOIR': { hi: 'मध्य पेन्नार जलाशय', te: 'మిడ్ పెన్నార్ జలాశయం' },
+  'BHARAVANI CHERUVU RECHARGE BASIN': { hi: 'भैरवनी चेरुवू पुनर्भरण बेसिन', te: 'భైరవని చెరువు రీఛార్జ్ బేసిన్' },
+  'GANDIKOTA RESERVOIR': { hi: 'गंडीकोटा जलाशय', te: 'గండికోట జలాశయం' },
+  'VELIGALLU RESERVOIR': { hi: 'वेलीगल्लू जलाशय', te: 'వెలిగల్లు జలాశయం' },
+  'KALYANI RESERVOIR': { hi: 'कल्याणी जलाशय', te: 'కల్యాణి జలాశయం' },
+  'NTR JALASAYAM': { hi: 'एनटीआर जलाशय', te: 'ఎన్టీఆర్ జలాశయం' },
+};
+
 // Pure language translations dictionary specifically for State Admin Dashboard
 const STATE_ADMIN_UI_TEXT = {
   en: {
@@ -259,6 +361,30 @@ const STATE_ADMIN_UI_TEXT = {
     actionIssues: '🚨 Overdue Grievance Directives',
     filterCountLabel: 'Portals Available',
     noResultsFound: 'No command portals matched your query. Try another keyword.',
+    // 26 Districts Command Module
+    districtsHeading: 'All 26 Andhra Pradesh Districts Telemetry & Performance',
+    districtsSubheading: 'Official APWRIMS & CGWB groundwater table, reservoir storage, and active alerts across Andhra Pradesh',
+    districtsActiveBadge: '26 Districts Active',
+    searchDistrictsPlaceholder: 'Search district name, headquarters or region...',
+    regionFilterAll: 'Region: All (26)',
+    regionNorthCoastal: 'North Coastal',
+    regionCoastalAndhra: 'Coastal Andhra',
+    regionRayalaseema: 'Rayalaseema',
+    thDistrictName: 'District Name',
+    thRegion: 'Region',
+    thHeadquarters: 'Headquarters',
+    thPrimaryReservoir: 'Primary Reservoir',
+    thStorage: 'Storage %',
+    thGwDepth: 'GW Depth (mbgl)',
+    thActiveAlerts: 'Active Alerts',
+    thHealthStatus: 'Health Status',
+    thAction: 'Inspect',
+    viewMapBtn: 'View Map',
+    alertsLabel: 'Alerts',
+    statusSafe: 'SAFE / GOOD',
+    statusNormal: 'NORMAL',
+    statusStress: 'STRESS',
+    statusCritical: 'CRITICAL',
   },
   hi: {
     heroTag: 'आंध्र प्रदेश राज्य जल कमान • जल-वैज्ञानिक निगरानी',
@@ -295,6 +421,30 @@ const STATE_ADMIN_UI_TEXT = {
     actionIssues: '🚨 लंबित शिकायतों पर तत्काल निर्देश',
     filterCountLabel: 'उपलब्ध पोर्टल',
     noResultsFound: 'आपकी खोज के अनुसार कोई पोर्टल नहीं मिला। कृपया दूसरा शब्द खोजें।',
+    // 26 Districts Command Module
+    districtsHeading: 'आंध्र प्रदेश के सभी 26 जिलों की टेलीमेट्री एवं कार्यक्षमता',
+    districtsSubheading: 'आंध्र प्रदेश भर में आधिकारिक APWRIMS और CGWB भूजल तालिका, जलाशय भंडारण और सक्रिय अलर्ट',
+    districtsActiveBadge: '26 जिले सक्रिय',
+    searchDistrictsPlaceholder: 'जिले का नाम, मुख्यालय या क्षेत्र खोजें...',
+    regionFilterAll: 'क्षेत्र: सभी (26)',
+    regionNorthCoastal: 'उत्तर तटीय',
+    regionCoastalAndhra: 'तटीय आंध्र',
+    regionRayalaseema: 'रायलसीमा',
+    thDistrictName: 'जिले का नाम',
+    thRegion: 'क्षेत्र',
+    thHeadquarters: 'मुख्यालय',
+    thPrimaryReservoir: 'मुख्य जलाशय',
+    thStorage: 'भंडारण %',
+    thGwDepth: 'भूजल गहराई (mbgl)',
+    thActiveAlerts: 'सक्रिय अलर्ट',
+    thHealthStatus: 'स्वास्थ्य स्थिति',
+    thAction: 'निरीक्षण',
+    viewMapBtn: 'मानचित्र देखें',
+    alertsLabel: 'अलर्ट',
+    statusSafe: 'सुरक्षित / उत्तम',
+    statusNormal: 'सामान्य',
+    statusStress: 'तनावपूर्ण',
+    statusCritical: 'गंभीर',
   },
   te: {
     heroTag: 'ఆంధ్రప్రదేశ్ రాష్ట్ర జల కమాండ్ • హైడ్రోలాజికల్ నిఘా',
@@ -332,6 +482,30 @@ const STATE_ADMIN_UI_TEXT = {
     actionIssues: '🚨 గడువు దాటిన ఫిర్యాదుల ఆదేశాలు',
     filterCountLabel: 'లభ్యమయ్యే పోర్టల్స్',
     noResultsFound: 'మీ శోధనకు తగిన పోర్టల్స్ కనుగొనబడలేదు.',
+    // 26 Districts Command Module
+    districtsHeading: 'ఆంధ్రప్రదేశ్‌లోని మొత్తం 26 జిల్లాల టెలిమెట్రీ & పనితీరు',
+    districtsSubheading: 'ఆంధ్రప్రదేశ్ అంతటా అధికారిక APWRIMS & CGWB భూగర్భ జల మట్టం, జలాశయ నిల్వ మరియు క్రియాశీల హెచ్చరికలు',
+    districtsActiveBadge: '26 జిల్లాలు క్రియాశీలం',
+    searchDistrictsPlaceholder: 'జిల్లా పేరు, ప్రధాన కేంద్రం లేదా ప్రాంతాన్ని శోధించండి...',
+    regionFilterAll: 'ప్రాంతం: అన్నీ (26)',
+    regionNorthCoastal: 'ఉత్తర కోస్తా',
+    regionCoastalAndhra: 'కోస్తాంధ్ర',
+    regionRayalaseema: 'రాయలసీమ',
+    thDistrictName: 'జిల్లా పేరు',
+    thRegion: 'ప్రాంతం',
+    thHeadquarters: 'ప్రధాన కేంద్రం',
+    thPrimaryReservoir: 'ప్రధాన జలాశయం',
+    thStorage: 'నిల్వ %',
+    thGwDepth: 'భూగర్భ జల లోతు (mbgl)',
+    thActiveAlerts: 'క్రియాశీల హెచ్చరికలు',
+    thHealthStatus: 'ఆరోగ్య స్థితి',
+    thAction: 'తనిఖీ',
+    viewMapBtn: 'మ్యాప్ చూడండి',
+    alertsLabel: 'హెచ్చరికలు',
+    statusSafe: 'సురక్షితం',
+    statusNormal: 'సాధారణం',
+    statusStress: 'ఒత్తిడి',
+    statusCritical: 'తీవ్రమైనది',
   }
 };
 
@@ -344,7 +518,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenDrawer,
   onUpdateComplaint,
 }) => {
-  const { t, language } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
   const uiText = STATE_ADMIN_UI_TEXT[currentLang];
 
@@ -1498,9 +1672,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {activePage !== 'hub' && (
         <div className="space-y-5 animate-in fade-in duration-150">
-          {/* Top Navigation Bar: Back to Hub + Module Header + Jump-to Dropdown */}
+          {/* Top Navigation Bar: Back to Hub + Module Header + Language Switcher + Jump-to Dropdown */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
                 onClick={() => setActiveTab('hub')}
                 className="px-4 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-xs hover:scale-102 active:scale-98"
@@ -1509,21 +1683,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <ArrowLeft className="w-4 h-4 text-[#00B4D8]" />
                 <span>{uiText.backToHub}</span>
               </button>
+
+              {activePage === 'map' && (
+                <button
+                  onClick={() => setActiveTab('districts')}
+                  className="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs"
+                  title={currentLang === 'te' ? '26 జిల్లాల పట్టిక' : currentLang === 'hi' ? '26 जिलों की तालिका' : '26 Districts Table'}
+                >
+                  <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{currentLang === 'te' ? '26 జిల్లాల పట్టిక' : currentLang === 'hi' ? '26 जिला तालिका' : '26 Districts Table'}</span>
+                </button>
+              )}
             </div>
 
-            {/* Right: Quick Module Switcher Dropdown */}
-            <div className="flex items-center gap-2">
-              <label className="text-[11px] font-bold text-slate-500 hidden md:inline">{uiText.jumpToLabel}</label>
-              <select
-                value={activePage}
-                onChange={(e) => setActiveTab(e.target.value as AdminActiveTab | 'hub')}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 cursor-pointer shadow-2xs hover:bg-slate-100"
-              >
-                <option value="hub">📋 {uiText.allModulesLabel}</option>
-                {ADMIN_FLASHCARDS.map(fc => (
-                  <option key={fc.id} value={fc.id}>{fc.title}</option>
-                ))}
-              </select>
+            {/* Right: Language Selector & Quick Module Switcher Dropdown */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Pure Language Selector */}
+              <div className="flex items-center bg-slate-100 border border-slate-200 p-0.5 rounded-xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setLanguage('en')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    currentLang === 'en'
+                      ? 'bg-[#0077B6] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="English"
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage('hi')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    currentLang === 'hi'
+                      ? 'bg-[#0077B6] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="हिन्दी"
+                >
+                  हिन्दी
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage('te')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    currentLang === 'te'
+                      ? 'bg-[#0077B6] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="తెలుగు"
+                >
+                  తెలుగు
+                </button>
+              </div>
+
+              {/* Quick Module Switcher Dropdown */}
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] font-bold text-slate-500 hidden md:inline">{uiText.jumpToLabel}</label>
+                <select
+                  value={activePage}
+                  onChange={(e) => setActiveTab(e.target.value as AdminActiveTab | 'hub')}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 cursor-pointer shadow-2xs hover:bg-slate-100"
+                >
+                  <option value="hub">📋 {uiText.allModulesLabel}</option>
+                  {ADMIN_FLASHCARDS.map(fc => (
+                    <option key={fc.id} value={fc.id}>{fc.title}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1704,6 +1932,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <StateAdminSatelliteMap
             complaints={complaints}
             selectedDistrict={selectedDistrict?.name || 'all'}
+            onBackToDistricts={() => setActiveTab('districts')}
             onSelectDistrict={(distName) => {
               const found = ANDHRA_PRADESH_26_DISTRICTS.find(d => d.name.toLowerCase() === distName.toLowerCase());
               if (found) setSelectedDistrict(found);
@@ -1730,16 +1959,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="font-bold text-base text-slate-900">
-                  All 26 Andhra Pradesh Districts Telemetry &amp; Performance
+                  {uiText.districtsHeading}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Official APWRIMS &amp; CGWB groundwater table, reservoir storage, and active alerts across Andhra Pradesh
+                  {uiText.districtsSubheading}
                 </p>
               </div>
               
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold text-[#0077B6] bg-sky-50 px-3 py-1 rounded-xl border border-sky-200">
-                  26 Districts Active
+                  {uiText.districtsActiveBadge}
                 </span>
               </div>
             </div>
@@ -1750,7 +1979,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search district name, headquarters or Telugu script..."
+                  placeholder={uiText.searchDistrictsPlaceholder}
                   value={districtSearch}
                   onChange={(e) => setDistrictSearch(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
@@ -1760,12 +1989,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <select
                 value={districtRegionFilter}
                 onChange={(e) => setDistrictRegionFilter(e.target.value as any)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer"
               >
-                <option value="all">Region: All (26)</option>
-                <option value="North Coastal">North Coastal</option>
-                <option value="Coastal Andhra">Coastal Andhra</option>
-                <option value="Rayalaseema">Rayalaseema</option>
+                <option value="all">{uiText.regionFilterAll}</option>
+                <option value="North Coastal">{uiText.regionNorthCoastal}</option>
+                <option value="Coastal Andhra">{uiText.regionCoastalAndhra}</option>
+                <option value="Rayalaseema">{uiText.regionRayalaseema}</option>
               </select>
             </div>
 
@@ -1774,15 +2003,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                    <th className="py-2.5 px-3">District Name</th>
-                    <th className="py-2.5 px-3">Region</th>
-                    <th className="py-2.5 px-3">Headquarters</th>
-                    <th className="py-2.5 px-3">Primary Reservoir</th>
-                    <th className="py-2.5 px-3">Storage %</th>
-                    <th className="py-2.5 px-3">GW Depth (mbgl)</th>
-                    <th className="py-2.5 px-3">Active Alerts</th>
-                    <th className="py-2.5 px-3">Health Status</th>
-                    <th className="py-2.5 px-3 text-right">Inspect</th>
+                    <th className="py-2.5 px-3">{uiText.thDistrictName}</th>
+                    <th className="py-2.5 px-3">{uiText.thRegion}</th>
+                    <th className="py-2.5 px-3">{uiText.thHeadquarters}</th>
+                    <th className="py-2.5 px-3">{uiText.thPrimaryReservoir}</th>
+                    <th className="py-2.5 px-3">{uiText.thStorage}</th>
+                    <th className="py-2.5 px-3">{uiText.thGwDepth}</th>
+                    <th className="py-2.5 px-3">{uiText.thActiveAlerts}</th>
+                    <th className="py-2.5 px-3">{uiText.thHealthStatus}</th>
+                    <th className="py-2.5 px-3 text-right">{uiText.thAction}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1793,12 +2022,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     >
                       <td className="py-3 px-3">
                         <strong className="text-slate-900 block font-bold">
-                          {currentLang === 'te' ? d.teluguName : d.name}
+                          {currentLang === 'te' 
+                            ? d.teluguName 
+                            : currentLang === 'hi' 
+                            ? (DISTRICT_HINDI_NAMES[d.name] || d.name)
+                            : d.name}
                         </strong>
                       </td>
-                      <td className="py-3 px-3 text-slate-600 font-medium">{d.region}</td>
-                      <td className="py-3 px-3 text-slate-700 font-medium">{d.headquarter}</td>
-                      <td className="py-3 px-3 text-[#0077B6] font-semibold">{d.wrisTelemetry.primaryReservoir}</td>
+                      <td className="py-3 px-3 text-slate-600 font-medium">
+                        {currentLang === 'te'
+                          ? (d.region === 'North Coastal' ? 'ఉత్తర కోస్తా' : d.region === 'Coastal Andhra' ? 'కోస్తాంధ్ర' : 'రాయలసీమ')
+                          : currentLang === 'hi'
+                          ? (d.region === 'North Coastal' ? 'उत्तर तटीय' : d.region === 'Coastal Andhra' ? 'तटीय आंध्र' : 'रायलसीमा')
+                          : d.region}
+                      </td>
+                      <td className="py-3 px-3 text-slate-700 font-medium">
+                        {currentLang === 'te'
+                          ? (HEADQUARTERS_TRANSLATIONS[d.headquarter]?.te || d.headquarter)
+                          : currentLang === 'hi'
+                          ? (HEADQUARTERS_TRANSLATIONS[d.headquarter]?.hi || d.headquarter)
+                          : d.headquarter}
+                      </td>
+                      <td className="py-3 px-3 text-[#0077B6] font-semibold">
+                        {currentLang === 'te'
+                          ? (RESERVOIR_TRANSLATIONS[d.wrisTelemetry.primaryReservoir]?.te || d.wrisTelemetry.primaryReservoir)
+                          : currentLang === 'hi'
+                          ? (RESERVOIR_TRANSLATIONS[d.wrisTelemetry.primaryReservoir]?.hi || d.wrisTelemetry.primaryReservoir)
+                          : d.wrisTelemetry.primaryReservoir}
+                      </td>
                       <td className="py-3 px-3 font-mono font-bold tabular-nums">
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2 h-2 rounded-full ${d.wrisTelemetry.storagePercentage < 25 ? 'bg-rose-500' : 'bg-blue-500'}`}></span>
@@ -1809,7 +2060,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <td className="py-3 px-3 font-mono">
                         {d.alertCount > 0 ? (
                           <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px]">
-                            {d.alertCount} Alerts
+                            {d.alertCount} {uiText.alertsLabel}
                           </span>
                         ) : (
                           <span className="text-slate-400">0</span>
@@ -1821,18 +2072,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           d.statusColor === 'blue' ? 'bg-sky-100 text-sky-800' :
                           d.statusColor === 'yellow' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
                         }`}>
-                          {d.statusColor.toUpperCase()}
+                          {d.statusColor === 'green' ? uiText.statusSafe :
+                           d.statusColor === 'blue' ? uiText.statusNormal :
+                           d.statusColor === 'yellow' ? uiText.statusStress : uiText.statusCritical}
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right">
                         <button
                           onClick={() => {
                             setSelectedDistrict(d);
-                            setActiveTab('overview');
+                            setActiveTab('map');
                           }}
-                          className="px-2.5 py-1 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                          className="px-2.5 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-lg text-[11px] font-bold transition-all shadow-2xs hover:scale-102 cursor-pointer inline-flex items-center gap-1.5"
+                          title={`${uiText.viewMapBtn}: ${d.name}`}
                         >
-                          View Map
+                          <MapIcon className="w-3.5 h-3.5 text-[#00B4D8]" />
+                          <span>{uiText.viewMapBtn}</span>
                         </button>
                       </td>
                     </tr>
@@ -3080,20 +3335,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-          {/* Bottom Return Bar when viewing any dedicated module */}
-          <div className="pt-6 border-t border-slate-200/80 flex items-center justify-between flex-wrap gap-3">
-            <button
-              onClick={() => setActiveTab('hub')}
-              className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#0077B6] text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to State Admin Hub (All 11 Flashcards)</span>
-            </button>
+          {/* Bottom Return Bar when viewing any dedicated module (hidden on ISRO Bhuvan Satellite Map and Overview) */}
+          {activeTab !== 'map' && activeTab !== 'overview' && (
+            <div className="pt-6 border-t border-slate-200/80 flex items-center justify-between flex-wrap gap-3">
+              <button
+                onClick={() => setActiveTab('hub')}
+                className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#0077B6] text-xs font-bold flex items-center gap-2 shadow-2xs cursor-pointer transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to State Admin Hub (All 11 Flashcards)</span>
+              </button>
 
-            <div className="text-xs text-slate-500 font-medium">
-              Andhra Pradesh State Water Command • 100% Real Hydrological Data
+              <div className="text-xs text-slate-500 font-medium">
+                Andhra Pradesh State Water Command • 100% Real Hydrological Data
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

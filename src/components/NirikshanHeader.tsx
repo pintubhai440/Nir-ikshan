@@ -51,8 +51,8 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
         {/* Right Section: Language Toggle & Login / Hamburger Button (Images 3 & 4) */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           
-          {/* Language Selector (Image 3: [ EN | हिं | తె ]) */}
-          <div className="flex items-center bg-[#03045E]/10 border border-[#03045E]/20 p-0.5 rounded-xl text-xs font-bold text-slate-700">
+          {/* Language Selector (Pure English | Pure Hindi | Pure Telugu) */}
+          <div className="flex items-center bg-[#03045E]/10 border border-[#03045E]/20 p-0.5 rounded-xl text-xs font-bold text-slate-700 shadow-2xs">
             <button
               onClick={() => setLanguage('en')}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -62,7 +62,8 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
               }`}
               title="English"
             >
-              EN
+              <span className="sm:hidden">EN</span>
+              <span className="hidden sm:inline">English</span>
             </button>
             <span className="text-slate-300 px-0.5">|</span>
             <button
@@ -74,7 +75,7 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
               }`}
               title="हिन्दी"
             >
-              हिं
+              हिन्दी
             </button>
             <span className="text-slate-300 px-0.5">|</span>
             <button
@@ -86,7 +87,7 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
               }`}
               title="తెలుగు"
             >
-              తె
+              తెలుగు
             </button>
           </div>
 
