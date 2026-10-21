@@ -360,10 +360,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [hubCategoryFilter, setHubCategoryFilter] = useState<'all' | 'geospatial' | 'ops' | 'governance'>('all');
   const [hubSearch, setHubSearch] = useState('');
 
-  // Selected District on Map / Detail
-  const [selectedDistrict, setSelectedDistrict] = useState<DistrictTelemetry | null>(
-    () => ANDHRA_PRADESH_26_DISTRICTS.find(d => d.id === 'chittoor') || ANDHRA_PRADESH_26_DISTRICTS[0]
-  );
+  // Selected District on Map / Detail (Default: null for All 26 Districts)
+  const [selectedDistrict, setSelectedDistrict] = useState<DistrictTelemetry | null>(null);
   const [districtSearch, setDistrictSearch] = useState('');
   const [districtRegionFilter, setDistrictRegionFilter] = useState<'all' | 'North Coastal' | 'Coastal Andhra' | 'Rayalaseema'>('all');
 

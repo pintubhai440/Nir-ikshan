@@ -7,7 +7,15 @@ import { AP_OFFICIAL_RIVER_GAUGE_STATIONS } from '../data/apRiverGaugesData';
 import { AP_RIVER_VECTORS } from '../data/andhraRiversGeoData';
 import { AP_GROUNDWATER_DTWL_2026, APGroundwaterDtwlRecord } from '../data/apGroundwaterDtwl2026';
 import { AP_MANDAL_WISE_RAINFALL_2026 } from '../data/apMandalWiseRainfall2026';
-import { useLanguage } from '../context/LanguageContext';
+import { 
+  AP_26_DISTRICT_BOUNDARIES, 
+  findAPDistrictBoundary, 
+  APDistrictBoundary 
+} from '../data/andhraDistrictBoundariesGeo';
+import { 
+  HydrologicalTelemetryFlashcard, 
+  TelemetryFlashcardData 
+} from './HydrologicalTelemetryFlashcard';
 import { 
   Satellite, 
   Layers, 
@@ -16,26 +24,19 @@ import {
   Droplets, 
   ShieldCheck, 
   Lock, 
-  Maximize2, 
-  RotateCcw, 
-  Eye, 
-  Activity, 
-  Compass, 
-  CheckCircle2, 
-  Clock, 
-  Phone, 
   X,
-  ExternalLink,
-  ChevronRight,
+  Search,
   Filter,
   CloudRain,
   SlidersHorizontal,
-  Sun,
-  Check,
   TrendingUp,
-  Mountain,
   Waves,
-  Sparkles
+  Building,
+  Phone,
+  CheckCircle2,
+  Maximize2,
+  Compass,
+  FileText
 } from 'lucide-react';
 
 interface StateAdminSatelliteMapProps {
@@ -46,7 +47,7 @@ interface StateAdminSatelliteMapProps {
   onReassignComplaint?: (complaint: CitizenComplaint) => void;
 }
 
-// Authoritative Andhra Pradesh Boundary Polygon
+// Authoritative Andhra Pradesh State Boundary Polygon
 const AP_BOUNDARY_POLYGON: [number, number][] = [
   [19.12, 84.78], [18.85, 84.45], [18.35, 84.05], [18.25, 83.90],
   [17.75, 83.35], [17.65, 83.25], [17.35, 82.85], [16.95, 82.25],
@@ -73,221 +74,6 @@ const WORLD_MASK_POLYGON: [number, number][][] = [
   AP_BOUNDARY_POLYGON
 ];
 
-const AP_DISTRICTS_HINDI: Record<string, string> = {
-  'srikakulam': 'श्रीकाकुलम',
-  'parvathipuram-manyam': 'पार्वतीपुरम मान्यम',
-  'vizianagaram': 'विजयनगरम',
-  'visakhapatnam': 'विशाखापट्टनम',
-  'alluri-sitharama-raju': 'अल्लूरी सीताराम राजू',
-  'anakapalli': 'अनाकापल्ली',
-  'kakinada': 'काकीनाडा',
-  'east-godavari': 'पूर्वी गोदावरी',
-  'dr-br-ambedkar-konaseema': 'डॉ. बी.आर. अंबेडकर कोनासीमा',
-  'eluru': 'एलुरु',
-  'west-godavari': 'पश्चिमी गोदावरी',
-  'ntr': 'एनटीआर',
-  'krishna': 'कृष्णा',
-  'palnadu': 'पलनाडु',
-  'guntur': 'गुंटूर',
-  'bapatla': 'बापटला',
-  'prakasam': 'प्रकाशम',
-  'sri-potti-sriramulu-nellore': 'श्री पोट्टी श्रीरामुलु नेल्लोर',
-  'kurnool': 'कर्नूल',
-  'nandyal': 'नंद्याल',
-  'anantapuramu': 'अनंतपुर',
-  'sri-sathya-sai': 'श्री सत्य साई',
-  'ysr-kadapa': 'वाईएसआर कडप्पा',
-  'annamayya': 'अन्नमय्या',
-  'chittoor': 'चित्तूर',
-  'tirupati': 'तिरुपति',
-};
-
-const MAP_TEXT = {
-  en: {
-    headerTitle: 'Andhra Pradesh Satellite Surveillance Grid',
-    geoLocked: 'AP Geo-Locked',
-    telemetrySummary: '100% Real AP Telemetry: ISRO Bhuvan Satellite Imagery • 113 Reservoirs • 594 DWLR Wells • CWC River Gauges',
-    settingsBtn: 'Filters & Map Settings',
-    allDistricts: 'All 26 AP Districts',
-    fitAp: 'Fit AP',
-    legendTitle: 'Andhra Pradesh Water Grid',
-    liveApwrims: 'LIVE APWRIMS',
-    reservoirsCount: '113 Reservoirs',
-    dwlrSafe: 'DWLR Safe (<20m)',
-    dwlrStress: 'DWLR Stress',
-    dwlrCritical: 'DWLR Critical (>40m)',
-    riverGauges: 'River Gauges',
-    grievances: 'Active Grievances',
-    inspectorTitle: 'Telemetry Station Inspector',
-    issueSlaDirective: 'Issue SLA Directive',
-    reassign: 'Reassign',
-    currentStorage: 'Current Storage',
-    grossCapacity: 'Gross',
-    fillPercentage: 'Fill Percentage',
-    inflow: 'Inflow',
-    currentLevel: 'Current Water Level',
-    frl: 'Full Reservoir Level (FRL)',
-    spillwayStatus: 'Spillway Status',
-    monitoredBodies: 'Monitored Bodies',
-    groundwaterDtwl: 'Groundwater DTWL',
-    officerInCharge: 'Officer In-Charge',
-    modalTitle: 'Map Telemetry Filters & Cartography Settings',
-    modalDesc: 'Configure ISRO Bhuvan satellite GIS cartography, displayed telemetry layers, and satellite contrast calibration for state monitoring.',
-    section1: '1. SELECT HYDROLOGICAL TELEMETRY LAYER',
-    layerAll: 'All Hydrological Layers',
-    layerReservoirs: 'Major Reservoirs & Dams',
-    layerRivers: 'River Gauges & Discharge (Cusecs)',
-    layerGroundwater: 'CGWB Groundwater DWLR',
-    layerComplaints: 'Citizen Grievance Hotspots',
-    layerBasins: 'Major River Basins of Andhra Pradesh',
-    chooseBasin: 'Choose Specific River Basin to Inspect:',
-    allBasins: 'All Major AP River Basins',
-    section2: '2. MAP BASEMAP THEME',
-    themeSatellite: 'ISRO Bhuvan Satellite (Default)',
-    themeSatelliteDesc: 'High-resolution ISRO satellite imagery & boundaries',
-    themeLightGis: 'Nir-ikshan Portal Theme (Light)',
-    themeLightGisDesc: 'Clean GIS cartography matching portal style',
-    themeTopo: 'Topographic Relief',
-    themeTopoDesc: 'Terrain relief & catchment elevation',
-    section3: '3. BRIGHTNESS & CONTRAST CALIBRATION',
-    brightness: 'Brightness:',
-    contrast: 'Contrast:',
-    darker: '60% (Darker)',
-    defaultVal: '100% (Default)',
-    brighter: '140% (Brighter)',
-    softer: '70% (Softer)',
-    highContrast: '150% (High contrast)',
-    resetDefaults: 'Reset Defaults',
-    cancel: 'Cancel',
-    saveApply: 'Save & Apply Settings',
-    surveillanceGeofence: 'Surveillance Geofence',
-    stateAp: 'State of Andhra Pradesh (26 Districts)',
-    sourceCreds: 'Source: ISRO NRSC Bhuvan • APWRIMS • CWC National Grid',
-  },
-  hi: {
-    headerTitle: 'आंध्र प्रदेश उपग्रह निगरानी ग्रिड',
-    geoLocked: 'एपी भू-सीमाबद्ध',
-    telemetrySummary: '100% वास्तविक एपी टेलीमेट्री: इसरो भुवन उपग्रह इमेजरी • 113 जलाशय • 594 डीडब्ल्यूएलआर कुएं • सीडब्ल्यूसी नदी गेज',
-    settingsBtn: 'फ़िल्टर एवं मानचित्र सेटिंग्स',
-    allDistricts: 'सभी 26 एपी जिले',
-    fitAp: 'एपी पर केंद्रित करें',
-    legendTitle: 'आंध्र प्रदेश जल ग्रिड',
-    liveApwrims: 'लाइव APWRIMS',
-    reservoirsCount: '113 जलाशय',
-    dwlrSafe: 'डीडब्ल्यूएलआर सुरक्षित (<20m)',
-    dwlrStress: 'डीडब्ल्यूएलआर तनाव',
-    dwlrCritical: 'डीडब्ल्यूएलआर संकट (>40m)',
-    riverGauges: 'नदी गेज',
-    grievances: 'सक्रिय शिकायतें',
-    inspectorTitle: 'टेलीमेट्री स्टेशन निरीक्षक',
-    issueSlaDirective: 'एसएलए निर्देश जारी करें',
-    reassign: 'पुनः सौंपें',
-    currentStorage: 'वर्तमान भंडारण',
-    grossCapacity: 'कुल क्षमता',
-    fillPercentage: 'भरण प्रतिशत',
-    inflow: 'आवक प्रवाह',
-    currentLevel: 'वर्तमान जल स्तर',
-    frl: 'पूर्ण जलाशय स्तर (FRL)',
-    spillwayStatus: 'स्पिलवे स्थिति',
-    monitoredBodies: 'निगरानी अधीन जल निकाय',
-    groundwaterDtwl: 'भूजल गहराई (DTWL)',
-    officerInCharge: 'प्रभारी अधिकारी',
-    modalTitle: 'मानचित्र टेलीमेट्री फ़िल्टर एवं कार्टोग्राफी सेटिंग्स',
-    modalDesc: 'राज्य निगरानी के लिए इसरो भुवन उपग्रह जीआईएस कार्टोग्राफी, प्रदर्शित टेलीमेट्री परतें और उपग्रह कंट्रास्ट कॉन्फ़िगर करें।',
-    section1: '1. हाइड्रोलॉजिकल टेलीमेट्री परत का चयन करें',
-    layerAll: 'सभी हाइड्रोलॉजिकल परतें',
-    layerReservoirs: 'प्रमुख जलाशय एवं बांध',
-    layerRivers: 'नदी गेज एवं डिस्चार्ज (क्यूसेक)',
-    layerGroundwater: 'सीजीडब्ल्यूबी भूजल डीडब्ल्यूएलआर',
-    layerComplaints: 'नागरिक शिकायत हॉटस्पॉट',
-    layerBasins: 'आंध्र प्रदेश के प्रमुख नदी बेसिन',
-    chooseBasin: 'विशिष्ट नदी बेसिन का चयन करें:',
-    allBasins: 'सभी प्रमुख एपी नदी बेसिन',
-    section2: '2. मानचित्र आधार थीम',
-    themeSatellite: 'इसरो भुवन उपग्रह (डिफ़ॉल्ट)',
-    themeSatelliteDesc: 'उच्च-रिज़ॉल्यूशन इसरो उपग्रह इमेजरी और सीमाएं',
-    themeLightGis: 'निरीक्षण पोर्टल थीम (लाइट)',
-    themeLightGisDesc: 'पोर्टल शैली से मेल खाती स्वच्छ जीआईएस कार्टोग्राफी',
-    themeTopo: 'स्थलाकृतिक बेसिन रिलीफ',
-    themeTopoDesc: 'भूभाग रिलीफ एवं जलग्रहण ऊंचाई',
-    section3: '3. चमक एवं कंट्रास्ट अंशांकन',
-    brightness: 'चमक:',
-    contrast: 'कंट्रास्ट:',
-    darker: '60% (गहरा)',
-    defaultVal: '100% (डिफ़ॉल्ट)',
-    brighter: '140% (उज्ज्वल)',
-    softer: '70% (सौम्य)',
-    highContrast: '150% (उच्च कंट्रास्ट)',
-    resetDefaults: 'डिफ़ॉल्ट पर रीसेट करें',
-    cancel: 'रद्द करें',
-    saveApply: 'सेटिंग्स सहेजें एवं लागू करें',
-    surveillanceGeofence: 'निगरानी जियोफेंस',
-    stateAp: 'आंध्र प्रदेश राज्य (26 जिले)',
-    sourceCreds: 'स्रोत: इसरो एनआरएससी भुवन • एपीडब्ल्यूआरआईएमएस • सीडब्ल्यूसी नेशनल ग्रिड',
-  },
-  te: {
-    headerTitle: 'ఆంధ్రప్రదేశ్ ఉపగ్రహ నిఘా గ్రిడ్',
-    geoLocked: 'ఏపీ జియో-లాక్ చేయబడింది',
-    telemetrySummary: '100% వాస్తవ ఏపీ టెలిమెట్రీ: ఇస్రో భువన్ ఉపగ్రహ చిత్రాలు • 113 జలాశయాలు • 594 DWLR బావులు • CWC నదీ గేజ్‌లు',
-    settingsBtn: 'ఫిల్టర్లు & మ్యాప్ సెట్టింగ్‌లు',
-    allDistricts: 'అన్ని 26 ఏపీ జిల్లాలు',
-    fitAp: 'ఏపీకి రీసెట్',
-    legendTitle: 'ఆంధ్రప్రదేశ్ జల గ్రిడ్',
-    liveApwrims: 'లైవ్ APWRIMS',
-    reservoirsCount: '113 జలాశయాలు',
-    dwlrSafe: 'సురక్షిత భూగర్భ జలాలు (<20మీ)',
-    dwlrStress: 'భూగర్భ జల ఒత్తిడి',
-    dwlrCritical: 'తీవ్ర సంక్షోభం (>40మీ)',
-    riverGauges: 'నదీ గేజ్‌లు',
-    grievances: 'క్రియాశీల ఫిర్యాదులు',
-    inspectorTitle: 'టెలిమెట్రీ స్టేషన్ ఇన్‌స్పెక్టర్',
-    issueSlaDirective: 'SLA ఆదేశం జారీ చేయండి',
-    reassign: 'మరొకరికి కేటాయించండి',
-    currentStorage: 'ప్రస్తుత నిల్వ',
-    grossCapacity: 'స్థూల సామర్థ్యం',
-    fillPercentage: 'నిల్వ శాతం',
-    inflow: 'ఇన్‌ఫ్లో',
-    currentLevel: 'ప్రస్తుత నీటి మట్టం',
-    frl: 'పూర్తి జలాశయ మట్టం (FRL)',
-    spillwayStatus: 'స్పిల్‌వే స్థితి',
-    monitoredBodies: 'పర్యవేక్షించబడుతున్న జలాశయాలు',
-    groundwaterDtwl: 'భూగర్భ జల మట్టం (DTWL)',
-    officerInCharge: 'ఇన్‌చార్జ్ అధికారి',
-    modalTitle: 'మ్యాప్ టెలిమెట్రీ ఫిల్టర్లు & కార్టోగ్రఫీ సెట్టింగ్‌లు',
-    modalDesc: 'రాష్ట్ర పర్యవేక్షణ కోసం ఇస్రో భువన్ శాటిలైట్ GIS కార్టోగ్రఫీ, టెలిమెట్రీ పొరలు మరియు కాంట్రాస్ట్‌ను కాన్ఫిగర్ చేయండి.',
-    section1: '1. హైడ్రోలాజికల్ టెలిమెట్రీ పొరను ఎంచుకోండి',
-    layerAll: 'అన్ని హైడ్రోలాజికల్ పొరలు',
-    layerReservoirs: 'ప్రధాన జలాశయాలు & ఆనకట్టలు',
-    layerRivers: 'నదీ గేజ్‌లు & డిశ్చార్జ్ (క్యూసెక్కులు)',
-    layerGroundwater: 'CGWB భూగర్భ జలాల DWLR బావులు',
-    layerComplaints: 'పౌర ఫిర్యాదుల హాట్‌స్పాట్‌లు',
-    layerBasins: 'ఆంధ్రప్రదేశ్ ప్రధాన నదీ పరివాహక ప్రాంతాలు',
-    chooseBasin: 'పరిశీలించడానికి నిర్దిష్ట నదీ పరివాహక ప్రాంతాన్ని ఎంచుకోండి:',
-    allBasins: 'అన్ని ప్రధాన ఏపీ నదీ పరివాహక ప్రాంతాలు',
-    section2: '2. మ్యాప్ బేస్‌మ్యాప్ థీమ్',
-    themeSatellite: 'ఇస్రో భువన్ శాటిలైట్ (డిఫాల్ట్)',
-    themeSatelliteDesc: 'హై-రిజల్యూషన్ ఇస్రో ఉపగ్రహ చిత్రాలు & సరిహద్దులు',
-    themeLightGis: 'నిరీక్షణ పోర్టల్ థీమ్ (లైట్)',
-    themeLightGisDesc: 'పోర్టల్ శైలికి సరిపోయే క్లీన్ GIS కార్టోగ్రఫీ',
-    themeTopo: 'టోపోగ్రాఫిక్ రిలీఫ్',
-    themeTopoDesc: 'భూభాగం మరియు నదీ పరివాహక ఎత్తు',
-    section3: '3. ప్రకాశం & కాంట్రాస్ట్ క్యాలిబ్రేషన్',
-    brightness: 'ప్రకాశం:',
-    contrast: 'కాంట్రాస్ట్:',
-    darker: '60% (చీకటిగా)',
-    defaultVal: '100% (డిఫాల్ట్)',
-    brighter: '140% (ప్రకాశవంతంగా)',
-    softer: '70% (మృదువుగా)',
-    highContrast: '150% (అధిక కాంట్రాస్ట్)',
-    resetDefaults: 'డిఫాల్ట్‌లకు రీసెట్ చేయండి',
-    cancel: 'రద్దు చేయండి',
-    saveApply: 'సెట్టింగ్‌లను సేవ్ చేసి వర్తింపజేయండి',
-    surveillanceGeofence: 'నిఘా జియోఫెన్స్',
-    stateAp: 'ఆంధ్రప్రదేశ్ రాష్ట్రం (26 జిల్లాలు)',
-    sourceCreds: 'మూలం: ఇస్రో ఎన్‌ఆర్‌ఎస్‌సి భువన్ • APWRIMS • CWC నేషనల్ గ్రిడ్',
-  }
-};
-
 export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
   complaints,
   selectedDistrict = 'all',
@@ -295,22 +81,13 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
   onDispatchReminder,
   onReassignComplaint,
 }) => {
-  const { language } = useLanguage();
-  const currentLang = (language as 'en' | 'hi' | 'te') || 'en';
-  const mapText = MAP_TEXT[currentLang] || MAP_TEXT.en;
-
-  const getDistrictDisplayName = (d: DistrictTelemetry) => {
-    if (currentLang === 'te') return d.teluguName || d.name;
-    if (currentLang === 'hi') return AP_DISTRICTS_HINDI[d.id] || d.name;
-    return d.name;
-  };
-
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const labelLayerRef = useRef<L.TileLayer | null>(null);
   const boundaryLayerRef = useRef<L.Polygon | null>(null);
   const maskLayerRef = useRef<L.Polygon | null>(null);
+  const selectedDistrictPolygonRef = useRef<L.Polygon | null>(null);
   const riverLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const markersLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
@@ -321,36 +98,26 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
   const [brightness, setBrightness] = useState<number>(100);
   const [contrast, setContrast] = useState<number>(100);
 
-  // Settings Modal State (Matching User Images 1 & 2)
+  // District Search & Filter State
+  const [filterDistrict, setFilterDistrict] = useState<string>(selectedDistrict);
+  const [districtSearchInput, setDistrictSearchInput] = useState<string>('');
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const [selectedBoundaryInfo, setSelectedBoundaryInfo] = useState<APDistrictBoundary | null>(null);
+
+  // Complaint Filter & Quick Fly-to State (Next to Search Bar & District)
+  const [complaintStatusFilter, setComplaintStatusFilter] = useState<'all' | 'SUBMITTED' | 'WORKER_IN_PROGRESS' | 'RESOLVED'>('all');
+  const [selectedComplaintValue, setSelectedComplaintValue] = useState<string>('all');
+
+  // Dedicated Telemetry Flashcard State (Integrated with District Profile from Image 1)
+  const [activeFlashcard, setActiveFlashcard] = useState<TelemetryFlashcardData | null>(null);
+
+  // Settings Modal State
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [tempFilterLayer, setTempFilterLayer] = useState<'all' | 'reservoirs' | 'rivers' | 'groundwater' | 'complaints' | 'rainfall' | 'basins'>('all');
   const [tempBasemapTheme, setTempBasemapTheme] = useState<'satellite' | 'light_gis' | 'topo'>('satellite');
   const [tempBasin, setTempBasin] = useState<string>('All Basins');
   const [tempBrightness, setTempBrightness] = useState<number>(100);
   const [tempContrast, setTempContrast] = useState<number>(100);
-
-  // Selected item on map for side drawer
-  const [selectedItem, setSelectedItem] = useState<{
-    type: 'complaint' | 'reservoir' | 'district' | 'gauge' | 'groundwater' | 'rainfall';
-    data: any;
-  } | null>(null);
-  const [isLockedToAP, setIsLockedToAP] = useState<boolean>(true);
-  const [filterDistrict, setFilterDistrict] = useState<string>(selectedDistrict);
-
-  // Sync internal filterDistrict with external selectedDistrict
-  useEffect(() => {
-    if (selectedDistrict && selectedDistrict !== filterDistrict) {
-      setFilterDistrict(selectedDistrict);
-      if (selectedDistrict !== 'all' && mapInstanceRef.current) {
-        const dist = ANDHRA_PRADESH_26_DISTRICTS.find(
-          d => d.name.toLowerCase() === selectedDistrict.toLowerCase()
-        );
-        if (dist && dist.centerCoords) {
-          mapInstanceRef.current.flyTo([dist.centerCoords.lat, dist.centerCoords.lng], 9.5, { duration: 1.2 });
-        }
-      }
-    }
-  }, [selectedDistrict]);
 
   // AP Strict Bounds
   const apBounds = useMemo(() => {
@@ -360,6 +127,273 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     );
   }, []);
 
+  // Filtered complaints based on district and status
+  const filteredComplaints = useMemo(() => {
+    return complaints.filter(c => {
+      // District filter
+      if (filterDistrict !== 'all') {
+        const matchesDistrict = (c.district || '').toLowerCase().includes(filterDistrict.toLowerCase());
+        if (!matchesDistrict) return false;
+      }
+      // Status filter
+      if (complaintStatusFilter !== 'all') {
+        if (c.status !== complaintStatusFilter) return false;
+      }
+      return true;
+    });
+  }, [complaints, filterDistrict, complaintStatusFilter]);
+
+  const submittedCount = useMemo(() => complaints.filter(c => c.status === 'SUBMITTED').length, [complaints]);
+  const wipCount = useMemo(() => complaints.filter(c => c.status === 'WORKER_IN_PROGRESS').length, [complaints]);
+  const resolvedCount = useMemo(() => complaints.filter(c => c.status === 'RESOLVED').length, [complaints]);
+
+  // Autocomplete search suggestions across 26 districts AND complaints
+  const searchSuggestions = useMemo(() => {
+    if (!districtSearchInput.trim()) return [];
+    const q = districtSearchInput.toLowerCase().trim();
+
+    const districts = Object.values(AP_26_DISTRICT_BOUNDARIES).filter(d => 
+      d.name.toLowerCase().includes(q) ||
+      d.headquarter.toLowerCase().includes(q) ||
+      d.region.toLowerCase().includes(q)
+    ).map(d => ({
+      type: 'district' as const,
+      id: d.id,
+      title: `${d.name} District`,
+      subtitle: `HQ: ${d.headquarter} • ${d.region} Region`,
+      meta: `${d.areaSqKm.toLocaleString()} km²`,
+      data: d
+    }));
+
+    const matchingComplaints = complaints.filter(c =>
+      c.id.toLowerCase().includes(q) ||
+      (c.district || '').toLowerCase().includes(q) ||
+      (c.shortDescription || '').toLowerCase().includes(q) ||
+      (c.wasteType || '').toLowerCase().includes(q)
+    ).slice(0, 4).map(c => ({
+      type: 'complaint' as const,
+      id: c.id,
+      title: `${c.id}: ${(c.shortDescription || c.wasteType || '').slice(0, 32)}...`,
+      subtitle: `${c.locationLandmark || 'Location'}, ${c.district} (${c.status})`,
+      meta: c.status,
+      data: c
+    }));
+
+    return [...districts, ...matchingComplaints].slice(0, 7);
+  }, [districtSearchInput, complaints]);
+
+  // Sync internal filterDistrict with external selectedDistrict
+  useEffect(() => {
+    if (selectedDistrict && selectedDistrict !== filterDistrict) {
+      applyDistrictSelection(selectedDistrict);
+    }
+  }, [selectedDistrict]);
+
+  // Open Dedicated Citizen Complaint Flashcard
+  const openComplaintFlashcard = (complaint: CitizenComplaint) => {
+    let lat = complaint.coordinates?.lat;
+    let lng = complaint.coordinates?.lng;
+
+    if (!lat || !lng || lat < 12.0 || lat > 20.0 || lng < 76.0 || lng > 85.5) {
+      const boundary = findAPDistrictBoundary(complaint.district || '');
+      if (boundary) {
+        const hash = complaint.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const angle = (hash % 360) * (Math.PI / 180);
+        const radius = 0.035 + ((hash % 8) * 0.007);
+        lat = boundary.center[0] + Math.sin(angle) * radius;
+        lng = boundary.center[1] + Math.cos(angle) * radius;
+      }
+    }
+    if (!lat || !lng) return;
+
+    const isResolved = complaint.status === 'RESOLVED';
+    const isAction = complaint.status === 'WORKER_IN_PROGRESS';
+    const boundary = findAPDistrictBoundary(complaint.district || '');
+
+    setActiveFlashcard({
+      type: 'complaint',
+      title: complaint.wasteType || 'Citizen Water Grievance',
+      subtitle: `${complaint.locationLandmark || 'Site'}, ${complaint.mandal || ''} (${complaint.district})`,
+      district: complaint.district || 'Andhra Pradesh',
+      lat: lat,
+      lng: lng,
+      categoryBadge: 'Citizen Water Grievance (PGRS)',
+      networkBadge: 'SLA 72h Tracked',
+      districtProfile: boundary ? {
+        districtName: boundary.name,
+        areaSqKm: boundary.areaSqKm,
+        headquarter: boundary.headquarter,
+        region: boundary.region,
+        onResetDistrict: () => applyDistrictSelection('all')
+      } : undefined,
+      primaryMetricLabel: 'GRIEVANCE STATUS',
+      primaryMetricValue: complaint.status === 'SUBMITTED' ? 'Submitted' : complaint.status === 'WORKER_IN_PROGRESS' ? 'In Progress' : 'Resolved',
+      primaryMetricSub: `ID: ${complaint.id}`,
+      secondaryMetricLabel: 'SLA STANDARD',
+      secondaryMetricValue: '72 Hours',
+      secondaryMetricSub: 'Under APWRIMS PGRS Rule',
+      baselineLabel: 'Assigned Nodal Authority',
+      baselineValue: complaint.assignedNodalOfficer || 'District Command',
+      statusText: complaint.status === 'RESOLVED' 
+        ? 'Redressal Verified by Field Inspector' 
+        : complaint.status === 'WORKER_IN_PROGRESS'
+        ? 'Field Team Dispatched for Action'
+        : 'Pending Nodal Officer Field Action',
+      statusColor: isResolved ? 'emerald' : isAction ? 'amber' : 'rose',
+      metricExtraRight: complaint.id,
+      complaintData: {
+        id: complaint.id,
+        citizenName: complaint.citizenName,
+        citizenPhone: complaint.citizenPhone,
+        status: complaint.status,
+        description: complaint.shortDescription || complaint.wasteType || 'Water pollution report',
+        landmark: complaint.locationLandmark || '',
+        assignedNodal: complaint.assignedNodalOfficer,
+        photoUrl: complaint.photoUrl,
+        submittedAt: (complaint as any).submittedAt,
+        wasteType: (complaint as any).wasteType
+      }
+    });
+  };
+
+  // Direct Fly-to Citizen Complaint Pin and Open its Flashcard
+  const flyToComplaint = (complaintId: string) => {
+    const complaint = complaints.find(c => c.id === complaintId);
+    if (!complaint) return;
+
+    let lat = complaint.coordinates?.lat;
+    let lng = complaint.coordinates?.lng;
+
+    if (!lat || !lng || lat < 12.0 || lat > 20.0 || lng < 76.0 || lng > 85.5) {
+      const boundary = findAPDistrictBoundary(complaint.district || '');
+      if (boundary) {
+        const hash = complaint.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const angle = (hash % 360) * (Math.PI / 180);
+        const radius = 0.035 + ((hash % 8) * 0.007);
+        lat = boundary.center[0] + Math.sin(angle) * radius;
+        lng = boundary.center[1] + Math.cos(angle) * radius;
+      }
+    }
+    if (!lat || !lng) return;
+
+    const map = mapInstanceRef.current;
+    if (map) {
+      map.flyTo([lat, lng], 13.5, { duration: 1.2 });
+    }
+
+    if (complaint.district && complaint.district.toLowerCase() !== filterDistrict.toLowerCase()) {
+      applyDistrictSelection(complaint.district, false);
+    }
+
+    openComplaintFlashcard(complaint);
+  };
+
+  // Handle District Selection with Glowing Polygon Highlight, Zoom & Integrated Flashcard
+  const applyDistrictSelection = (districtName: string, shouldFly: boolean = true) => {
+    setFilterDistrict(districtName);
+    if (onSelectDistrict) onSelectDistrict(districtName);
+
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    // Remove existing district polygon highlight if any
+    if (selectedDistrictPolygonRef.current) {
+      map.removeLayer(selectedDistrictPolygonRef.current);
+      selectedDistrictPolygonRef.current = null;
+    }
+
+    if (districtName === 'all') {
+      setSelectedBoundaryInfo(null);
+      if (shouldFly) {
+        map.flyToBounds(apBounds, { padding: [20, 20], duration: 1.2 });
+      }
+      return;
+    }
+
+    const boundary = findAPDistrictBoundary(districtName);
+    if (boundary) {
+      setSelectedBoundaryInfo(boundary);
+
+      // 1. Draw glowing highlighted polygon for the selected district (interactive: false so markers receive clicks)
+      const districtPoly = L.polygon(boundary.polygon, {
+        color: '#00B4D8', // Bright glowing cyan border
+        weight: 4,
+        opacity: 0.98,
+        fillColor: '#0077B6', // Translucent blue area fill
+        fillOpacity: basemapTheme === 'satellite' ? 0.22 : 0.16,
+        dashArray: '5, 5',
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false,
+        className: 'ap-selected-district-boundary'
+      }).addTo(map);
+
+      selectedDistrictPolygonRef.current = districtPoly;
+
+      districtPoly.bindTooltip(
+        `<div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 800; color: #03045E; background: #ffffff; padding: 6px 12px; border-radius: 12px; border: 1.5px solid #00B4D8; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+          🏛️ ${boundary.name} District<br/>
+          <span style="font-size: 10px; font-weight: 600; color: #0077B6;">Area: ${boundary.areaSqKm.toLocaleString()} sq km • HQ: ${boundary.headquarter}</span>
+        </div>`,
+        { sticky: true, opacity: 0.98 }
+      );
+
+      selectedDistrictPolygonRef.current = districtPoly;
+
+      // 2. Fly & Fit Map to District Boundary
+      if (shouldFly) {
+        const districtLatLngBounds = L.latLngBounds(boundary.bounds);
+        map.flyToBounds(districtLatLngBounds.pad(0.12), { duration: 1.2 });
+      }
+
+      // 3. Immediately set the Telemetry Flashcard with integrated District Profile (First Image into Second Image)
+      const distData = ANDHRA_PRADESH_26_DISTRICTS.find(
+        d => d.name.toLowerCase() === boundary.name.toLowerCase()
+      );
+      const distComplaints = complaints.filter(c => 
+        (c.district || '').toLowerCase().includes(boundary.name.toLowerCase())
+      );
+
+      setActiveFlashcard({
+        type: 'district',
+        title: `${boundary.name} District Command`,
+        subtitle: `${boundary.region} Region, Andhra Pradesh`,
+        district: boundary.name,
+        lat: boundary.center[0],
+        lng: boundary.center[1],
+        categoryBadge: '26 AP District Command',
+        networkBadge: 'APWRIMS HQ',
+        districtProfile: {
+          districtName: boundary.name,
+          areaSqKm: boundary.areaSqKm,
+          headquarter: boundary.headquarter,
+          region: boundary.region,
+          onResetDistrict: () => applyDistrictSelection('all')
+        },
+        primaryMetricLabel: 'MONITORED WATER BODIES',
+        primaryMetricValue: `${distData?.totalWaterBodiesCount || 24} Bodies`,
+        primaryMetricSub: `Sites under active surveillance: ${distData?.monitoredSitesCount || 18}`,
+        secondaryMetricLabel: 'GROUNDWATER DTWL',
+        secondaryMetricValue: `${distData?.wrisTelemetry?.groundwaterDepthMbgl || 12.4} mbgl`,
+        secondaryMetricSub: distData?.wrisTelemetry?.groundwaterTrend || 'Optimal Aquifer Table',
+        baselineLabel: 'Primary Reservoir & Storage',
+        baselineValue: `${distData?.wrisTelemetry?.primaryReservoir || 'District Irrigation Dam'} (${distData?.wrisTelemetry?.storagePercentage || 76}%)`,
+        statusText: distComplaints.length > 0 
+          ? `${distComplaints.length} Active Citizen Grievances in District` 
+          : 'Optimal District Hydrological Balance',
+        statusColor: distComplaints.length > 2 ? 'amber' : 'emerald',
+        metricExtraRight: `HQ: ${boundary.headquarter}`,
+        additionalInfo: distData?.officerInCharge ? [
+          { label: 'Officer In-Charge', value: distData.officerInCharge.name },
+          { label: 'Designation & Phone', value: `${distData.officerInCharge.designation} (${distData.officerInCharge.phone})` }
+        ] : [
+          { label: 'Headquarters', value: boundary.headquarter },
+          { label: 'Region', value: boundary.region }
+        ]
+      });
+    }
+  };
+
   // 1. Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -368,10 +402,10 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       const map = L.map(mapContainerRef.current, {
         center: [16.25, 80.65], // Center of Andhra Pradesh near Amaravati / Vijayawada
         zoom: 7.2,
-        minZoom: 6.8,
-        maxZoom: 16,
+        minZoom: 6.6,
+        maxZoom: 17,
         maxBounds: apBounds,
-        maxBoundsViscosity: 1.0, // Hard lock to AP
+        maxBoundsViscosity: 0.85,
         zoomControl: false,
         attributionControl: false
       });
@@ -443,12 +477,12 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     maskLayerRef.current = L.polygon(WORLD_MASK_POLYGON, {
       color: 'transparent',
       fillColor: '#03045E',
-      fillOpacity: basemapTheme === 'satellite' ? 0.40 : 0.25,
+      fillOpacity: basemapTheme === 'satellite' ? 0.38 : 0.22,
       stroke: false,
       interactive: false
     }).addTo(map);
 
-    // Glowing Andhra Pradesh Boundary Highlight
+    // Glowing Andhra Pradesh State Boundary Highlight
     if (boundaryLayerRef.current) {
       map.removeLayer(boundaryLayerRef.current);
     }
@@ -463,19 +497,6 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     }).addTo(map);
 
   }, [basemapTheme, apBounds]);
-
-  // Lock / Unlock toggle
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    if (isLockedToAP) {
-      map.setMaxBounds(apBounds);
-      map.options.maxBoundsViscosity = 1.0;
-    } else {
-      map.setMaxBounds(undefined);
-    }
-  }, [isLockedToAP, apBounds]);
 
   // 2. Render River Flow Vectors & Basins
   useEffect(() => {
@@ -496,22 +517,51 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const polyline = L.polyline(river.coordinates, {
           color: '#38bdf8', // Luminous sky blue
           weight: basemapTheme === 'satellite' ? 4 : 3,
-          opacity: 0.9,
+          opacity: 0.92,
           lineCap: 'round',
           lineJoin: 'round'
         });
 
         polyline.bindTooltip(
-          `<div class="text-xs font-bold text-[#03045E] px-1 py-0.5">${river.name} (${river.basin})</div>`,
-          { sticky: true, className: 'leaflet-custom-tooltip' }
+          `<div class="text-xs font-bold text-[#03045E] px-2 py-1 rounded bg-white border border-sky-200 shadow-sm">
+            🌊 ${river.name}<br/>
+            <span class="text-[10px] text-slate-500 font-normal">${river.basin} Basin</span>
+          </div>`,
+          { sticky: true }
         );
+
+        polyline.on('click', () => {
+          const midPoint = river.coordinates[Math.floor(river.coordinates.length / 2)];
+          setActiveFlashcard({
+            type: 'gauge',
+            title: river.name,
+            subtitle: `${river.basin} Basin, Andhra Pradesh`,
+            basin: river.basin,
+            district: 'Andhra Pradesh',
+            lat: midPoint[0],
+            lng: midPoint[1],
+            categoryBadge: 'CWC & APWRIMS River Vector',
+            networkBadge: 'AP River Network',
+            primaryMetricLabel: 'RIVER STATUS',
+            primaryMetricValue: 'Regulated Flow',
+            primaryMetricSub: 'Monitored across Andhra Pradesh Basin',
+            secondaryMetricLabel: 'BASIN EXTENT',
+            secondaryMetricValue: `${river.coordinates.length} Vector Waypoints`,
+            secondaryMetricSub: 'CWC Southern Region Grid',
+            baselineLabel: 'Origin to Discharge Sink',
+            baselineValue: 'Bay of Bengal Outfall',
+            statusText: 'Normal Seasonal River Discharge',
+            statusColor: 'emerald',
+            metricExtraRight: 'CWC Hydrological Grid'
+          });
+        });
 
         polyline.addTo(riverGroup);
       });
     }
   }, [activeLayerFilter, basemapTheme, selectedBasin]);
 
-  // 3. Render 100% Real Andhra Pradesh Telemetry Data Markers
+  // 3. Render 100% Real Andhra Pradesh Telemetry Data Markers + All Citizen Grievances
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersGroup = markersLayerGroupRef.current;
@@ -519,25 +569,21 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
     markersGroup.clearLayers();
 
-    // A. AP 26 District Centers (Highlighted & interactive)
+    // A. 26 District Headquarters / Centroids (Interactive Pins)
     ANDHRA_PRADESH_26_DISTRICTS.forEach(dist => {
-      if (filterDistrict !== 'all' && dist.name.toLowerCase() !== filterDistrict.toLowerCase()) {
-        return;
-      }
+      const isSelected = filterDistrict.toLowerCase() === dist.name.toLowerCase();
 
-      // Count real complaints in this district
+      // Count complaints in this district
       const distComplaints = complaints.filter(
         c => (c.district || '').toLowerCase().includes(dist.name.toLowerCase())
       );
 
-      const isSelected = filterDistrict.toLowerCase() === dist.name.toLowerCase();
-
       const markerHtml = `
         <div class="relative group cursor-pointer">
-          <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-[#00B4D8] ring-4 ring-[#0077B6]/40 scale-125' : 'bg-[#03045E]/90'} text-white border-2 border-[#00B4D8] shadow-lg flex items-center justify-center font-bold text-[10px] transform hover:scale-125 transition-transform">
+          <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-[#00B4D8] ring-4 ring-[#0077B6]/50 scale-125' : 'bg-[#03045E]/90'} text-white border-2 border-white shadow-lg flex items-center justify-center font-black text-[10px] transform hover:scale-125 transition-transform">
             ${distComplaints.length > 0 ? distComplaints.length : 'AP'}
           </div>
-          <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 text-[#03045E] text-[10px] font-bold px-2 py-0.5 rounded shadow-sm border border-slate-200 pointer-events-none">
+          <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 text-[#03045E] text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs border border-slate-200 pointer-events-none">
             ${dist.name}
           </div>
         </div>
@@ -552,21 +598,38 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
       const marker = L.marker([dist.centerCoords.lat, dist.centerCoords.lng], { icon: customIcon });
       marker.on('click', () => {
-        setSelectedItem({ type: 'district', data: dist });
+        applyDistrictSelection(dist.name);
       });
 
       marker.addTo(markersGroup);
     });
 
-    // B. Real Citizen Complaints in Andhra Pradesh
+    // B. Real Citizen Grievances / Complaints in Andhra Pradesh (Plotted 100% Guaranteed)
     if (activeLayerFilter === 'all' || activeLayerFilter === 'complaints') {
       complaints.forEach(complaint => {
-        if (!complaint.coordinates?.lat || !complaint.coordinates?.lng) return;
+        let lat = complaint.coordinates?.lat;
+        let lng = complaint.coordinates?.lng;
 
-        const { lat, lng } = complaint.coordinates;
-        if (lat < 12.0 || lat > 20.0 || lng < 76.0 || lng > 85.5) return;
+        // Fallback to district centroid with pseudo-random jitter if missing or out of AP bounds
+        if (!lat || !lng || lat < 12.0 || lat > 20.0 || lng < 76.0 || lng > 85.5) {
+          const boundary = findAPDistrictBoundary(complaint.district || '');
+          if (boundary) {
+            const hash = complaint.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const angle = (hash % 360) * (Math.PI / 180);
+            const radius = 0.035 + ((hash % 8) * 0.007);
+            lat = boundary.center[0] + Math.sin(angle) * radius;
+            lng = boundary.center[1] + Math.cos(angle) * radius;
+          }
+        }
+        if (!lat || !lng) return;
 
+        // District filter
         if (filterDistrict !== 'all' && !(complaint.district || '').toLowerCase().includes(filterDistrict.toLowerCase())) {
+          return;
+        }
+
+        // Status filter
+        if (complaintStatusFilter !== 'all' && complaint.status !== complaintStatusFilter) {
           return;
         }
 
@@ -576,11 +639,11 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
         const markerHtml = `
           <div class="relative cursor-pointer group">
-            <span class="absolute -top-1 -right-1 flex h-3 w-3">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${badgeBg} opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3 ${badgeBg}"></span>
+            <span class="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${badgeBg} opacity-80"></span>
+              <span class="relative inline-flex rounded-full h-3.5 w-3.5 ${badgeBg}"></span>
             </span>
-            <div class="w-8 h-8 rounded-2xl ${badgeBg} border-2 border-white shadow-xl flex items-center justify-center text-white transform hover:scale-125 transition-transform">
+            <div class="w-8 h-8 rounded-2xl ${badgeBg} border-2 border-white shadow-xl flex items-center justify-center text-white transform hover:scale-130 transition-transform">
               <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 10h2v4h-2zm0 6h2v2h-2z"/>
               </svg>
@@ -595,16 +658,21 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
           iconAnchor: [16, 16]
         });
 
-        const marker = L.marker([lat, lng], { icon });
-        marker.on('click', () => {
-          setSelectedItem({ type: 'complaint', data: complaint });
+        const marker = L.marker([lat, lng], { 
+          icon,
+          zIndexOffset: 25000
+        });
+
+        marker.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          openComplaintFlashcard(complaint);
         });
 
         marker.addTo(markersGroup);
       });
     }
 
-    // C. 113 AP Official Reservoirs
+    // C. All 113 AP Official Reservoirs & Dams
     if (activeLayerFilter === 'all' || activeLayerFilter === 'reservoirs') {
       AP_OFFICIAL_RESERVOIRS.forEach(res => {
         if (!res.geoCoords?.lat || !res.geoCoords?.lng) return;
@@ -617,28 +685,142 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const colorClass = isLow ? 'bg-rose-600 border-rose-300' : 'bg-blue-600 border-sky-300';
 
         const markerHtml = `
-          <div class="w-6 h-6 rounded-full ${colorClass} border-2 text-white shadow-md flex items-center justify-center text-[9px] font-black cursor-pointer hover:scale-125 transition-transform" title="${res.name}">
-            💧
+          <div class="relative cursor-pointer group">
+            <div class="w-7 h-7 rounded-full ${colorClass} border-2 shadow-lg flex items-center justify-center text-white transform hover:scale-130 transition-transform">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+              </svg>
+            </div>
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/90 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none">
+              ${res.currentStorageTMC} TMC
+            </div>
           </div>
         `;
 
         const icon = L.divIcon({
           html: markerHtml,
-          className: 'ap-reservoir-marker',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          className: 'ap-res-marker',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
         });
 
         const marker = L.marker([res.geoCoords.lat, res.geoCoords.lng], { icon });
+
         marker.on('click', () => {
-          setSelectedItem({ type: 'reservoir', data: res });
+          const currentLevelM = (res.currentLevelFeet * 0.3048).toFixed(1);
+          const frlEstimatedM = ((res.currentLevelFeet + (res.storagePercentage < 90 ? 8 : 2)) * 0.3048).toFixed(1);
+          const buffer = (Number(frlEstimatedM) - Number(currentLevelM)).toFixed(2);
+          const boundary = findAPDistrictBoundary(res.district || '');
+
+          setActiveFlashcard({
+            type: 'reservoir',
+            title: `${res.name} Reservoir`,
+            subtitle: `${res.mandal || 'Catchment'}, ${res.district} District`,
+            basin: `${res.basin} Basin`,
+            district: res.district,
+            lat: res.geoCoords.lat,
+            lng: res.geoCoords.lng,
+            categoryBadge: 'CWC & APWRIMS RSMS',
+            networkBadge: 'Reservoir Command',
+            agency: 'Central Water Commission (CWC) & AP Water Resources Dept',
+            districtProfile: boundary ? {
+              districtName: boundary.name,
+              areaSqKm: boundary.areaSqKm,
+              headquarter: boundary.headquarter,
+              region: boundary.region,
+              onResetDistrict: () => applyDistrictSelection('all')
+            } : undefined,
+            primaryMetricLabel: 'LIVE STORAGE',
+            primaryMetricValue: `${res.currentStorageTMC} TMC`,
+            primaryMetricSub: `Gross Capacity: ${res.grossCapacityTMC} TMC (${res.storagePercentage}% Full)`,
+            secondaryMetricLabel: 'WATER LEVEL',
+            secondaryMetricValue: `${currentLevelM} m`,
+            secondaryMetricSub: `Current Level: ${res.currentLevelFeet} ft`,
+            baselineLabel: 'Current Outflow Discharge',
+            baselineValue: `${res.outflowCusecs.toLocaleString()} Cusecs (Flood Cushion: ${res.floodCushionTMC} TMC)`,
+            statusText: res.alert || (res.storagePercentage > 85 ? 'Spillway Gates Regulated' : 'Normal Hydrological Operations'),
+            statusColor: res.storagePercentage > 85 ? 'amber' : res.storagePercentage < 25 ? 'rose' : 'emerald',
+            metricExtraRight: `${res.storagePercentage}% Full`
+          });
         });
 
         marker.addTo(markersGroup);
       });
     }
 
-    // D. 31 Official AP River Gauges & Cusecs Discharge
+    // D. CGWB Groundwater DWLR Stations (594 Wells in AP)
+    if (activeLayerFilter === 'all' || activeLayerFilter === 'groundwater') {
+      AP_GROUNDWATER_DTWL_2026.forEach(well => {
+        if (!well.lat || !well.lng) return;
+
+        if (filterDistrict !== 'all' && !(well.district || '').toLowerCase().includes(filterDistrict.toLowerCase())) {
+          return;
+        }
+
+        const isCritical = well.dtwlMbgl > 40;
+        const isSemiCritical = well.dtwlMbgl > 20;
+        const pinBg = isCritical ? 'bg-rose-500' : isSemiCritical ? 'bg-amber-500' : 'bg-emerald-500';
+
+        const markerHtml = `
+          <div class="relative cursor-pointer group">
+            <div class="w-6 h-6 rounded-full ${pinBg} border-2 border-white shadow-md flex items-center justify-center text-white transform hover:scale-130 transition-transform">
+              <span class="text-[9px] font-bold">W</span>
+            </div>
+          </div>
+        `;
+
+        const icon = L.divIcon({
+          html: markerHtml,
+          className: 'ap-gw-marker',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        const marker = L.marker([well.lat, well.lng], { icon });
+
+        marker.on('click', () => {
+          const boundary = findAPDistrictBoundary(well.district || '');
+
+          setActiveFlashcard({
+            type: 'groundwater',
+            title: `${well.village} DWLR Piezometer`,
+            subtitle: `${well.block} Block, ${well.district} District`,
+            district: well.district,
+            lat: well.lat,
+            lng: well.lng,
+            categoryBadge: 'CGWB National Grid',
+            networkBadge: 'DWLR Telemetry',
+            agency: 'Central Ground Water Board (CGWB) & AP Ground Water Dept',
+            districtProfile: boundary ? {
+              districtName: boundary.name,
+              areaSqKm: boundary.areaSqKm,
+              headquarter: boundary.headquarter,
+              region: boundary.region,
+              onResetDistrict: () => applyDistrictSelection('all')
+            } : undefined,
+            primaryMetricLabel: 'DEPTH TO WATER LEVEL',
+            primaryMetricValue: `${well.dtwlMbgl.toFixed(2)} mbgl`,
+            primaryMetricSub: well.wellType || 'Unconfined Weathered Aquifer',
+            secondaryMetricLabel: 'WATER TABLE STATUS',
+            secondaryMetricValue: well.statusLabel || well.status,
+            secondaryMetricSub: well.dtwlMbgl < 20 ? 'Optimal Water Table' : 'Deep Drawdown Stress',
+            baselineLabel: 'Pre-Monsoon 2026 Measurement',
+            baselineValue: 'Official CGWB Benchmark',
+            statusText: well.statusLabel || (well.dtwlMbgl < 20 
+              ? 'Stable Ground Aquifer Storage' 
+              : well.dtwlMbgl < 40 
+              ? 'Moderate Ground Drawdown - Managed Pumping' 
+              : 'Severe Aquifer Drawdown - Recharge Mandated'),
+            statusColor: isCritical ? 'rose' : isSemiCritical ? 'amber' : 'emerald',
+            metricExtraRight: `${well.dtwlMbgl.toFixed(1)}m bgl`
+          });
+        });
+
+        marker.addTo(markersGroup);
+      });
+    }
+
+    // E. CWC Official River Gauge Stations
     if (activeLayerFilter === 'all' || activeLayerFilter === 'rivers') {
       AP_OFFICIAL_RIVER_GAUGE_STATIONS.forEach(gauge => {
         if (!gauge.lat || !gauge.lng) return;
@@ -648,108 +830,131 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         }
 
         const markerHtml = `
-          <div class="w-5 h-5 rounded-md bg-cyan-600 border border-white text-white shadow-xs flex items-center justify-center text-[8px] cursor-pointer hover:scale-125 transition-transform" title="${gauge.name}">
-            〰
+          <div class="relative cursor-pointer group">
+            <div class="w-6 h-6 rounded-md bg-cyan-600 border-2 border-white shadow-md flex items-center justify-center text-white transform hover:scale-130 transition-transform">
+              <span class="text-[9px] font-bold">G</span>
+            </div>
           </div>
         `;
 
         const icon = L.divIcon({
           html: markerHtml,
           className: 'ap-gauge-marker',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
         });
 
         const marker = L.marker([gauge.lat, gauge.lng], { icon });
+
         marker.on('click', () => {
-          setSelectedItem({ type: 'gauge', data: gauge });
+          const boundary = findAPDistrictBoundary(gauge.district || '');
+
+          setActiveFlashcard({
+            type: 'gauge',
+            title: `${gauge.name} River Gauge`,
+            subtitle: `${gauge.district} District, Andhra Pradesh`,
+            basin: gauge.basin,
+            district: gauge.district,
+            lat: gauge.lat,
+            lng: gauge.lng,
+            categoryBadge: 'CWC River Telemetry',
+            networkBadge: 'Hydrological Grid',
+            agency: 'Central Water Commission (CWC) Southern Region',
+            districtProfile: boundary ? {
+              districtName: boundary.name,
+              areaSqKm: boundary.areaSqKm,
+              headquarter: boundary.headquarter,
+              region: boundary.region,
+              onResetDistrict: () => applyDistrictSelection('all')
+            } : undefined,
+            primaryMetricLabel: 'RIVER WATER LEVEL',
+            primaryMetricValue: (gauge.governmentDossier as any)?.waterLevelStage || 'Active Flow Stage',
+            primaryMetricSub: (gauge.governmentDossier as any)?.officialLocationDesc || 'CWC Surveillance Point',
+            secondaryMetricLabel: 'DISCHARGE RATE',
+            secondaryMetricValue: gauge.dischargeCusecs ? `${gauge.dischargeCusecs.toLocaleString()} Cusecs` : 'Regulated River Course',
+            secondaryMetricSub: gauge.trend || 'Steady Seasonal Flow',
+            baselineLabel: 'River Basin System',
+            baselineValue: gauge.riverName || gauge.basin,
+            statusText: gauge.statusLabel || 'Normal River Course Flow',
+            statusColor: gauge.status === 'red' ? 'rose' : gauge.status === 'yellow' ? 'amber' : 'emerald',
+            metricExtraRight: gauge.code || 'CWC Grid'
+          });
         });
 
         marker.addTo(markersGroup);
       });
     }
 
-    // E. 594 Groundwater Telemetry Stations (CGWB DWLR Wells)
-    if (activeLayerFilter === 'all' || activeLayerFilter === 'groundwater') {
-      const gwPool = filterDistrict !== 'all'
-        ? AP_GROUNDWATER_DTWL_2026.filter(gw => (gw.district || '').toLowerCase().includes(filterDistrict.toLowerCase()))
-        : AP_GROUNDWATER_DTWL_2026.slice(0, 250);
-
-      gwPool.forEach(gw => {
-        if (!gw.lat || !gw.lng) return;
-
-        const isCritical = gw.status === 'red' || gw.statusColor === 'red';
-        const isSemiCritical = gw.status === 'yellow' || gw.statusColor === 'yellow';
-        const colorClass = isCritical ? 'bg-rose-600' : isSemiCritical ? 'bg-amber-500' : 'bg-emerald-500';
-        const stationLabel = `${gw.village}, ${gw.block} (${gw.district}): ${gw.dtwlMbgl} mbgl`;
-
-        const markerHtml = `
-          <div class="w-3.5 h-3.5 rounded-full ${colorClass} border border-white shadow-xs cursor-pointer hover:scale-150 transition-transform" title="${stationLabel}">
-          </div>
-        `;
-
-        const icon = L.divIcon({
-          html: markerHtml,
-          className: 'ap-gw-marker',
-          iconSize: [14, 14],
-          iconAnchor: [7, 7]
-        });
-
-        const marker = L.marker([gw.lat, gw.lng], { icon });
-        marker.on('click', () => {
-          setSelectedItem({ type: 'groundwater', data: gw });
-        });
-
-        marker.addTo(markersGroup);
-      });
-    }
-
-    // F. Rainfall Telemetry (APWRIMS Mandal Weather Stations)
+    // F. APWRIMS Mandal Rainfall Stations
     if (activeLayerFilter === 'all' || activeLayerFilter === 'rainfall') {
-      const rainPool = filterDistrict !== 'all'
-        ? AP_MANDAL_WISE_RAINFALL_2026.filter(r => (r.district || '').toLowerCase().includes(filterDistrict.toLowerCase()))
-        : AP_MANDAL_WISE_RAINFALL_2026.slice(0, 150);
+      AP_MANDAL_WISE_RAINFALL_2026.forEach(rf => {
+        if (!rf.lat || !rf.lng) return;
 
-      rainPool.forEach(rain => {
-        if (!rain.lat || !rain.lng) return;
+        if (filterDistrict !== 'all' && !(rf.district || '').toLowerCase().includes(filterDistrict.toLowerCase())) {
+          return;
+        }
 
-        const isExcess = rain.status === 'Excess' || rain.status === 'Large Excess';
-        const isDeficient = rain.status === 'Deficient' || rain.status === 'Large Deficient';
-        const bgBadge = isExcess ? 'bg-sky-600' : isDeficient ? 'bg-amber-600' : 'bg-blue-600';
+        const isDeficient = rf.status === 'Deficient';
+        const colorClass = isDeficient ? 'bg-amber-600' : 'bg-sky-500';
 
         const markerHtml = `
-          <div class="w-4 h-4 rounded-full ${bgBadge} border border-white text-white shadow-xs flex items-center justify-center text-[8px] font-bold cursor-pointer hover:scale-150 transition-transform" title="${rain.mandal} (${rain.district}): ${rain.actualMm}mm">
-            🌧
+          <div class="relative cursor-pointer group">
+            <div class="w-6 h-6 rounded-full ${colorClass} border-2 border-white shadow-md flex items-center justify-center text-white transform hover:scale-130 transition-transform">
+              <span class="text-[9px] font-bold">🌧️</span>
+            </div>
           </div>
         `;
 
         const icon = L.divIcon({
           html: markerHtml,
-          className: 'ap-rain-marker',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
+          className: 'ap-rf-marker',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
         });
 
-        const marker = L.marker([rain.lat, rain.lng], { icon });
+        const marker = L.marker([rf.lat, rf.lng], { icon });
+
         marker.on('click', () => {
-          setSelectedItem({ type: 'rainfall', data: rain });
+          const boundary = findAPDistrictBoundary(rf.district || '');
+
+          setActiveFlashcard({
+            type: 'rainfall',
+            title: `${rf.mandal} Rain Station`,
+            subtitle: `${rf.district} District, Andhra Pradesh`,
+            district: rf.district,
+            lat: rf.lat,
+            lng: rf.lng,
+            categoryBadge: 'IMD State Rain Grid',
+            networkBadge: 'APWRIMS Rainfall',
+            agency: 'India Meteorological Department (IMD) & APWRIMS',
+            districtProfile: boundary ? {
+              districtName: boundary.name,
+              areaSqKm: boundary.areaSqKm,
+              headquarter: boundary.headquarter,
+              region: boundary.region,
+              onResetDistrict: () => applyDistrictSelection('all')
+            } : undefined,
+            primaryMetricLabel: 'ACTUAL MONSOON RAIN',
+            primaryMetricValue: `${rf.actualMm.toFixed(1)} mm`,
+            primaryMetricSub: `Normal Benchmark: ${rf.normalMm.toFixed(1)} mm`,
+            secondaryMetricLabel: 'DEVIATION PERCENT',
+            secondaryMetricValue: `${rf.deviationPercent > 0 ? '+' : ''}${rf.deviationPercent.toFixed(1)}%`,
+            secondaryMetricSub: rf.status,
+            baselineLabel: 'Seasonal Precipitation Status',
+            baselineValue: `${rf.status} (${rf.deviationPercent > 0 ? '+' : ''}${rf.deviationPercent}%)`,
+            statusText: rf.status === 'Excess' ? 'Surplus Inflow Received' : rf.status === 'Normal' ? 'Normal Seasonal Monsoonal Rainfall' : 'Deficient Rainfall - Conservation Activated',
+            statusColor: rf.status === 'Deficient' ? 'amber' : 'emerald',
+            metricExtraRight: `${rf.actualMm}mm Rain`
+          });
         });
 
         marker.addTo(markersGroup);
       });
     }
 
-  }, [activeLayerFilter, complaints, filterDistrict]);
+  }, [complaints, filterDistrict, complaintStatusFilter, activeLayerFilter, onDispatchReminder, onReassignComplaint]);
 
-  // Reset View to Andhra Pradesh
-  const handleResetToAP = () => {
-    if (!mapInstanceRef.current) return;
-    mapInstanceRef.current.flyTo([16.25, 80.65], 7.2, { duration: 1 });
-    setFilterDistrict('all');
-    if (onSelectDistrict) onSelectDistrict('all');
-  };
-
-  // Open Settings Modal & initialize temp state
+  // Open settings modal
   const handleOpenSettingsModal = () => {
     setTempFilterLayer(activeLayerFilter);
     setTempBasemapTheme(basemapTheme);
@@ -759,7 +964,7 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     setIsFilterModalOpen(true);
   };
 
-  // Save & Apply Settings from Modal
+  // Save settings from modal
   const handleSaveAndApply = () => {
     setActiveLayerFilter(tempFilterLayer);
     setBasemapTheme(tempBasemapTheme);
@@ -769,113 +974,157 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     setIsFilterModalOpen(false);
   };
 
-  // Reset Defaults in Modal
-  const handleResetSettings = () => {
-    setTempFilterLayer('all');
-    setTempBasemapTheme('satellite');
-    setTempBasin('All Basins');
-    setTempBrightness(100);
-    setTempContrast(100);
-  };
-
-  // Hydrological Layer Counts for Modal
-  const telemetryCounts = useMemo(() => {
-    const totalReservoirs = AP_OFFICIAL_RESERVOIRS.length;
-    const totalGauges = AP_OFFICIAL_RIVER_GAUGE_STATIONS.length;
-    const totalWells = AP_GROUNDWATER_DTWL_2026.length;
-    const totalComplaints = complaints.length;
-    const totalAll = totalReservoirs + totalGauges + totalWells + totalComplaints;
-    return {
-      all: totalAll,
-      reservoirs: totalReservoirs,
-      rivers: totalGauges,
-      groundwater: totalWells,
-      complaints: totalComplaints,
-    };
-  }, [complaints]);
-
   return (
-    <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-xs relative flex flex-col w-full">
-      {/* Top Map Control Bar matching Website Light & Professional Style */}
-      <div className="bg-[#f0f7fb] border-b border-sky-100 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
-        {/* Left Title & Status */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#03045E] to-[#0077B6] flex items-center justify-center text-white shadow-sm shrink-0">
-            <Satellite className="w-5 h-5 text-sky-300" />
+    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden font-sans">
+      
+      {/* Top Control Bar with District Search, Quick-Select & Citizen Complaints */}
+      <div className="p-3.5 bg-slate-50/90 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+        {/* Left Title */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#03045E] flex items-center justify-center text-white shadow-xs">
+            <Satellite className="w-4 h-4 text-[#00B4D8]" />
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-black text-[#03045E] tracking-tight">
-                {mapText.headerTitle}
-              </h3>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300/60 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>{mapText.geoLocked}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-[#03045E] text-sm tracking-tight">
+                ISRO Bhuvan Satellite Telemetry Map
+              </span>
+              <span className="font-mono text-[10px] bg-sky-100 text-[#0077B6] font-bold px-2 py-0.5 rounded-full border border-sky-200">
+                AP 26 Districts
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
-              {mapText.telemetrySummary}
+            <p className="text-[11px] text-slate-500 font-medium">
+              Real-time satellite & hydrological telemetry monitoring across Andhra Pradesh
             </p>
           </div>
         </div>
 
-        {/* Right Action & Filter Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          
-          {/* Main "Filters & Map Display Settings" Button */}
-          <button
-            onClick={handleOpenSettingsModal}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-sky-50 border border-sky-200 text-[#0077B6] text-xs font-bold transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
-            title="Configure Map Telemetry Layers, Basemap Theme & Brightness"
-          >
-            <SlidersHorizontal className="w-4 h-4 text-[#0077B6]" />
-            <span>{mapText.settingsBtn}</span>
-            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-          </button>
+        {/* Right Controls: Search Bar, District Quick-Select, Complaints Selector, and Settings */}
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          {/* Autocomplete District & Complaint Search Bar */}
+          <div className="relative flex-1 sm:w-60">
+            <div className="relative flex items-center">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search AP Districts, Grievances, Dams..."
+                value={districtSearchInput}
+                onChange={(e) => setDistrictSearchInput(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
+                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] shadow-2xs"
+              />
+              {districtSearchInput && (
+                <button
+                  type="button"
+                  onClick={() => setDistrictSearchInput('')}
+                  className="absolute right-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
-          {/* District Quick-Select Dropdown */}
+            {/* Suggestions Dropdown */}
+            {isSearchFocused && searchSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-40 text-xs">
+                {searchSuggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onMouseDown={() => {
+                      if (s.type === 'district') {
+                        applyDistrictSelection(s.data.name);
+                        setDistrictSearchInput(s.data.name);
+                      } else {
+                        flyToComplaint(s.data.id);
+                        setDistrictSearchInput(s.data.id);
+                      }
+                      setIsSearchFocused(false);
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left hover:bg-sky-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-b-0 cursor-pointer"
+                  >
+                    <div>
+                      <strong className="text-slate-900 block font-bold truncate max-w-[200px]">
+                        {s.type === 'complaint' ? `🚨 ${s.title}` : `🏛️ ${s.title}`}
+                      </strong>
+                      <span className="text-[10px] text-slate-400 truncate block max-w-[200px]">{s.subtitle}</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-[#0077B6] bg-sky-50 px-2 py-0.5 rounded font-bold shrink-0">
+                      {s.meta}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quick-Select District Dropdown */}
           <div className="relative">
             <select
               value={filterDistrict}
-              onChange={(e) => {
-                const val = e.target.value;
-                setFilterDistrict(val);
-                if (onSelectDistrict) onSelectDistrict(val);
-                if (val !== 'all' && mapInstanceRef.current) {
-                  const dist = ANDHRA_PRADESH_26_DISTRICTS.find(
-                    d => d.name.toLowerCase() === val.toLowerCase()
-                  );
-                  if (dist && dist.centerCoords) {
-                    mapInstanceRef.current.flyTo([dist.centerCoords.lat, dist.centerCoords.lng], 9.5, { duration: 1.2 });
-                  }
-                } else if (val === 'all') {
-                  handleResetToAP();
-                }
-              }}
+              onChange={(e) => applyDistrictSelection(e.target.value)}
               className="bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-2 pr-8 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#0077B6] cursor-pointer appearance-none"
             >
-              <option value="all">{mapText.allDistricts}</option>
+              <option value="all">All 26 AP Districts</option>
               {ANDHRA_PRADESH_26_DISTRICTS.map(d => (
-                <option key={d.id} value={d.name}>{getDistrictDisplayName(d)}</option>
+                <option key={d.id} value={d.name}>{d.name} District</option>
               ))}
             </select>
             <MapPin className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* AP Reset Lock Button */}
+          {/* NEW: Complaints Quick-Select & Direct Fly-to Dropdown (Right next to Search Bar & District) */}
+          <div className="relative">
+            <select
+              value={selectedComplaintValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedComplaintValue(val);
+                if (val.startsWith('fly_')) {
+                  flyToComplaint(val.replace('fly_', ''));
+                } else if (val === 'all') {
+                  setComplaintStatusFilter('all');
+                } else {
+                  setComplaintStatusFilter(val as any);
+                  setActiveLayerFilter('complaints');
+                }
+              }}
+              className="bg-white hover:bg-rose-50/50 border border-rose-200 text-rose-950 text-xs font-bold rounded-xl pl-8 pr-8 py-2 shadow-2xs focus:outline-none focus:ring-2 focus:ring-rose-400 cursor-pointer appearance-none transition-colors"
+            >
+              <option value="all">🚨 Complaints: All ({filteredComplaints.length})</option>
+              <option value="SUBMITTED">⚠️ Open / Submitted ({submittedCount})</option>
+              <option value="WORKER_IN_PROGRESS">🔧 Work In Progress ({wipCount})</option>
+              <option value="RESOLVED">✅ Field Resolved ({resolvedCount})</option>
+              <optgroup label="── Fly to Grievance Site ──">
+                {filteredComplaints.map(c => (
+                  <option key={c.id} value={`fly_${c.id}`}>
+                    📍 [{c.id.replace('CMP-AP-2026-', '')}] {c.district}: {(c.shortDescription || c.wasteType || '').slice(0, 24)}...
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <span className="w-2 h-2 rounded-full bg-rose-500 inline-block animate-ping"></span>
+            </div>
+          </div>
+
+          {/* Settings Button */}
           <button
-            onClick={handleResetToAP}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#0077B6] text-xs font-bold transition-all shadow-2xs cursor-pointer"
-            title="Re-center and lock to Andhra Pradesh boundary"
+            onClick={handleOpenSettingsModal}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-sky-50 border border-sky-200 text-[#0077B6] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            title="Configure Map Telemetry Layers, Basemap Theme & Brightness"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{mapText.fitAp}</span>
+            <SlidersHorizontal className="w-4 h-4 text-[#0077B6]" />
+            <span className="hidden sm:inline">Settings</span>
           </button>
         </div>
       </div>
 
       {/* Main Map Box with Applied Brightness & Contrast Calibration */}
-      <div className="relative w-full h-[540px] sm:h-[600px] bg-slate-900 overflow-hidden">
+      <div className="relative w-full h-[580px] sm:h-[640px] bg-slate-900 overflow-hidden">
         <div 
           ref={mapContainerRef} 
           className="w-full h-full z-0 transition-all duration-300" 
@@ -889,323 +1138,46 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
           <div className="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
             <span className="font-extrabold text-[#03045E] flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-[#0077B6]" />
-              <span>{mapText.legendTitle}</span>
+              <span>Andhra Pradesh Water Grid</span>
             </span>
-            <span className="font-mono text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">{mapText.liveApwrims}</span>
+            <span className="font-mono text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">LIVE APWRIMS</span>
           </div>
 
           <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-slate-700">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-blue-300"></span>
-              <span>{mapText.reservoirsCount}</span>
+              <span>113 Reservoirs</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span>{mapText.dwlrSafe}</span>
+              <span>DWLR Safe (&lt;20m)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span>{mapText.dwlrStress}</span>
+              <span>DWLR Stress</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-              <span>{mapText.dwlrCritical}</span>
+              <span>DWLR Critical (&gt;40m)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-md bg-cyan-600"></span>
-              <span>{mapText.riverGauges}</span>
+              <span>River Gauges</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>
-              <span>{mapText.grievances}</span>
+              <span>Grievances ({filteredComplaints.length})</span>
             </div>
           </div>
         </div>
 
-        {/* Selected Item Telemetry Drawer (Slides in on right when marker clicked) */}
-        {selectedItem && (
-          <div className="absolute top-4 right-4 z-30 w-80 sm:w-96 max-h-[500px] overflow-y-auto bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-200/90 p-5 space-y-4 animate-in fade-in slide-in-from-right-4 pointer-events-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#0077B6] bg-sky-50 px-2 py-0.5 rounded">
-                {mapText.inspectorTitle}
-              </span>
-              <button
-                onClick={() => setSelectedItem(null)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Content for Complaint */}
-            {selectedItem.type === 'complaint' && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-mono font-bold text-rose-700">{selectedItem.data.id}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-rose-200 text-rose-800 text-[10px] font-bold">
-                      {selectedItem.data.status}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">
-                    {selectedItem.data.shortDescription || selectedItem.data.wasteType}
-                  </h4>
-                  <p className="text-slate-600 text-[11px]">
-                    {selectedItem.data.locationLandmark}, {selectedItem.data.mandal || ''} ({selectedItem.data.district})
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Citizen:</span>
-                    <span className="font-semibold text-slate-800">{selectedItem.data.citizenName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Assigned Nodal:</span>
-                    <span className="font-semibold text-[#0077B6]">{selectedItem.data.assignedNodalOfficer || 'State Command'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">SLA Priority:</span>
-                    <span className="font-mono font-bold text-rose-600">{selectedItem.data.priority || 'High'}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-1">
-                  {onDispatchReminder && (
-                    <button
-                      onClick={() => onDispatchReminder(selectedItem.data)}
-                      className="flex-1 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white font-bold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{mapText.issueSlaDirective}</span>
-                    </button>
-                  )}
-                  {onReassignComplaint && (
-                    <button
-                      onClick={() => onReassignComplaint(selectedItem.data)}
-                      className="px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      {mapText.reassign}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Content for Reservoir */}
-            {selectedItem.type === 'reservoir' && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-2xl bg-[#03045E] text-white space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider text-sky-200 font-bold">
-                    {selectedItem.data.basin}
-                  </div>
-                  <h4 className="text-base font-extrabold text-white">
-                    {currentLang === 'te' && selectedItem.data.teluguName ? selectedItem.data.teluguName : selectedItem.data.name}
-                  </h4>
-                  <div className="text-xs text-sky-200">
-                    {selectedItem.data.district} {currentLang === 'hi' ? 'जिला' : currentLang === 'te' ? 'జిల్లా' : 'District'}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">{mapText.currentStorage}</span>
-                    <span className="text-base font-black text-[#03045E]">
-                      {selectedItem.data.currentStorageTmc} TMC
-                    </span>
-                    <span className="text-[10px] text-slate-500">{mapText.grossCapacity}: {selectedItem.data.grossCapacityTmc} TMC</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">{mapText.fillPercentage}</span>
-                    <span className={`text-base font-black ${selectedItem.data.storagePercentage < 25 ? 'text-rose-600' : 'text-blue-600'}`}>
-                      {selectedItem.data.storagePercentage}%
-                    </span>
-                    <span className="text-[10px] text-slate-500">{mapText.inflow}: {selectedItem.data.inflowCusecs || 0} cfs</span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-[11px] space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{mapText.currentLevel}:</span>
-                    <span className="font-mono font-bold text-slate-800">{selectedItem.data.currentWaterLevelM || '42.5'} m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{mapText.frl}:</span>
-                    <span className="font-mono font-bold text-slate-800">{selectedItem.data.fullReservoirLevelM || '45.0'} m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{mapText.spillwayStatus}:</span>
-                    <span className={`font-bold ${selectedItem.data.floodStatus === 'Normal' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      {selectedItem.data.floodStatus || 'Regulated'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Content for District */}
-            {selectedItem.type === 'district' && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-2xl bg-[#03045E] text-white space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider text-sky-200 font-bold">
-                    {selectedItem.data.region}
-                  </div>
-                  <h4 className="text-base font-extrabold text-white">
-                    {currentLang === 'te' 
-                      ? `${selectedItem.data.teluguName || selectedItem.data.name} జిల్లా`
-                      : currentLang === 'hi'
-                      ? `${AP_DISTRICTS_HINDI[selectedItem.data.id] || selectedItem.data.name} जिला`
-                      : `${selectedItem.data.name} District`}
-                  </h4>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">{mapText.monitoredBodies}</span>
-                    <span className="text-base font-black text-[#03045E]">
-                      {selectedItem.data.totalWaterBodiesCount}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">{mapText.groundwaterDtwl}</span>
-                    <span className="text-base font-black text-emerald-600">
-                      {selectedItem.data.wrisTelemetry?.groundwaterDepthMbgl} mbgl
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-sky-50 border border-sky-100 space-y-1">
-                  <span className="text-[10px] font-bold text-[#0077B6] uppercase block">{mapText.officerInCharge}</span>
-                  <div className="font-bold text-[#03045E]">{selectedItem.data.officerInCharge?.name}</div>
-                  <div className="text-slate-500 text-[11px]">{selectedItem.data.officerInCharge?.designation}</div>
-                  <div className="text-slate-700 font-mono font-bold text-[11px] flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-[#0077B6]" />
-                    <span>{selectedItem.data.officerInCharge?.phone}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Content for Groundwater Telemetry */}
-            {selectedItem.type === 'groundwater' && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-2xl bg-[#0077B6] text-white space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider text-sky-200 font-bold">
-                    {selectedItem.data.agency || 'CGWB'} Station
-                  </div>
-                  <h4 className="text-base font-extrabold text-white">
-                    {selectedItem.data.village}, {selectedItem.data.block}
-                  </h4>
-                  <div className="text-xs text-sky-200">
-                    {selectedItem.data.district} District
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">Water Table (DTWL)</span>
-                    <span className="text-base font-black text-[#03045E]">
-                      {selectedItem.data.dtwlMbgl} mbgl
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">Aquifer Status</span>
-                    <span className={`text-xs font-black ${selectedItem.data.status === 'red' ? 'text-rose-600' : 'text-emerald-600'}`}>
-                      {selectedItem.data.statusLabel || selectedItem.data.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Well Station Type</span>
-                  <div className="font-semibold">{selectedItem.data.wellType}</div>
-                  <div className="text-[10px] text-slate-400 font-mono">Telemetry Date: {selectedItem.data.date}</div>
-                </div>
-              </div>
-            )}
-
-            {/* Content for River Gauge */}
-            {selectedItem.type === 'gauge' && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-2xl bg-cyan-700 text-white space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider text-cyan-200 font-bold">
-                    CWC &amp; APWRIMS River Gauge
-                  </div>
-                  <h4 className="text-base font-extrabold text-white">
-                    {selectedItem.data.name}
-                  </h4>
-                  <div className="text-xs text-cyan-200">
-                    River: {selectedItem.data.riverName || 'Major River'} ({selectedItem.data.district || 'Andhra Pradesh'})
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">Water Level</span>
-                    <span className="text-base font-black text-slate-900">
-                      {selectedItem.data.waterLevelM || selectedItem.data.currentRiverLevelM || '14.2'} m
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">Discharge Flow</span>
-                    <span className="text-base font-black text-[#0077B6]">
-                      {selectedItem.data.dischargeCusecs ? `${selectedItem.data.dischargeCusecs.toLocaleString()} cfs` : 'Regulated'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-[11px] space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Warning Level:</span>
-                    <span className="font-mono font-bold text-amber-600">{selectedItem.data.warningLevelM || '18.0'} m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Danger Mark:</span>
-                    <span className="font-mono font-bold text-rose-600">{selectedItem.data.dangerLevelM || '21.0'} m</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Content for Rainfall Station */}
-            {selectedItem.type === 'rainfall' && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-2xl bg-blue-700 text-white space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider text-sky-200 font-bold">
-                    Mandal Monsoon Rainfall Telemetry
-                  </div>
-                  <h4 className="text-base font-extrabold text-white">
-                    {selectedItem.data.mandal} Mandal
-                  </h4>
-                  <div className="text-xs text-sky-200">
-                    {selectedItem.data.district} District
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">Actual Rainfall</span>
-                    <span className="text-base font-black text-[#0077B6]">
-                      {selectedItem.data.actualMm} mm
-                    </span>
-                    <span className="text-[10px] text-slate-500">Normal: {selectedItem.data.normalMm} mm</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-slate-400 block">Monsoon Status</span>
-                    <span className={`text-xs font-black ${
-                      selectedItem.data.status?.includes('Excess') ? 'text-sky-600' :
-                      selectedItem.data.status?.includes('Deficient') ? 'text-amber-600' : 'text-emerald-600'
-                    }`}>
-                      {selectedItem.data.status} ({selectedItem.data.deviationPercent > 0 ? '+' : ''}{selectedItem.data.deviationPercent}%)
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
-                  <span>Source: Andhra Pradesh State Hydro-Met Telemetry Network (IMD AWS)</span>
-                </div>
-              </div>
-            )}
+        {/* Telemetry Flashcard Modal directly over the map with Integrated District Profile */}
+        {activeFlashcard && (
+          <div className="absolute top-4 right-4 z-30 max-h-[580px] overflow-y-auto">
+            <HydrologicalTelemetryFlashcard
+              data={activeFlashcard}
+              onClose={() => setActiveFlashcard(null)}
+            />
           </div>
         )}
       </div>
@@ -1214,15 +1186,15 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-medium">
         <div className="flex items-center gap-2">
           <Lock className="w-3.5 h-3.5 text-[#0077B6]" />
-          <span>{mapText.surveillanceGeofence}: <strong>{mapText.stateAp}</strong></span>
+          <span>Surveillance Geofence: <strong>State of Andhra Pradesh (26 Districts)</strong></span>
         </div>
         <div className="font-mono text-[11px] text-slate-400">
-          {mapText.sourceCreds}
+          Source: ISRO NRSC Bhuvan • APWRIMS • CWC National Grid • CGWB Pre-Monsoon 2026
         </div>
       </div>
 
       {/* ==================================================================== */}
-      {/* 4. FILTERS & MAP DISPLAY SETTINGS MODAL (Matching User Images 1 & 2) */}
+      {/* 4. FILTERS & MAP DISPLAY SETTINGS MODAL                              */}
       {/* ==================================================================== */}
       {isFilterModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
@@ -1235,10 +1207,10 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-                    {mapText.modalTitle}
+                    Map Telemetry Filters & Cartography Settings
                   </h3>
                   <p className="text-xs text-slate-500">
-                    {mapText.modalDesc}
+                    Configure ISRO Bhuvan satellite GIS cartography, displayed telemetry layers, and satellite contrast calibration for state monitoring.
                   </p>
                 </div>
               </div>
@@ -1252,217 +1224,78 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
               </button>
             </div>
 
-            {/* 1. SELECT HYDROLOGICAL TELEMETRY LAYER (Matching Image 1) */}
+            {/* Section 1: Telemetry Layers */}
             <div className="space-y-3">
-              <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
-                {mapText.section1}
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                {/* A. All Hydrological Layers */}
-                <button
-                  type="button"
-                  onClick={() => setTempFilterLayer('all')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex items-center justify-between ${
-                    tempFilterLayer === 'all'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-blue-600" />
-                    <span>{mapText.layerAll}</span>
-                  </div>
-                  <span className="font-mono text-[11px] font-semibold text-slate-500">{telemetryCounts.all}</span>
-                </button>
-
-                {/* B. Major Reservoirs & Dams */}
-                <button
-                  type="button"
-                  onClick={() => setTempFilterLayer('reservoirs')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex items-center justify-between ${
-                    tempFilterLayer === 'reservoirs'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Droplets className="w-4 h-4 text-blue-600" />
-                    <span>{mapText.layerReservoirs}</span>
-                  </div>
-                  <span className="font-mono text-[11px] font-semibold text-slate-500">{telemetryCounts.reservoirs}</span>
-                </button>
-
-                {/* C. River Gauges & Discharge */}
-                <button
-                  type="button"
-                  onClick={() => setTempFilterLayer('rivers')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex items-center justify-between ${
-                    tempFilterLayer === 'rivers'
-                      ? 'bg-indigo-50 border-indigo-600 text-indigo-800 shadow-xs ring-2 ring-indigo-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-indigo-600" />
-                    <span>{mapText.layerRivers}</span>
-                  </div>
-                  <span className="font-mono text-[11px] font-semibold text-slate-500">{telemetryCounts.rivers}</span>
-                </button>
-
-                {/* D. CGWB Groundwater DWLR */}
-                <button
-                  type="button"
-                  onClick={() => setTempFilterLayer('groundwater')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex items-center justify-between ${
-                    tempFilterLayer === 'groundwater'
-                      ? 'bg-amber-50 border-amber-600 text-amber-800 shadow-xs ring-2 ring-amber-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Mountain className="w-4 h-4 text-amber-600" />
-                    <span>{mapText.layerGroundwater}</span>
-                  </div>
-                  <span className="font-mono text-[11px] font-semibold text-slate-500">{telemetryCounts.groundwater}</span>
-                </button>
-
-                {/* E. Citizen Grievances / Hotspots */}
-                <button
-                  type="button"
-                  onClick={() => setTempFilterLayer('complaints')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex items-center justify-between ${
-                    tempFilterLayer === 'complaints'
-                      ? 'bg-rose-50 border-rose-600 text-rose-800 shadow-xs ring-2 ring-rose-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Satellite className="w-4 h-4 text-rose-600" />
-                    <span>{mapText.layerComplaints}</span>
-                  </div>
-                  <span className="font-mono text-[11px] font-semibold text-slate-500">{telemetryCounts.complaints}</span>
-                </button>
-
-                {/* F. Major River Basins */}
-                <button
-                  type="button"
-                  onClick={() => setTempFilterLayer('basins')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex items-center justify-between ${
-                    tempFilterLayer === 'basins'
-                      ? 'bg-cyan-50 border-cyan-600 text-cyan-800 shadow-xs ring-2 ring-cyan-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Waves className="w-4 h-4 text-cyan-600" />
-                    <span>{mapText.layerBasins}</span>
-                  </div>
-                  <CheckCircle2 className={`w-4 h-4 ${tempFilterLayer === 'basins' ? 'text-cyan-600' : 'opacity-0'}`} />
-                </button>
-              </div>
-
-              {/* Specific Basin Dropdown if Basins chosen */}
-              {tempFilterLayer === 'basins' && (
-                <div className="p-3 bg-cyan-50/70 border border-cyan-200 rounded-2xl space-y-1.5 animate-in fade-in">
-                  <label className="text-[11px] font-bold text-cyan-900 block">
-                    {mapText.chooseBasin}
-                  </label>
-                  <select
-                    value={tempBasin}
-                    onChange={(e) => setTempBasin(e.target.value)}
-                    className="w-full bg-white border border-cyan-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-cyan-600 cursor-pointer shadow-2xs"
+              <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+                1. SELECT HYDROLOGICAL TELEMETRY LAYER
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {[
+                  { id: 'all', label: 'All Hydrological Layers', count: '100% Real AP' },
+                  { id: 'reservoirs', label: 'Major Reservoirs & Dams', count: `${AP_OFFICIAL_RESERVOIRS.length} Reservoirs` },
+                  { id: 'rivers', label: 'River Gauges & Discharge (Cusecs)', count: `${AP_OFFICIAL_RIVER_GAUGE_STATIONS.length} Stations` },
+                  { id: 'groundwater', label: 'CGWB Groundwater DWLR', count: `${AP_GROUNDWATER_DTWL_2026.length} Wells` },
+                  { id: 'rainfall', label: 'APWRIMS Mandal Rainfall Grid', count: `${AP_MANDAL_WISE_RAINFALL_2026.length} Mandals` },
+                  { id: 'complaints', label: 'Citizen Grievance Hotspots', count: `${complaints.length} Hotspots` },
+                  { id: 'basins', label: 'Major River Basins of Andhra Pradesh', count: '6 AP Basins' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTempFilterLayer(item.id as any)}
+                    className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                      tempFilterLayer === item.id 
+                        ? 'border-[#0077B6] bg-sky-50/80 text-[#03045E] ring-2 ring-[#0077B6]/20' 
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
                   >
-                    <option value="All Basins">{mapText.allBasins}</option>
-                    <option value="Godavari Basin">{currentLang === 'hi' ? 'गोदावरी नदी बेसिन' : currentLang === 'te' ? 'గోదావరి నదీ పరివాహక ప్రాంతం' : 'Godavari River Basin'}</option>
-                    <option value="Krishna Basin">{currentLang === 'hi' ? 'कृष्णा नदी बेसिन' : currentLang === 'te' ? 'కృష్ణా నదీ పరివాహక ప్రాంతం' : 'Krishna River Basin'}</option>
-                    <option value="Pennar Basin">{currentLang === 'hi' ? 'पेन्नार नदी बेसिन' : currentLang === 'te' ? 'పెన్నా నదీ పరివాహక ప్రాంతం' : 'Pennar River Basin'}</option>
-                    <option value="Nagavali & Vamsadhara">{currentLang === 'hi' ? 'नागावली एवं वंसधारा बेसिन' : currentLang === 'te' ? 'నాగావళి & వంశధార పరివాహక ప్రాంతం' : 'Nagavali & Vamsadhara Basin'}</option>
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {/* 2. MAP BASEMAP THEME (Matching Image 1) */}
-            <div className="space-y-3 pt-2 border-t border-slate-100">
-              <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
-                {mapText.section2}
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                {/* A. Satellite (ISRO Bhuvan Satellite - Default) */}
-                <button
-                  type="button"
-                  onClick={() => setTempBasemapTheme('satellite')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    tempBasemapTheme === 'satellite'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Satellite className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{mapText.themeSatellite}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">
-                    {mapText.themeSatelliteDesc}
-                  </span>
-                </button>
-
-                {/* B. Nir-ikshan Portal Theme (Light GIS) */}
-                <button
-                  type="button"
-                  onClick={() => setTempBasemapTheme('light_gis')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    tempBasemapTheme === 'light_gis'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{mapText.themeLightGis}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">
-                    {mapText.themeLightGisDesc}
-                  </span>
-                </button>
-
-                {/* C. Topographic Relief */}
-                <button
-                  type="button"
-                  onClick={() => setTempBasemapTheme('topo')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    tempBasemapTheme === 'topo'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{mapText.themeTopo}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">
-                    {mapText.themeTopoDesc}
-                  </span>
-                </button>
+                    <span className="font-bold">{item.label}</span>
+                    <span className="text-[10px] font-mono text-slate-500 bg-white/80 px-2 py-0.5 rounded border border-slate-200">
+                      {item.count}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* 3. BRIGHTNESS & CONTRAST CALIBRATION (Matching Image 2) */}
-            <div className="space-y-3 pt-2 border-t border-slate-100">
-              <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
-                {mapText.section3}
-              </label>
+            {/* Section 2: Basemap Theme */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+                2. MAP BASEMAP THEME
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                {[
+                  { id: 'satellite', title: 'ISRO Bhuvan Satellite (Default)', desc: 'High-resolution ISRO satellite imagery & boundaries' },
+                  { id: 'light_gis', title: 'Nir-ikshan Portal Theme (Light)', desc: 'Clean GIS cartography matching portal style' },
+                  { id: 'topo', title: 'Topographic Relief', desc: 'Terrain relief & catchment elevation' }
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTempBasemapTheme(t.id as any)}
+                    className={`p-3 rounded-2xl border text-left space-y-1 transition-all cursor-pointer ${
+                      tempBasemapTheme === t.id
+                        ? 'border-[#0077B6] bg-sky-50/80 text-[#03045E] ring-2 ring-[#0077B6]/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <strong className="block font-bold">{t.title}</strong>
+                    <p className="text-[10px] text-slate-500 leading-tight">{t.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
 
+            {/* Section 3: Brightness & Contrast Calibration */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+                3. BRIGHTNESS & CONTRAST CALIBRATION
+              </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span className="flex items-center gap-1.5">
-                      <Sun className="w-3.5 h-3.5 text-amber-500" /> 
-                      {mapText.brightness}
-                    </span>
-                    <span className="font-mono text-blue-700">{tempBrightness}%</span>
+                  <div className="flex justify-between text-xs font-bold text-slate-700">
+                    <span>Brightness:</span>
+                    <span className="font-mono text-[#0077B6]">{tempBrightness}%</span>
                   </div>
                   <input
                     type="range"
@@ -1470,22 +1303,14 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
                     max="140"
                     value={tempBrightness}
                     onChange={(e) => setTempBrightness(Number(e.target.value))}
-                    className="w-full accent-[#0047ab] cursor-pointer"
+                    className="w-full accent-[#0077B6] cursor-pointer"
                   />
-                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
-                    <span>{mapText.darker}</span>
-                    <span>{mapText.defaultVal}</span>
-                    <span>{mapText.brighter}</span>
-                  </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span className="flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-indigo-500" /> 
-                      {mapText.contrast}
-                    </span>
-                    <span className="font-mono text-blue-700">{tempContrast}%</span>
+                  <div className="flex justify-between text-xs font-bold text-slate-700">
+                    <span>Contrast:</span>
+                    <span className="font-mono text-[#0077B6]">{tempContrast}%</span>
                   </div>
                   <input
                     type="range"
@@ -1493,43 +1318,42 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
                     max="150"
                     value={tempContrast}
                     onChange={(e) => setTempContrast(Number(e.target.value))}
-                    className="w-full accent-[#0047ab] cursor-pointer"
+                    className="w-full accent-[#0077B6] cursor-pointer"
                   />
-                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
-                    <span>{mapText.softer}</span>
-                    <span>{mapText.defaultVal}</span>
-                    <span>{mapText.highContrast}</span>
-                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Modal Bottom Actions: Save / Apply + Reset (Matching Image 2) */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+            {/* Footer Buttons */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
               <button
                 type="button"
-                onClick={handleResetSettings}
-                className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900 font-bold text-xs flex items-center gap-1.5 hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => {
+                  setTempFilterLayer('all');
+                  setTempBasemapTheme('satellite');
+                  setTempBasin('All Basins');
+                  setTempBrightness(100);
+                  setTempContrast(100);
+                }}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>{mapText.resetDefaults}</span>
+                Reset Defaults
               </button>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsFilterModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-xs text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer"
                 >
-                  {mapText.cancel}
+                  Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveAndApply}
-                  className="px-6 py-2.5 rounded-xl bg-[#0047ab] hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold shadow-xs cursor-pointer transition-colors"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>{mapText.saveApply}</span>
+                  Save & Apply Settings
                 </button>
               </div>
             </div>

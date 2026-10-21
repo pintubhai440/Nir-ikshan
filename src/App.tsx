@@ -63,18 +63,18 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Filter out stale mock prefix if needed and deduplicate by ID
-          const seen = new Set<string>();
-          const unique: CitizenComplaint[] = [];
+          const map = new Map<string, CitizenComplaint>();
+          // Put standard sample complaints for all 26 districts
+          for (const s of SAMPLE_CITIZEN_COMPLAINTS) {
+            map.set(s.id, s);
+          }
+          // Merge user-created/saved complaints
           for (const c of parsed) {
-            if (c?.id && !seen.has(c.id) && !c.id.startsWith('CMP-AP-2026-10')) {
-              seen.add(c.id);
-              unique.push(c);
+            if (c?.id && !c.id.startsWith('CMP-AP-2026-10')) {
+              map.set(c.id, c);
             }
           }
-          if (unique.length > 0) {
-            return unique;
-          }
+          return Array.from(map.values());
         }
       }
       return SAMPLE_CITIZEN_COMPLAINTS;
