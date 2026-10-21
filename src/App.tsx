@@ -56,25 +56,25 @@ export default function App() {
     }
   });
 
-  // Complaints state: Clean complaints from database, strictly deduplicated by ID
+  // Complaints state: Clean complaints from database, strictly deduplicated by ID (Zero fake data)
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
       const saved = localStorage.getItem('nir_complaints');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const map = new Map<string, CitizenComplaint>();
-          // Put standard sample complaints for all 26 districts
-          for (const s of SAMPLE_CITIZEN_COMPLAINTS) {
-            map.set(s.id, s);
+          const legacyMockIds = new Set([
+            'CMP-AP-2026-112', 'CMP-AP-2026-215', 'CMP-AP-2026-340', 'CMP-AP-2026-478',
+            'CMP-AP-2026-512', 'CMP-AP-2026-589', 'CMP-AP-2026-621', 'CMP-AP-2026-680',
+            'CMP-AP-2026-733', 'CMP-AP-2026-805', 'CMP-AP-2026-867', 'CMP-AP-2026-921',
+            'CMP-AP-2026-954', 'CMP-AP-2026-1021', 'CMP-AP-2026-1077', 'CMP-AP-2026-1132',
+            'CMP-AP-2026-1188', 'CMP-AP-2026-1244', 'CMP-AP-2026-1301', 'CMP-AP-2026-1365',
+            'CMP-AP-2026-1420', 'CMP-AP-2026-1488', 'CMP-AP-2026-1540', 'CMP-AP-2026-1600'
+          ]);
+          const cleaned = parsed.filter(c => c && c.id && !legacyMockIds.has(c.id));
+          if (cleaned.length > 0) {
+            return cleaned;
           }
-          // Merge user-created/saved complaints
-          for (const c of parsed) {
-            if (c?.id && !c.id.startsWith('CMP-AP-2026-10')) {
-              map.set(c.id, c);
-            }
-          }
-          return Array.from(map.values());
         }
       }
       return SAMPLE_CITIZEN_COMPLAINTS;

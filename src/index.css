@@ -7,6 +7,12 @@
   background-color: #e2e8f0 !important;
 }
 
+.ap-district-center-badge,
+.ap-district-center-badge * {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
 .leaflet-popup-content-wrapper {
   background: #ffffff !important;
   color: #0f172a !important;

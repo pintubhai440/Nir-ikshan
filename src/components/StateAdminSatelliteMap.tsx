@@ -142,6 +142,59 @@ const SATELLITE_MAP_UI = {
   }
 };
 
+// Helper to locate the primary reservoir for a given Andhra Pradesh district
+function findPrimaryReservoirForDistrict(districtName: string, primaryName?: string): APReservoirRecord | null {
+  const normDist = districtName.toLowerCase().replace(' district', '').trim();
+  if (primaryName) {
+    const pClean = primaryName.toLowerCase()
+      .replace(/th/g, 't')
+      .replace('reservoir', '')
+      .replace('project', '')
+      .replace('barrage', '')
+      .replace('dam', '')
+      .replace('system', '')
+      .replace('network', '')
+      .trim();
+
+    // 1. Try matching with cleaned name and district
+    const exactNameMatch = AP_OFFICIAL_RESERVOIRS.find(r => {
+      const rClean = r.name.toLowerCase().replace(/th/g, 't');
+      const rDist = (r.district || '').toLowerCase();
+      return (rClean.includes(pClean) || pClean.includes(rClean.split(' ')[0])) && (rDist.includes(normDist) || normDist.includes(rDist));
+    });
+    if (exactNameMatch) return exactNameMatch;
+
+    // 2. Try first word of primaryName with district
+    const firstWord = pClean.split(' ')[0];
+    if (firstWord && firstWord.length > 3) {
+      const firstWordDistMatch = AP_OFFICIAL_RESERVOIRS.find(r => {
+        const rClean = r.name.toLowerCase().replace(/th/g, 't');
+        const rDist = (r.district || '').toLowerCase();
+        return rClean.includes(firstWord) && (rDist.includes(normDist) || normDist.includes(rDist));
+      });
+      if (firstWordDistMatch) return firstWordDistMatch;
+    }
+
+    // 3. Try name match across all reservoirs
+    const nameMatch = AP_OFFICIAL_RESERVOIRS.find(r => {
+      const rClean = r.name.toLowerCase().replace(/th/g, 't');
+      return rClean.includes(pClean) || (pClean.length > 3 && pClean.split(' ')[0].length > 3 && rClean.includes(pClean.split(' ')[0]));
+    });
+    if (nameMatch) return nameMatch;
+  }
+
+  // 4. Fallback to major reservoir in that district
+  const districtReservoirs = AP_OFFICIAL_RESERVOIRS.filter(r => {
+    const rDist = (r.district || '').toLowerCase();
+    return rDist.includes(normDist) || normDist.includes(rDist);
+  });
+  if (districtReservoirs.length > 0) {
+    return districtReservoirs.sort((a, b) => b.grossCapacityTMC - a.grossCapacityTMC)[0];
+  }
+
+  return null;
+}
+
 export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
   complaints,
   selectedDistrict = 'all',
@@ -175,7 +228,6 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
   const [filterDistrict, setFilterDistrict] = useState<string>(selectedDistrict);
   const [districtSearchInput, setDistrictSearchInput] = useState<string>('');
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
-  const [selectedBoundaryInfo, setSelectedBoundaryInfo] = useState<APDistrictBoundary | null>(null);
 
   // Complaint Filter & Quick Fly-to State (Next to Search Bar & District)
   const [complaintStatusFilter, setComplaintStatusFilter] = useState<'all' | 'SUBMITTED' | 'WORKER_IN_PROGRESS' | 'RESOLVED'>('all');
@@ -370,6 +422,88 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     openComplaintFlashcard(complaint);
   };
 
+  // Open Primary Reservoir Flashcard when user clicks on a reservoir or district center marker
+  const openPrimaryReservoirFlashcard = (districtName: string) => {
+    const boundary = findAPDistrictBoundary(districtName);
+    const distData = ANDHRA_PRADESH_26_DISTRICTS.find(
+      d => d.name.toLowerCase() === districtName.toLowerCase()
+    );
+    const primaryResName = distData?.wrisTelemetry?.primaryReservoir || '';
+    const matchingRes = findPrimaryReservoirForDistrict(districtName, primaryResName);
+
+    // Cleaned reservoir title
+    const rawTitle = matchingRes 
+      ? matchingRes.name
+      : (primaryResName || `${districtName} Primary Reservoir`);
+    
+    const cleanTitle = rawTitle
+      .replace(/PROJECT/i, 'RESERVOIR')
+      .replace(/REGULATOR \/ BARRAGE/i, 'BARRAGE')
+      .trim();
+
+    const finalTitle = cleanTitle.toLowerCase().includes('reservoir') || cleanTitle.toLowerCase().includes('barrage') || cleanTitle.toLowerCase().includes('dam')
+      ? cleanTitle
+      : `${cleanTitle} Reservoir`;
+
+    const resStorageTMC = matchingRes 
+      ? `${matchingRes.currentStorageTMC} TMC` 
+      : `${((distData?.wrisTelemetry?.storagePercentage || 75) * 0.05).toFixed(2)} TMC`;
+      
+    const resGrossTMC = matchingRes 
+      ? `${matchingRes.grossCapacityTMC} TMC` 
+      : '4.80 TMC';
+
+    const resPct = matchingRes 
+      ? matchingRes.storagePercentage 
+      : (distData?.wrisTelemetry?.storagePercentage || 75);
+
+    const resLevelFeet = matchingRes ? matchingRes.currentLevelFeet : 184.5;
+    const resLevelM = (resLevelFeet * 0.3048).toFixed(1);
+    const resOutflow = matchingRes ? matchingRes.outflowCusecs : 420;
+    const resBasin = matchingRes?.basin || `${boundary?.region || 'Andhra'} Basin`;
+
+    setActiveFlashcard({
+      type: 'reservoir',
+      title: finalTitle,
+      subtitle: `${matchingRes?.mandal ? `${matchingRes.mandal} Mandal, ` : ''}${districtName} District`,
+      basin: `${resBasin} Basin`,
+      district: districtName,
+      lat: matchingRes?.geoCoords?.lat || boundary?.center[0] || 16.5,
+      lng: matchingRes?.geoCoords?.lng || boundary?.center[1] || 80.5,
+      categoryBadge: 'CWC & APWRIMS RSMS',
+      networkBadge: 'Primary Reservoir Command',
+      agency: 'Central Water Commission (CWC) & AP Water Resources Dept',
+      districtProfile: boundary ? {
+        districtName: boundary.name,
+        areaSqKm: boundary.areaSqKm,
+        headquarter: boundary.headquarter,
+        region: boundary.region,
+        onResetDistrict: () => applyDistrictSelection('all')
+      } : undefined,
+      primaryMetricLabel: currentLang === 'te' ? 'ప్రత్యక్ష నిల్వ' : currentLang === 'hi' ? 'लाइव भंडारण' : 'LIVE STORAGE',
+      primaryMetricValue: resStorageTMC,
+      primaryMetricSub: `Gross: ${resGrossTMC} (${resPct}% Full)`,
+      secondaryMetricLabel: currentLang === 'te' ? 'నీటి మట్టం' : currentLang === 'hi' ? 'जल स्तर' : 'WATER LEVEL',
+      secondaryMetricValue: `${resLevelM} m`,
+      secondaryMetricSub: `Gauge: ${resLevelFeet} ft`,
+      baselineLabel: currentLang === 'te' ? 'ప్రస్తుత అవుట్‌ఫ్లో' : currentLang === 'hi' ? 'वर्तमान डिस्चार्ज' : 'Current Outflow Discharge',
+      baselineValue: `${resOutflow.toLocaleString()} Cusecs`,
+      statusText: matchingRes?.alert || (resPct > 85 ? 'Spillway Regulated' : resPct < 25 ? 'Low Storage Inflow Watched' : 'Normal Hydrological Operations'),
+      statusColor: resPct > 85 ? 'amber' : resPct < 25 ? 'rose' : 'emerald',
+      metricExtraRight: `${resPct}% Full`
+    });
+  };
+
+  // Expose global window helper for direct DOM clicks
+  useEffect(() => {
+    (window as any).__openAPDistrictHQ = (name: string) => {
+      openPrimaryReservoirFlashcard(name);
+    };
+    return () => {
+      delete (window as any).__openAPDistrictHQ;
+    };
+  }, [openPrimaryReservoirFlashcard]);
+
   // Handle District Selection with Glowing Polygon Highlight, Zoom & Integrated Flashcard
   const applyDistrictSelection = (districtName: string, shouldFly: boolean = true) => {
     setFilterDistrict(districtName);
@@ -385,7 +519,6 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     }
 
     if (districtName === 'all') {
-      setSelectedBoundaryInfo(null);
       if (shouldFly) {
         map.flyToBounds(apBounds, { padding: [20, 20], duration: 1.2 });
       }
@@ -394,8 +527,6 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
     const boundary = findAPDistrictBoundary(districtName);
     if (boundary) {
-      setSelectedBoundaryInfo(boundary);
-
       const langTitle = currentLang === 'te' 
         ? `${boundary.teluguName} జిల్లా` 
         : currentLang === 'hi' 
@@ -451,30 +582,45 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         // 4. District center marker badge with pure language localization
         const centerIcon = L.divIcon({
           className: 'ap-district-center-badge',
-          html: `<div style="
-            background: rgba(3, 4, 94, 0.95);
-            color: #ffffff;
-            padding: 7px 14px;
-            border-radius: 12px;
-            border: 2px solid #00F0FF;
-            box-shadow: 0 8px 24px rgba(0, 180, 216, 0.5);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            text-align: center;
-            white-space: nowrap;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-          ">
-            <div style="font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 5px;">
+          html: `<div 
+            onclick="window.__openAPDistrictHQ && window.__openAPDistrictHQ('${boundary.name}')"
+            style="
+              background: rgba(3, 4, 94, 0.95);
+              color: #ffffff;
+              padding: 8px 16px;
+              border-radius: 14px;
+              border: 2px solid #00F0FF;
+              box-shadow: 0 8px 24px rgba(0, 180, 216, 0.6);
+              font-family: 'Plus Jakarta Sans', sans-serif;
+              text-align: center;
+              white-space: nowrap;
+              cursor: pointer !important;
+              pointer-events: auto !important;
+              user-select: none;
+              transform: translate(-50%, -50%);
+            "
+          >
+            <div style="font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;">
               <span>🏛️</span><span>${langTitle}</span>
+              <span style="font-size: 10px; background: #0077B6; color: #ffffff; padding: 1px 6px; border-radius: 6px; margin-left: 2px;">HQ</span>
             </div>
-            <div style="font-size: 10px; font-weight: 700; color: #00F0FF; margin-top: 2px;">
+            <div style="font-size: 10.5px; font-weight: 700; color: #00F0FF; margin-top: 2px; cursor: pointer;">
               ${langSubtitle}
             </div>
           </div>`,
           iconSize: [0, 0]
         });
 
-        L.marker(boundary.center, { icon: centerIcon, interactive: false }).addTo(selectedDistrictLayerGroupRef.current);
+        const centerMarker = L.marker(boundary.center, { 
+          icon: centerIcon, 
+          interactive: true,
+          zIndexOffset: 30000 
+        }).addTo(selectedDistrictLayerGroupRef.current);
+
+        centerMarker.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          openPrimaryReservoirFlashcard(boundary.name);
+        });
       }
 
       // 5. Fly & Fit Map smoothly to District Boundary with clear padding
@@ -485,51 +631,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         map.flyToBounds(polyBounds.pad(0.12), { duration: 1.1, maxZoom: 11 });
       }
 
-      // 6. Set Telemetry Flashcard with integrated District Profile
-      const distData = ANDHRA_PRADESH_26_DISTRICTS.find(
-        d => d.name.toLowerCase() === boundary.name.toLowerCase()
-      );
-      const distComplaints = complaints.filter(c => 
-        (c.district || '').toLowerCase().includes(boundary.name.toLowerCase())
-      );
-
-      setActiveFlashcard({
-        type: 'district',
-        title: langTitle,
-        subtitle: `${boundary.region} Region, Andhra Pradesh`,
-        district: boundary.name,
-        lat: boundary.center[0],
-        lng: boundary.center[1],
-        categoryBadge: '26 AP District Command',
-        networkBadge: 'APWRIMS HQ',
-        districtProfile: {
-          districtName: boundary.name,
-          areaSqKm: boundary.areaSqKm,
-          headquarter: boundary.headquarter,
-          region: boundary.region,
-          onResetDistrict: () => applyDistrictSelection('all')
-        },
-        primaryMetricLabel: currentLang === 'te' ? 'పర్యవేక్షించబడుతున్న జలాశయాలు' : currentLang === 'hi' ? 'निगरानी जल निकाय' : 'MONITORED WATER BODIES',
-        primaryMetricValue: `${distData?.totalWaterBodiesCount || 24} ${currentLang === 'te' ? 'వనరులు' : currentLang === 'hi' ? 'निकाय' : 'Bodies'}`,
-        primaryMetricSub: `${distData?.monitoredSitesCount || 18} ${currentLang === 'te' ? 'క్రియాశీల నిఘా ప్రదేశాలు' : currentLang === 'hi' ? 'सक्रिय निगरानी स्थल' : 'Sites under active surveillance'}`,
-        secondaryMetricLabel: currentLang === 'te' ? 'భూగర్భ జల మట్టం (DTWL)' : currentLang === 'hi' ? 'भूजल स्तर (DTWL)' : 'GROUNDWATER DTWL',
-        secondaryMetricValue: `${distData?.wrisTelemetry?.groundwaterDepthMbgl || 12.4} mbgl`,
-        secondaryMetricSub: distData?.wrisTelemetry?.groundwaterTrend || 'Optimal Aquifer Table',
-        baselineLabel: currentLang === 'te' ? 'ప్రధాన జలాశయం & నిల్వ' : currentLang === 'hi' ? 'मुख्य जलाशय एवं भंडारण' : 'Primary Reservoir & Storage',
-        baselineValue: `${distData?.wrisTelemetry?.primaryReservoir || 'District Irrigation Dam'} (${distData?.wrisTelemetry?.storagePercentage || 76}%)`,
-        statusText: distComplaints.length > 0 
-          ? `${distComplaints.length} ${currentLang === 'te' ? 'క్రియాశీల ప్రజా ఫిర్యాదులు' : currentLang === 'hi' ? 'सक्रिय नागरिक शिकायतें' : 'Active Citizen Grievances in District'}` 
-          : (currentLang === 'te' ? 'సరైన హైడ్రోలాజికల్ సమతుల్యత' : currentLang === 'hi' ? 'इष्टतम जिला जल संतुलन' : 'Optimal District Hydrological Balance'),
-        statusColor: distComplaints.length > 2 ? 'amber' : 'emerald',
-        metricExtraRight: `HQ: ${boundary.headquarter}`,
-        additionalInfo: distData?.officerInCharge ? [
-          { label: currentLang === 'te' ? 'ఇన్‌ఛార్జ్ అధికారి' : currentLang === 'hi' ? 'प्रभारी अधिकारी' : 'Officer In-Charge', value: distData.officerInCharge.name },
-          { label: currentLang === 'te' ? 'హోదా & ఫోన్' : currentLang === 'hi' ? 'पद एवं फोन' : 'Designation & Phone', value: `${distData.officerInCharge.designation} (${distData.officerInCharge.phone})` }
-        ] : [
-          { label: currentLang === 'te' ? 'ప్రధాన కేంద్రం' : currentLang === 'hi' ? 'मुख्यालय' : 'Headquarters', value: boundary.headquarter },
-          { label: currentLang === 'te' ? 'ప్రాంతం' : currentLang === 'hi' ? 'क्षेत्र' : 'Region', value: boundary.region }
-        ]
-      });
+      // Do NOT auto-open flashcard - only zoom to district and wait for user click on a pin
+      setActiveFlashcard(null);
     }
   };
 
@@ -760,6 +863,7 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       const marker = L.marker([dist.centerCoords.lat, dist.centerCoords.lng], { icon: customIcon });
       marker.on('click', () => {
         applyDistrictSelection(dist.name);
+        openPrimaryReservoirFlashcard(dist.name);
       });
 
       marker.addTo(markersGroup);
@@ -1300,70 +1404,7 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
           }}
         />
 
-        {/* Active District Boundary Cartographic Banner */}
-        {selectedBoundaryInfo && (
-          <div className="absolute top-4 left-4 z-20 bg-white/95 backdrop-blur-md px-3.5 py-2.5 rounded-2xl shadow-xl border-2 border-[#00B4D8] flex flex-wrap items-center gap-3 text-xs max-w-lg pointer-events-auto animate-in fade-in duration-200">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#03045E] to-[#0077B6] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
-              🏛️
-            </div>
-            <div className="min-w-0">
-              <div className="font-extrabold text-[#03045E] truncate text-xs sm:text-sm flex items-center gap-1.5">
-                <span>
-                  {currentLang === 'te' 
-                    ? `${selectedBoundaryInfo.teluguName} జిల్లా సరిహద్దు`
-                    : currentLang === 'hi' 
-                    ? `${selectedBoundaryInfo.hindiName} जिला सीमा`
-                    : `${selectedBoundaryInfo.name} District Boundary`}
-                </span>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold uppercase">
-                  {currentLang === 'te' ? 'జూమ్ చేయబడింది' : currentLang === 'hi' ? 'ज़ूम किया गया' : 'Active Boundary'}
-                </span>
-              </div>
-              <div className="text-[10px] text-slate-500 font-semibold truncate mt-0.5">
-                {currentLang === 'te'
-                  ? `ప్రధాన కేంద్రం: ${selectedBoundaryInfo.headquarter} • విస్తీర్ణం: ${selectedBoundaryInfo.areaSqKm.toLocaleString()} చ.కి.మీ`
-                  : currentLang === 'hi'
-                  ? `मुख्यालय: ${selectedBoundaryInfo.headquarter} • क्षेत्रफल: ${selectedBoundaryInfo.areaSqKm.toLocaleString()} वर्ग किमी`
-                  : `HQ: ${selectedBoundaryInfo.headquarter} • Area: ${selectedBoundaryInfo.areaSqKm.toLocaleString()} sq km`}
-              </div>
-            </div>
 
-            <div className="flex items-center gap-1.5 shrink-0 ml-auto pt-1 sm:pt-0">
-              <button
-                onClick={() => {
-                  const map = mapInstanceRef.current;
-                  if (map && selectedBoundaryInfo) {
-                    map.invalidateSize();
-                    const b = L.latLngBounds(selectedBoundaryInfo.bounds);
-                    map.flyToBounds(b.pad(0.14), { duration: 1.0, maxZoom: 10.5 });
-                  }
-                }}
-                className="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-[#0077B6] font-bold text-[11px] rounded-lg border border-sky-200 transition-colors cursor-pointer"
-                title={currentLang === 'te' ? 'జిల్లా సరిహద్దును రీ-సెంటర్ చేయండి' : currentLang === 'hi' ? 'सीमा को री-सेंटर करें' : 'Re-center Boundary'}
-              >
-                🔍 {currentLang === 'te' ? 'రీ-సెంటర్' : currentLang === 'hi' ? 'री-सेंटर' : 'Re-center'}
-              </button>
-
-              <button
-                onClick={() => applyDistrictSelection('all', true)}
-                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition-colors cursor-pointer"
-                title={currentLang === 'te' ? 'మొత్తం ఆంధ్రప్రదేశ్ చూపించు' : currentLang === 'hi' ? 'सभी 26 जिले दिखाएं' : 'Show All Districts'}
-              >
-                🔄 {currentLang === 'te' ? 'మొత్తం ఏపీ' : currentLang === 'hi' ? 'संपूर्ण राज्य' : 'All AP'}
-              </button>
-
-              {onBackToDistricts && (
-                <button
-                  onClick={onBackToDistricts}
-                  className="px-2.5 py-1 bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-[11px] rounded-lg transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                  title={currentLang === 'te' ? '26 జిల్లాల పట్టికకు తిరిగి వెళ్ళండి' : currentLang === 'hi' ? '26 जिला तालिका पर वापस जाएं' : 'Back to 26 Districts Table'}
-                >
-                  ← {currentLang === 'te' ? '26 జిల్లాలు' : currentLang === 'hi' ? '26 जिले' : '26 Districts Table'}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Live Legend Box on Right Side (Over Bay of Bengal Ocean) */}
         <div className="absolute bottom-4 right-4 z-20 bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200/90 max-w-xs text-xs space-y-2 pointer-events-auto">
