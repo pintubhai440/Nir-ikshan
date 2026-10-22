@@ -138,47 +138,62 @@ export default function App() {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
-    if (isSupabaseConfigured()) {
-      fetchComplaintsFromSupabase().then((remoteComplaints) => {
-        if (remoteComplaints && remoteComplaints.length > 0) {
-          // Strictly deduplicate remote complaints by ID
-          const uniqueRemoteMap = new Map<string, CitizenComplaint>();
-          for (const item of remoteComplaints) {
-            if (item && item.id && !uniqueRemoteMap.has(item.id)) {
-              uniqueRemoteMap.set(item.id, item);
+    const syncLiveComplaints = () => {
+      if (isSupabaseConfigured()) {
+        fetchComplaintsFromSupabase().then((remoteComplaints) => {
+          if (remoteComplaints && remoteComplaints.length > 0) {
+            // Strictly deduplicate remote complaints by ID
+            const uniqueRemoteMap = new Map<string, CitizenComplaint>();
+            for (const item of remoteComplaints) {
+              if (item && item.id && !uniqueRemoteMap.has(item.id)) {
+                uniqueRemoteMap.set(item.id, item);
+              }
+            }
+            const deduplicated = Array.from(uniqueRemoteMap.values());
+            setComplaints(deduplicated);
+            try {
+              localStorage.setItem('nir_complaints', JSON.stringify(deduplicated));
+            } catch (e) {
+              console.error('Failed to sync complaints to localStorage cache', e);
             }
           }
-          const deduplicated = Array.from(uniqueRemoteMap.values());
-          setComplaints(deduplicated);
-          try {
-            localStorage.setItem('nir_complaints', JSON.stringify(deduplicated));
-          } catch (e) {
-            console.error('Failed to sync complaints to localStorage cache', e);
-          }
-        }
-      });
+        });
 
-      unsubscribe = subscribeToComplaints(
-        (inserted) => {
-          setComplaints((prev) => {
-            if (prev.some((c) => c.id === inserted.id)) return prev;
-            const updated = [inserted, ...prev];
-            localStorage.setItem('nir_complaints', JSON.stringify(updated));
-            return updated;
-          });
-        },
-        (updated) => {
-          setComplaints((prev) => {
-            const next = prev.map((c) => (c.id === updated.id ? updated : c));
-            localStorage.setItem('nir_complaints', JSON.stringify(next));
-            return next;
-          });
+        if (!unsubscribe) {
+          unsubscribe = subscribeToComplaints(
+            (inserted) => {
+              setComplaints((prev) => {
+                if (prev.some((c) => c.id === inserted.id)) return prev;
+                const updated = [inserted, ...prev];
+                localStorage.setItem('nir_complaints', JSON.stringify(updated));
+                return updated;
+              });
+            },
+            (updated) => {
+              setComplaints((prev) => {
+                const next = prev.map((c) => (c.id === updated.id ? updated : c));
+                localStorage.setItem('nir_complaints', JSON.stringify(next));
+                return next;
+              });
+            }
+          );
         }
-      );
-    }
+      }
+    };
+
+    syncLiveComplaints();
+
+    const handleConfigChange = () => {
+      syncLiveComplaints();
+    };
+
+    window.addEventListener('supabase-config-changed', handleConfigChange);
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      window.removeEventListener('supabase-config-changed', handleConfigChange);
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, []);
 
@@ -478,6 +493,7 @@ export default function App() {
         currentUser={currentUser}
         onOpenLoginModal={() => setIsOtpModalOpen(true)}
         onOpenDrawer={() => setIsDrawerOpen(true)}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
 
       {/* Main Dashboard Body Container */}
@@ -550,6 +566,7 @@ export default function App() {
             onOpenLodgeModal={() => setIsLodgeModalOpen(true)}
             onOpenDrawer={() => setIsDrawerOpen(true)}
             onUpdateComplaint={handleUpdateComplaint}
+            onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
         )}
 

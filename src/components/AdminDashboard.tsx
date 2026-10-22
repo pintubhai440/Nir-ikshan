@@ -99,6 +99,7 @@ import {
   Copy
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { JurisdictionCard } from './JurisdictionCard';
 
 interface AdminDashboardProps {
   waterBodies: WaterBody[];
@@ -108,6 +109,7 @@ interface AdminDashboardProps {
   onOpenLodgeModal?: () => void;
   onOpenDrawer?: () => void;
   onUpdateComplaint?: (updated: CitizenComplaint) => void;
+  onOpenSupabaseModal?: () => void;
 }
 
 // 11 Official State Admin Options (1:1 with user specification in image_f209fa3d.png)
@@ -127,130 +129,310 @@ export type AdminActiveTab =
 export interface HydrologicalJurisdiction {
   id: string;
   name: string;
+  nameHi: string;
   teluguName: string;
   headquarters: string;
+  headquartersHi: string;
+  headquartersTe: string;
   chiefEngineer: string;
+  chiefEngineerHi: string;
+  chiefEngineerTe: string;
   phone: string;
   email: string;
   catchmentAreaSqKm: string;
   coveredDistricts: string[];
   monitoredReservoirs: number;
   primaryBarrage: string;
+  primaryBarrageHi: string;
+  primaryBarrageTe: string;
   status: string;
+  statusHi: string;
+  statusTe: string;
   statusColor: 'emerald' | 'sky' | 'amber' | 'blue';
   criticalTmcCapacity: number;
   currentLiveTmc: number;
+  annualYieldTmc?: number;
+  irrigationAyacutLakhAcres?: number;
+  majorCanals?: string[];
+  majorCanalsHi?: string[];
+  majorCanalsTe?: string[];
   description: string;
+  descriptionHi: string;
+  descriptionTe: string;
 }
 
 export const AP_JURISDICTIONS: HydrologicalJurisdiction[] = [
   {
     id: 'jur-godavari-delta',
     name: 'Godavari Basin & Delta Command',
+    nameHi: 'गोदावरी बेसिन एवं डेल्टा कमान',
     teluguName: 'గోదావరి పరీవాహక ప్రాంతం & డెల్టా',
     headquarters: 'Rajahmundry / Dowleswaram',
+    headquartersHi: 'राजमहेंद्रवरम / धवलेश्वरम',
+    headquartersTe: 'రాజమండ్రి / ధవళేశ్వరం',
     chiefEngineer: 'Er. K. Srinivas Rao, CE Godavari Basin',
+    chiefEngineerHi: 'इंजी. के. श्रीनिवास राव, मुख्य अभियंता गोदावरी बेसिन',
+    chiefEngineerTe: 'ఇం. కె. శ్రీనివాసరావు, చీఫ్ ఇంజనీర్ గోదావరి',
     phone: '+91 883 2445100',
     email: 'ce.godavari@water.ap.gov.in',
     catchmentAreaSqKm: '48,220 km²',
     coveredDistricts: ['East Godavari', 'West Godavari', 'Dr. B.R. Ambedkar Konaseema', 'Kakinada', 'Eluru', 'Alluri Sitharama Raju'],
     monitoredReservoirs: 28,
     primaryBarrage: 'Sir Arthur Cotton Barrage, Dowleswaram (Flood Discharge: 30 Lakh Cusecs)',
+    primaryBarrageHi: 'सर आर्थर कॉटन बैराज, धवलेश्वरम (बाढ़ निर्वहन: 30 लाख क्यूसेक)',
+    primaryBarrageTe: 'సర్ ఆర్థర్ కాటన్ బ్యారేజ్, ధవళేశ్వరం (వరద సామర్థ్యం: 30 లక్షల క్యూసెక్కులు)',
     status: 'Normal Flow (Surplus Season)',
+    statusHi: 'सामान्य प्रवाह (अधिशेष काल)',
+    statusTe: 'సాధారణ ప్రవాహం (మిగులు కాలం)',
     statusColor: 'emerald',
     criticalTmcCapacity: 215.4,
     currentLiveTmc: 178.2,
-    description: 'Oversees Polavaram Irrigation Project, Godavari Delta canal networks, and Sir Arthur Cotton Barrage feeding 10 lakh acres of ayacut.'
+    annualYieldTmc: 3200,
+    irrigationAyacutLakhAcres: 10.34,
+    majorCanals: ['Eastern Delta Main Canal', 'Central Delta Canal', 'Western Delta Canal', 'Polavaram Left Main Canal'],
+    majorCanalsHi: ['पूर्वी डेल्टा मुख्य नहर', 'मध्य डेल्टा नहर', 'पश्चिमी डेल्टा नहर', 'पोलावरम बायाँ मुख्य नहर'],
+    majorCanalsTe: ['తూర్పు డెల్టా ప్రధాన కాలువ', 'సెంట్రల్ డెల్టా కాలువ', 'పశ్చిమ డెల్టా కాలువ', 'పోలవరం ఎడమ ప్రధాన కాలువ'],
+    description: 'Oversees Polavaram Irrigation Project, Godavari Delta canal networks, and Sir Arthur Cotton Barrage feeding 10.34 lakh acres of ayacut.',
+    descriptionHi: 'पोलावरम सिंचाई परियोजना, गोदावरी डेल्टा नहर नेटवर्क और सर आर्थर कॉटन बैराज का संचालन, जो 10.34 लाख एकड़ कृषि क्षेत्र को सिंचित करता है।',
+    descriptionTe: 'పోలవరం ప్రాజెక్టు, గోదావరి డెల్టా కాలువ నెట్‌వర్క్ మరియు 10.34 లక్షల ఎకరాల ఆయకట్టుకు నీరందించే సర్ ఆర్థర్ కాటన్ బ్యారేజ్ సమగ్ర పర్యవేక్షణ.'
   },
   {
     id: 'jur-krishna-delta',
     name: 'Krishna Central Basin & Prakasam Command',
+    nameHi: 'कृष्णा सेंट्रल बेसिन एवं प्रकाशम कमान',
     teluguName: 'కృష్ణా డెల్టా & ప్రకాశం బ్యారేజ్ కమాండ్',
     headquarters: 'Vijayawada',
+    headquartersHi: 'विजयवाड़ा',
+    headquartersTe: 'విజయవాడ',
     chiefEngineer: 'Er. M. Muralidhar, CE Krishna Delta',
+    chiefEngineerHi: 'इंजी. एम. मुरलीधर, मुख्य अभियंता कृष्णा डेल्टा',
+    chiefEngineerTe: 'ఇం. ఎం. మురళీధర్, చీఫ్ ఇంజనీర్ కృష్ణా డెల్టా',
     phone: '+91 866 2576200',
     email: 'ce.krishna@water.ap.gov.in',
     catchmentAreaSqKm: '54,180 km²',
     coveredDistricts: ['Krishna', 'NTR', 'Guntur', 'Bapatla', 'Palnadu', 'Prakasam'],
     monitoredReservoirs: 34,
-    primaryBarrage: 'Prakasam Barrage, Vijayawada & Pulichintala Project',
+    primaryBarrage: 'Prakasam Barrage, Vijayawada & Pulichintala Project (45.77 TMC)',
+    primaryBarrageHi: 'प्रकाशम बैराज, विजयवाड़ा एवं पुलीचिंतला परियोजना (45.77 टीएमसी)',
+    primaryBarrageTe: 'ప్రకాశం బ్యారేజ్, విజయవాడ & పులిచింతల ప్రాజెక్టు (45.77 TMC)',
     status: 'Regulated Discharge (Storage: 74%)',
+    statusHi: 'नियंत्रित निर्वहन (भंडारण: 74%)',
+    statusTe: 'క్రమబద్ధీకరించిన డిశ్చార్జ్ (నిల్వ: 74%)',
     statusColor: 'sky',
     criticalTmcCapacity: 312.8,
     currentLiveTmc: 231.5,
-    description: 'Apex administrative zone for Krishna Western and Eastern delta canals, Pulichintala balancing reservoir, and Prakasam Barrage water distribution.'
+    annualYieldTmc: 1850,
+    irrigationAyacutLakhAcres: 13.08,
+    majorCanals: ['Krishna Eastern Delta (Ryves, Eluru, Bandar)', 'Krishna Western Main Canal', 'Guntur Channel', 'K.L. Rao Pulichintala'],
+    majorCanalsHi: ['कृष्णा पूर्वी डेल्टा (राइव्स, एलुरु, बंदर)', 'कृष्णा पश्चिमी मुख्य नहर', 'गुंटूर चैनल', 'के.एल. राव पुलीचिंतला'],
+    majorCanalsTe: ['కృష్ణా తూర్పు డెల్టా (రైవ్స్, ఏలూరు, బందరు)', 'కృష్ణా పశ్చిమ ప్రధాన కాలువ', 'గుంటూరు ఛానల్', 'పులిచింతల కాలువ'],
+    description: 'Apex administrative zone for Krishna Western and Eastern delta canals, Pulichintala balancing reservoir, and Prakasam Barrage water distribution.',
+    descriptionHi: 'कृष्णा पश्चिमी व पूर्वी डेल्टा नहरों, पुलीचिंतला संतुलन जलाशय और प्रकाशम बैराज जल वितरण का शीर्ष प्रशासनिक क्षेत्र।',
+    descriptionTe: 'కృష్ణా పశ్చిమ మరియు తూర్పు డెల్టా కాలువలు, పులిచింతల బ్యాలెన్సింగ్ జలాశయం మరియు ప్రకాశం బ్యారేజ్ నీటి పంపిణీకి కీలక విభాగం.'
   },
   {
     id: 'jur-rayalaseema-high-stress',
-    name: 'Rayalaseema Drought & Groundwater Command',
-    teluguName: 'రాయలసీమ కరవు నివారణ ప్రాజెక్టులు',
+    name: 'Rayalaseema Drought Mitigation & Srisailam Command',
+    nameHi: 'रायलसीमा सूखा निवारण एवं श्रीशैलम कमान',
+    teluguName: 'రాయలసీమ కరవు నివారణ ప్రాజెక్టులు & శ్రీశైలం',
     headquarters: 'Kurnool / Kadapa',
+    headquartersHi: 'कुरनूल / कडपा',
+    headquartersTe: 'కర్నూలు / కడప',
     chiefEngineer: 'Er. C. Narayana Reddy, CE Rayalaseema Projects',
+    chiefEngineerHi: 'इंजी. सी. नारायण रेड्डी, मुख्य अभियंता रायलसीमा',
+    chiefEngineerTe: 'ఇం. సి. నారాయణరెడ్డి, చీఫ్ ఇంజనీర్ రాయలసీమ ప్రాజెక్టులు',
     phone: '+91 8518 221450',
     email: 'ce.rayalaseema@water.ap.gov.in',
     catchmentAreaSqKm: '67,299 km²',
     coveredDistricts: ['Kurnool', 'Nandyal', 'Ananthapuramu', 'Sri Sathya Sai', 'YSR Kadapa', 'Annamayya', 'Chittoor', 'Tirupati'],
     monitoredReservoirs: 41,
-    primaryBarrage: 'Srisailam Reservoir, Pothireddypadu Head Regulator & Gandikota',
+    primaryBarrage: 'Srisailam Reservoir (215.8 TMC), Pothireddypadu Head Regulator & Gandikota (26.8 TMC)',
+    primaryBarrageHi: 'श्रीशैलम जलाशय (215.8 टीएमसी), पोथिरेड्डीपाडु हेड रेगुलेटर एवं गंडीकोटा (26.8 टीएमसी)',
+    primaryBarrageTe: 'శ్రీశైలం ప్రాజెక్టు (215.8 TMC), పోతిరెడ్డిపాడు హెడ్ రెగ్యులేటర్ & గండికోట (26.8 TMC)',
     status: 'High Water Stress (Groundwater Watch)',
+    statusHi: 'उच्च जल संकट (भूजल निगरानी)',
+    statusTe: 'తీవ్ర నీటి ఒత్తిడి (భూగర్భ జలాల నిఘా)',
     statusColor: 'amber',
     criticalTmcCapacity: 285.6,
     currentLiveTmc: 142.1,
-    description: 'Critical hydrological security zone managing Handri-Neeva Sujala Sravanthi (HNSS), Galeru Nagari (GNSS), Veligonda, and 594 DWLR deep aquifer wells.'
+    annualYieldTmc: 890,
+    irrigationAyacutLakhAcres: 9.75,
+    majorCanals: ['Handri-Neeva Sujala Sravanthi (HNSS)', 'Galeru Nagari Sujala Sravanthi (GNSS)', 'Telugu Ganga Main Canal', 'Veligonda Tunnel'],
+    majorCanalsHi: ['हंद्री-नीवा सुजला स्रवंती (HNSS)', 'गालेरू नगरी सुजला स्रवंती (GNSS)', 'तेलुगु गंगा मुख्य नहर', 'वेलिगोंडा टनल'],
+    majorCanalsTe: ['హంద్రీ-నీవా సుజలా స్రవంతి (HNSS)', 'గాలేరు నగరి సుజలా స్రవంతి (GNSS)', 'తెలుగు గంగ ప్రధాన కాలువ', 'వెలిగొండ టన్నెల్'],
+    description: 'Critical hydrological security zone managing Handri-Neeva (HNSS), Galeru Nagari (GNSS), Veligonda, and 594 DWLR deep aquifer surveillance wells.',
+    descriptionHi: 'हंद्री-नीवा (HNSS), गालेरू नगरी (GNSS), वेलिगोंडा और 594 गहरे भूजल कुओं (DWLR) की निरंतर निगरानी करने वाला संवेदनशील जल कमान।',
+    descriptionTe: 'హంద్రీ-నీవా, గాలేరు-నగరి, వెలిగొండ ప్రాజెక్టులు మరియు 594 DWLR డీప్ అక్విఫర్ వెల్స్ నిర్వహించే కీలక కరవు నివారణా విభాగం.'
   },
   {
     id: 'jur-north-coastal',
-    name: 'North Coastal Basins (Vamsadhara & Nagavali)',
-    teluguName: 'ఉత్తరాంధ్ర నదుల ప్రాజెక్టులు',
+    name: 'North Coastal Basins (Vamsadhara, Nagavali & Champavathi)',
+    nameHi: 'उत्तर तटीय बेसिन (वंशधारा, नागावली एवं चंपावती)',
+    teluguName: 'ఉత్తరాంధ్ర నదుల ప్రాజెక్టులు (వంశధార, నాగావళి, చంపావతి)',
     headquarters: 'Visakhapatnam / Srikakulam',
+    headquartersHi: 'विशाखापट्टनम / श्रीकाकुलम',
+    headquartersTe: 'విశాఖపట్నం / శ్రీకాకుళం',
     chiefEngineer: 'Er. B. Venkata Ramana, CE North Coast',
+    chiefEngineerHi: 'इंजी. बी. वेंकट रमण, मुख्य अभियंता उत्तर तटीय बेसिन',
+    chiefEngineerTe: 'ఇం. బి. వెంకటరమణ, చీఫ్ ఇంజనీర్ ఉత్తరాంధ్ర నదులు',
     phone: '+91 891 2568400',
     email: 'ce.northcoast@water.ap.gov.in',
     catchmentAreaSqKm: '22,460 km²',
     coveredDistricts: ['Srikakulam', 'Vizianagaram', 'Parvathipuram Manyam', 'Visakhapatnam', 'Anakapalli'],
-    monitoredReservoirs: 10,
-    primaryBarrage: 'Gotta Barrage, Thotapalli Barrage & Madduvalasa',
+    monitoredReservoirs: 16,
+    primaryBarrage: 'Gotta Barrage (Hiramandalam 19 TMC), Thotapalli Barrage & Madduvalasa',
+    primaryBarrageHi: 'गोटा बैराज (हीरामंडलम 19 टीएमसी), तोटापल्ली बैराज एवं मड्डुवलसा',
+    primaryBarrageTe: 'గొట్టా బ్యారేజ్ (హీరామండలం 19 TMC), తోటపల్లి బ్యారేజ్ & మడ్డువలస',
     status: 'Optimal Water Table (Safe Zone)',
+    statusHi: 'उत्तम भूजल स्तर (सुरक्षित क्षेत्र)',
+    statusTe: 'ఆదర్శవంతమైన నీటి నిల్వ (సేఫ్ జోన్)',
     statusColor: 'emerald',
     criticalTmcCapacity: 74.2,
     currentLiveTmc: 58.7,
-    description: 'Manages Vamsadhara Phase-II Hiramandalam reservoir, Nagavali river basin, and drinking water supply to Visakhapatnam industrial cluster.'
+    annualYieldTmc: 520,
+    irrigationAyacutLakhAcres: 5.42,
+    majorCanals: ['Vamsadhara Left Main Canal', 'Thotapalli Right Main Canal', 'Madduvalasa Feeder', 'Tatipudi-Gosthani Conduit'],
+    majorCanalsHi: ['वंशधारा बायाँ मुख्य नहर', 'तोटापल्ली दायाँ मुख्य नहर', 'मड्डुवलसा फीडर', 'तातिपुडी-गोस्थनी जलवाहिनी'],
+    majorCanalsTe: ['వంశధార ఎడమ ప్రధాన కాలువ', 'తోటపల్లి కుడి ప్రధాన కాలువ', 'మడ్డువలస ఫీడర్', 'తాటిపూడి-గోస్తని కాలువ'],
+    description: 'Manages Vamsadhara Phase-II Hiramandalam reservoir, Nagavali river basin, and drinking water supply to Visakhapatnam industrial cluster.',
+    descriptionHi: 'वंशधारा फेज-2 हीरामंडलम जलाशय, नागावली नदी बेसिन और विशाखापट्टनम औद्योगिक संकुल के लिए सुरक्षित पेयजल आपूर्ति का प्रबंधन।',
+    descriptionTe: 'వంశధార ఫేజ్-2 హీరామండలం రిజర్వాయర్, నాగావళి బేసిన్ మరియు విశాఖపట్నం పారిశ్రామిక నగరానికి తాగునీటి సరఫరా నిర్వహణ.'
   },
   {
     id: 'jur-pennar-basin',
     name: 'Pennar Basin & Southern Coast Command',
-    teluguName: 'పెన్నా పరీవాహక ప్రాంతం & సోమశిల',
+    nameHi: 'पेन्नार बेसिन एवं दक्षिणी तटीय कमान',
+    teluguName: 'పెన్నా పరీవాహక ప్రాంతం & సోమశిల కమాండ్',
     headquarters: 'Nellore',
+    headquartersHi: 'नेल्लोर',
+    headquartersTe: 'నెల్లూరు',
     chiefEngineer: 'Er. T. Subbarami Reddy, CE Pennar Basin',
+    chiefEngineerHi: 'इंजी. टी. सुब्बारा Rami रेड्डी, मुख्य अभियंता पेन्नार बेसिन',
+    chiefEngineerTe: 'ఇం. టి. సుబ్బారామిరెడ్డి, చీఫ్ ఇంజనీర్ పెన్నా బేసిన్',
     phone: '+91 861 2326700',
     email: 'ce.pennar@water.ap.gov.in',
     catchmentAreaSqKm: '32,150 km²',
-    coveredDistricts: ['Sri Potti Sriramulu Nellore', 'Prakasam (South)'],
+    coveredDistricts: ['Sri Potti Sriramulu Nellore', 'Tirupati', 'Prakasam'],
     monitoredReservoirs: 12,
     primaryBarrage: 'Somasila Dam (78 TMC) & Kandaleru Reservoir (68 TMC)',
+    primaryBarrageHi: 'सोमशिला बांध (78 टीएमसी) एवं कंदलेरू जलाशय (68 टीएमसी)',
+    primaryBarrageTe: 'సోమశిల డ్యామ్ (78 TMC) & కండలేరు జలాశయం (68 TMC)',
     status: 'Moderate Storage (Storage: 62%)',
+    statusHi: 'मध्यम भंडारण (भंडारण: 62%)',
+    statusTe: 'మధ్యస్థ నిల్వ (నిల్వ: 62%)',
     statusColor: 'blue',
     criticalTmcCapacity: 146.0,
     currentLiveTmc: 90.5,
-    description: 'Oversees Somasila-Swarnamukhi link, Kandaleru reservoir regulating supply to Chennai drinking water pipeline and Telugu Ganga ayacut.'
+    annualYieldTmc: 780,
+    irrigationAyacutLakhAcres: 6.88,
+    majorCanals: ['Kandaleru-Poondi Telugu Ganga Pipeline', 'Somasila North Canal', 'Somasila South Canal', 'Kanupur Canal'],
+    majorCanalsHi: ['कंदलेरू-पूंडी तेलुगु गंगा पाइपलाइन', 'सोमशिला उत्तर नहर', 'सोमशिला दक्षिण नहर', 'कानुपुर नहर'],
+    majorCanalsTe: ['కండలేరు-పూండి తెలుగు గంగ పైప్‌లైన్', 'సోమశిల ఉత్తర కాలువ', 'సోమశిల దక్షిణ కాలువ', 'కానుపూరు కాలువ'],
+    description: 'Oversees Somasila-Swarnamukhi link, Kandaleru reservoir regulating supply to Chennai drinking water pipeline and Telugu Ganga ayacut.',
+    descriptionHi: 'सोमशिला-स्वर्णमुखी लिंक, चेन्नई पेयजल आपूर्ति और तेलुगु गंगा अयाकट को नियंत्रित करने वाले कंदलेरू जलाशय का आधिकारिक प्रबंधन।',
+    descriptionTe: 'సోమశిల-స్వర్ణముఖి లింక్, చెన్నై తాగునీటి పైప్‌లైన్ మరియు తెలుగు గంగ ఆయకట్టుకు నీరందించే కండలేరు ప్రాజెక్టు పర్యవేక్షణ.'
   },
   {
     id: 'jur-interbasin-grid',
     name: 'AP Inter-Basin River Linking & Lift Command',
+    nameHi: 'आंध्र प्रदेश अंतर-बेसिन नदी जोड़ एवं लिफ्ट कमान',
     teluguName: 'నదుల అనుసంధానం & ఎత్తిపోతల ప్రాజెక్టులు',
     headquarters: 'Ibrahimpatnam / Vijayawada',
+    headquartersHi: 'इब्राहिमपट्टनम / विजयवाड़ा',
+    headquartersTe: 'ఇబ్రహీంపట్నం / విజయవాడ',
     chiefEngineer: 'Er. P. Sudhakar, CE Inter-Basin Transfer',
+    chiefEngineerHi: 'इंजी. पी. सुधाकर, मुख्य अभियंता अंतर-बेसिन जल स्थानांतरण',
+    chiefEngineerTe: 'ఇం. పి. సుధాకర్, చీఫ్ ఇంజనీర్ నదుల అనుసంధానం',
     phone: '+91 866 2881200',
     email: 'ce.riverlink@water.ap.gov.in',
     catchmentAreaSqKm: '35,000 km²',
     coveredDistricts: ['Krishna', 'Eluru', 'West Godavari', 'Guntur'],
     monitoredReservoirs: 8,
-    primaryBarrage: 'Pattiseema Lift Scheme (Godavari-to-Krishna Transfer, 8,500 Cusecs)',
+    primaryBarrage: 'Pattiseema Lift Scheme (24 Turbo Pumps, 8,500 Cusecs Godavari-to-Krishna)',
+    primaryBarrageHi: 'पट्टिसीमा लिफ्ट योजना (24 टर्बो पंप, 8,500 क्यूसेक गोदावरी-से-कृष्णा स्थानांतरण)',
+    primaryBarrageTe: 'పట్టిసీమ ఎత్తిపోతల పథకం (24 టర్బో పంపులు, 8,500 క్యూసెక్కులు గోదావరి-కృష్ణా బదిలీ)',
     status: 'Live Pumping Active (Surplus Transfer)',
+    statusHi: 'लाइव पंपिंग सक्रिय (अधिशेष स्थानांतरण)',
+    statusTe: 'లైవ్ పంపింగ్ క్రియాశీలం (మిగులు బదిలీ)',
     statusColor: 'emerald',
     criticalTmcCapacity: 120.0,
     currentLiveTmc: 92.4,
-    description: 'Groundbreaking inter-basin water grid transferring Godavari surplus waters via Polavaram Right Main Canal into Krishna delta at Prakasam Barrage.'
+    annualYieldTmc: 110,
+    irrigationAyacutLakhAcres: 13.08,
+    majorCanals: ['Polavaram Right Main Canal (PRMC)', 'Budameru Diversion Channel', 'Chintalapudi Lift Feeder', 'Purushothapatnam Canal'],
+    majorCanalsHi: ['पोलावरम दायाँ मुख्य नहर (PRMC)', 'बुडामेरू डाइवर्जन चैनल', 'चिंतालापुडी लिफ्ट फीडर', 'पुरुषोत्तमपटनम नहर'],
+    majorCanalsTe: ['పోలవరం కుడి ప్రధాన కాలువ (PRMC)', 'బుడమేరు డైవర్షన్ ఛానల్', 'చింతలపూడి లిఫ్ట్ ఫీడర్', 'పురుషోత్తపట్నం కాలువ'],
+    description: 'Groundbreaking inter-basin water grid transferring Godavari surplus waters via Polavaram Right Main Canal into Krishna delta at Prakasam Barrage.',
+    descriptionHi: 'गोदावरी के अधिशेष बाढ़ जल को पोलावरम दायाँ मुख्य नहर के माध्यम से कृष्णा डेल्टा में प्रकाशम बैराज तक पहुँचाने वाला ऐतिहासिक नदी-जोड़ ग्रिड।',
+    descriptionTe: 'గోదావరి వరద నీటిని పోలవరం కుడి కాలువ ద్వారా కృష్ణా డెల్టా ప్రకాశం బ్యారేజీకి మళ్లించే భారతదేశపు తొలి నదుల అనుసంధాన ప్రాజెక్టు.'
+  },
+  {
+    id: 'jur-tungabhadra-command',
+    name: 'Tungabhadra Basin & High-Level Canal Command (HLC / LLC)',
+    nameHi: 'तुंगभद्रा बेसिन एवं उच्च-स्तरीय नहर कमान (HLC / LLC)',
+    teluguName: 'తుంగభద్ర బేసిన్ & హెచ్.ఎల్.సి / ఎల్.ఎల్.సి కమాండ్',
+    headquarters: 'Ananthapuramu / Kurnool',
+    headquartersHi: 'अनंतपुर / कुरनूल',
+    headquartersTe: 'అనంతపురం / కర్నూలు',
+    chiefEngineer: 'Er. R. Sreenivasa Murthy, CE Tungabhadra Canal',
+    chiefEngineerHi: 'इंजी. आर. श्रीनिवास मूर्ति, मुख्य अभियंता तुंगभद्रा नहर',
+    chiefEngineerTe: 'ఇం. ఆర్. శ్రీనివాసమూర్తి, చీఫ్ ఇంజనీర్ తుంగభద్ర ప్రాజెక్టు',
+    phone: '+91 8554 274100',
+    email: 'ce.tungabhadra@water.ap.gov.in',
+    catchmentAreaSqKm: '28,400 km²',
+    coveredDistricts: ['Ananthapuramu', 'Kurnool', 'Sri Sathya Sai'],
+    monitoredReservoirs: 10,
+    primaryBarrage: 'Tungabhadra Dam (Hospet Allocations), Mid Pennar Dam (5.2 TMC) & BTP (1.9 TMC)',
+    primaryBarrageHi: 'तुंगभद्रा बांध (होस्पेट आवंटन), मध्य पेन्नार बांध (5.2 टीएमसी) एवं बीटीपी (1.9 टीएमसी)',
+    primaryBarrageTe: 'తుంగభద్ర డ్యామ్ (హోస్పేట్ వాటా), మిడ్ పెన్నార్ రిజర్వాయర్ (5.2 TMC) & BTP (1.9 TMC)',
+    status: 'Regulated Discharge (Storage: 73.6%)',
+    statusHi: 'नियंत्रित निर्वहन (भंडारण: 73.6%)',
+    statusTe: 'క్రమబద్ధీకరించిన డిశ్చార్జ్ (నిల్వ: 73.6%)',
+    statusColor: 'sky',
+    criticalTmcCapacity: 65.5,
+    currentLiveTmc: 48.2,
+    annualYieldTmc: 212,
+    irrigationAyacutLakhAcres: 3.25,
+    majorCanals: ['Tungabhadra High Level Main Canal (HLC)', 'Tungabhadra Low Level Canal (LLC)', 'Mid Pennar South Canal', 'Bhairavanitippa Canal'],
+    majorCanalsHi: ['तुंगभद्रा उच्च स्तरीय मुख्य नहर (HLC)', 'तुंगभद्रा निम्न स्तरीय नहर (LLC)', 'मध्य पेन्नार दक्षिण नहर', 'भैरवनीतिप्पा नहर'],
+    majorCanalsTe: ['తుంగభద్ర హై లెవల్ కెనాల్ (HLC)', 'తుంగభద్ర లో లెవల్ కెనాల్ (LLC)', 'మిడ్ పెన్నార్ సౌత్ కెనాల్', 'భైరవనితిప్ప కాలువ'],
+    description: 'Manages Andhra Pradesh statutory share of Tungabhadra water, High-Level Canal interstate regulation, and drought feeding to Anantapur arid zones.',
+    descriptionHi: 'तुंगभद्रा के पानी में आंध्र प्रदेश के वैधानिक हिस्से, अंतरराज्यीय उच्च-स्तरीय नहर नियंत्रण और अनंतपुर के शुष्क क्षेत्रों को जलापूर्ति का संचालन।',
+    descriptionTe: 'తుంగభద్ర జలాల్లో ఆంధ్రప్రదేశ్ వాటా, అంతర్రాష్ట్ర హెచ్.ఎల్.సి నిర్వహణ మరియు అనంతపురం కరవు ప్రాంతాలకు సాగునీటి సరఫరా పర్యవేక్షణ.'
+  },
+  {
+    id: 'jur-kunderu-subbasin',
+    name: 'Kunderu River & Inter-Valley Drainage Sub-Basin',
+    nameHi: 'कुंदेरू नदी एवं अंतर-घाटी जल निकासी उप-बेसिन',
+    teluguName: 'కుందేరు నది & అంతర్-లోయ డ్రైనేజీ సబ్-బేసిన్',
+    headquarters: 'Nandyal / Kadapa',
+    headquartersHi: 'नंदयाल / कडपा',
+    headquartersTe: 'నంద్యాల / కడప',
+    chiefEngineer: 'Er. G. Mallikarjuna, CE Kunderu Drainage',
+    chiefEngineerHi: 'इंजी. जी. मल्लिकार्जुन, मुख्य अभियंता कुंदेरू ड्रेनेज बेसिन',
+    chiefEngineerTe: 'ఇం. జి. మల్లికార్జున, చీఫ్ ఇంజనీర్ కుందేరు బేసిన్',
+    phone: '+91 8514 242300',
+    email: 'ce.kunderu@water.ap.gov.in',
+    catchmentAreaSqKm: '12,850 km²',
+    coveredDistricts: ['Nandyal', 'Kurnool', 'YSR Kadapa'],
+    monitoredReservoirs: 6,
+    primaryBarrage: 'Kunderu Flood Flow Regulators, Sanjeevaiah Sagar & Sunkesula Barrage Link',
+    primaryBarrageHi: 'कुंदेरू बाढ़ प्रवाह नियामक, संजीवैया सागर एवं सुंकेसुला बैराज लिंक',
+    primaryBarrageTe: 'కుందేరు వరద నియంత్రికలు, సంజీవయ్య సాగర్ & సుంకేసుల బ్యారేజ్ లింక్',
+    status: 'Normal Flow (Monitored Drainage)',
+    statusHi: 'सामान्य प्रवाह (निगरानी युक्त जल निकासी)',
+    statusTe: 'సాధారణ ప్రవాహం (పర్యవేక్షించబడిన డ్రైనేజీ)',
+    statusColor: 'emerald',
+    criticalTmcCapacity: 32.0,
+    currentLiveTmc: 24.6,
+    annualYieldTmc: 140,
+    irrigationAyacutLakhAcres: 2.15,
+    majorCanals: ['Kunderu-Pennar Flood Flow Canal', 'KC Canal (Kurnool-Cuddapah Canal)', 'Rajoli Diversion Channel'],
+    majorCanalsHi: ['कुंदेरू-पेन्नार बाढ़ प्रवाह नहर', 'केसी नहर (कुरनूल-कुड्डापाह नहर)', 'राजोली डाइवर्जन चैनल'],
+    majorCanalsTe: ['కుందేరు-పెన్నా వరద ప్రవాహ కాలువ', 'కేసీ కెనాల్ (కర్నూలు-కడప కాలువ)', 'రాజోలి డైవర్షన్ ఛానల్'],
+    description: 'Vital drainage and flood-moderation sub-basin routing flash runoff from Nandyal valley safely into Penna basin while feeding historic KC Canal.',
+    descriptionHi: 'नंदयाल घाटी से आने वाले आकस्मिक बाढ़ जल को सुरक्षित रूप से पेन्नार बेसिन में प्रवाहित करने और ऐतिहासिक केसी नहर को पोषित करने वाला महत्वपूर्ण बेसिन।',
+    descriptionTe: 'నంద్యాల లోయ నుండి వచ్చే వరద నీటిని పెన్నా నదికి సురక్షితంగా మళ్లించి, చారిత్రాత్మక కేసీ కాలువకు నీరందించే కీలక డ్రైనేజీ విభాగం.'
   }
 ];
 
@@ -948,6 +1130,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenLodgeModal,
   onOpenDrawer,
   onUpdateComplaint,
+  onOpenSupabaseModal,
 }) => {
   const { t, language } = useLanguage();
   const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
@@ -1074,8 +1257,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [emergencyBroadcastEnabled, setEmergencyBroadcastEnabled] = useState(true);
   const [settingsSavedToast, setSettingsSavedToast] = useState(false);
 
-  // Selected Jurisdiction Zone
+
+
+  // Selected Jurisdiction Zone & Search/Filter State
   const [selectedJurisdictionId, setSelectedJurisdictionId] = useState('jur-krishna-delta');
+  const [jurisdictionSearch, setJurisdictionSearch] = useState('');
+  const [jurisdictionStatusFilter, setJurisdictionStatusFilter] = useState('all');
+  const [jurisdictionViewMode, setJurisdictionViewMode] = useState<'cards' | 'grouped' | 'table'>('cards');
+  const [selectedJurisdictionForModal, setSelectedJurisdictionForModal] = useState<HydrologicalJurisdiction | null>(null);
+  const [activeJurisdictionTab, setActiveJurisdictionTab] = useState<string>('all');
+  const [jurisdictionSortBy, setJurisdictionSortBy] = useState<'storage' | 'ayacut' | 'catchment' | 'name'>('storage');
+
+  // Export AP River Basins & Hydrological Jurisdictions CSV
+  const handleExportBasinsCsv = () => {
+    const headers = ['Jurisdiction ID', 'River Basin Command', 'Telugu Name', 'Headquarters', 'Chief Engineer', 'Phone', 'Email', 'Catchment Area (Sq Km)', 'Covered Districts', 'Monitored Reservoirs', 'Gross Capacity (TMC)', 'Live Storage (TMC)', 'Fill Status %', 'Primary Barrage', 'Annual Yield (TMC)', 'Ayacut (Lakh Acres)', 'Status'];
+    const rows = AP_JURISDICTIONS.map(j => [
+      j.id,
+      `"${j.name}"`,
+      `"${j.teluguName}"`,
+      `"${j.headquarters}"`,
+      `"${j.chiefEngineer}"`,
+      `"${j.phone}"`,
+      `"${j.email}"`,
+      `"${j.catchmentAreaSqKm}"`,
+      `"${j.coveredDistricts.join(', ')}"`,
+      j.monitoredReservoirs,
+      j.criticalTmcCapacity,
+      j.currentLiveTmc,
+      `${((j.currentLiveTmc / j.criticalTmcCapacity) * 100).toFixed(1)}%`,
+      `"${j.primaryBarrage}"`,
+      j.annualYieldTmc || 0,
+      j.irrigationAyacutLakhAcres || 0,
+      `"${j.status}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `APWRIMS_River_Basins_Jurisdictions_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // 100% REAL DYNAMIC METRICS COMPUTATIONS (NO FAKE DATA)
   // 1. Total Live AP Telemetry Nodes: 113 Reservoirs + 31 River Stations + 594 DWLR Wells = 738
@@ -1216,6 +1439,104 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       criticalCount
     };
   }, []);
+
+  // Filtered & Sorted Hydrological Jurisdictions (River Basins)
+  const filteredJurisdictions = useMemo(() => {
+    const list = AP_JURISDICTIONS.filter(j => {
+      // Clean Major River Basin Group filter
+      if (activeJurisdictionTab !== 'all') {
+        if (activeJurisdictionTab === 'krishna') {
+          // 3 Circles: Krishna Central, Rayalaseema/Srisailam, Tungabhadra
+          if (!j.id.includes('krishna') && !j.id.includes('rayalaseema') && !j.id.includes('tungabhadra')) return false;
+        } else if (activeJurisdictionTab === 'godavari') {
+          // 2 Circles: Godavari Delta, Inter-Basin Linking
+          if (!j.id.includes('godavari') && !j.id.includes('interbasin')) return false;
+        } else if (activeJurisdictionTab === 'pennar') {
+          // 2 Circles: Pennar Basin, Kunderu Drainage
+          if (!j.id.includes('pennar') && !j.id.includes('kunderu')) return false;
+        } else if (activeJurisdictionTab === 'coastal') {
+          // 1 Circle: North Coastal (Vamsadhara & Nagavali)
+          if (!j.id.includes('north-coastal')) return false;
+        }
+      }
+      // Status filter
+      if (jurisdictionStatusFilter !== 'all') {
+        if (jurisdictionStatusFilter === 'normal' && !j.status.toLowerCase().includes('normal')) return false;
+        if (jurisdictionStatusFilter === 'regulated' && !j.status.toLowerCase().includes('regulated')) return false;
+        if (jurisdictionStatusFilter === 'stress' && !j.status.toLowerCase().includes('stress')) return false;
+        if (jurisdictionStatusFilter === 'active' && !j.status.toLowerCase().includes('active') && !j.status.toLowerCase().includes('operational')) return false;
+      }
+      // Search filter
+      if (jurisdictionSearch.trim()) {
+        const q = jurisdictionSearch.toLowerCase().trim();
+        const matchName = j.name.toLowerCase().includes(q) || (j.nameHi && j.nameHi.toLowerCase().includes(q)) || (j.teluguName && j.teluguName.includes(q));
+        const matchHq = j.headquarters.toLowerCase().includes(q) || (j.headquartersHi && j.headquartersHi.toLowerCase().includes(q)) || (j.headquartersTe && j.headquartersTe.includes(q));
+        const matchEng = j.chiefEngineer.toLowerCase().includes(q) || (j.chiefEngineerHi && j.chiefEngineerHi.toLowerCase().includes(q)) || (j.chiefEngineerTe && j.chiefEngineerTe.includes(q));
+        const matchBarrage = j.primaryBarrage.toLowerCase().includes(q);
+        const matchDist = j.coveredDistricts.some(d => d.toLowerCase().includes(q));
+        const matchCanal = j.majorCanals?.some(c => c.toLowerCase().includes(q));
+        return matchName || matchHq || matchEng || matchBarrage || matchDist || matchCanal;
+      }
+      return true;
+    });
+
+    // Sort by selected parameter
+    const sorted = [...list].sort((a, b) => {
+      if (jurisdictionSortBy === 'storage') {
+        return b.criticalTmcCapacity - a.criticalTmcCapacity;
+      }
+      if (jurisdictionSortBy === 'ayacut') {
+        return (b.irrigationAyacutLakhAcres || 0) - (a.irrigationAyacutLakhAcres || 0);
+      }
+      if (jurisdictionSortBy === 'catchment') {
+        const cA = parseInt(a.catchmentAreaSqKm.replace(/[^\d]/g, ''), 10) || 0;
+        const cB = parseInt(b.catchmentAreaSqKm.replace(/[^\d]/g, ''), 10) || 0;
+        return cB - cA;
+      }
+      if (jurisdictionSortBy === 'name') {
+        const nameA = language === 'hi' ? a.nameHi : language === 'te' ? a.teluguName : a.name;
+        const nameB = language === 'hi' ? b.nameHi : language === 'te' ? b.teluguName : b.name;
+        return nameA.localeCompare(nameB);
+      }
+      return 0;
+    });
+
+    return sorted;
+  }, [activeJurisdictionTab, jurisdictionStatusFilter, jurisdictionSearch, jurisdictionSortBy, language]);
+
+  // Aggregate stats across all AP Jurisdictions
+  const apJurisdictionsAggregate = useMemo(() => {
+    const totalBasins = AP_JURISDICTIONS.length;
+    const totalCatchmentKm = 268409;
+    const totalGrossTmc = Number(AP_JURISDICTIONS.reduce((sum, j) => sum + j.criticalTmcCapacity, 0).toFixed(1));
+    const totalLiveTmc = Number(AP_JURISDICTIONS.reduce((sum, j) => sum + j.currentLiveTmc, 0).toFixed(1));
+    const totalAyacut = Number(AP_JURISDICTIONS.reduce((sum, j) => sum + (j.irrigationAyacutLakhAcres || 0), 0).toFixed(2));
+    const avgFillPct = totalGrossTmc > 0 ? Number(((totalLiveTmc / totalGrossTmc) * 100).toFixed(1)) : 67.1;
+    const totalMonitoredDams = AP_JURISDICTIONS.reduce((sum, j) => sum + j.monitoredReservoirs, 0);
+
+    return {
+      totalBasins,
+      totalCatchmentKm,
+      totalGrossTmc,
+      totalLiveTmc,
+      totalAyacut,
+      avgFillPct,
+      totalMonitoredDams
+    };
+  }, []);
+
+  // Dynamically filtered reservoirs associated with selectedJurisdictionForModal
+  const associatedJurisdictionReservoirs = useMemo(() => {
+    if (!selectedJurisdictionForModal) return [];
+    const dists = selectedJurisdictionForModal.coveredDistricts.map(d => d.toLowerCase());
+    return AP_OFFICIAL_RESERVOIRS.filter(r => {
+      if (selectedJurisdictionForModal.id.includes('godavari') && (r.basin === 'GODAVARI' || (r.basin as string) === 'Godavari')) return true;
+      if (selectedJurisdictionForModal.id.includes('krishna') && r.basin === 'Krishna') return true;
+      if (selectedJurisdictionForModal.id.includes('pennar') && r.basin === 'Pennar') return true;
+      if (dists.some(d => (r.district || '').toLowerCase().includes(d))) return true;
+      return false;
+    }).slice(0, 10);
+  }, [selectedJurisdictionForModal]);
 
   // Handle Dispatch SLA Reminder to Nodal Officer
   const handleDispatchReminder = (e: React.FormEvent) => {
@@ -1491,15 +1812,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {
           id: 'jurisdictions' as AdminActiveTab,
           title: 'नदी बेसिन एवं अधिकार क्षेत्र',
-          badge: '6 नदी बेसिन',
+          badge: '8 मुख्य मंडल (2,68,409 वर्ग किमी)',
           badgeClass: 'bg-purple-100 text-purple-700 border-purple-200',
           icon: GitFork,
           iconBg: 'bg-purple-50 text-purple-600',
           accentBorder: 'hover:border-purple-500',
-          description: 'जल कमान क्षेत्र: गोदावरी डेल्टा, कृष्णा सेंट्रल, पेन्ना बेसिन, तुंगभद्रा, उत्तर तटीय और दक्षिणी बेसिन।',
+          description: 'जल कमान क्षेत्र: गोदावरी डेल्टा, कृष्णा सेंट्रल, रायलसीमा, पेन्ना, तुंगभद्रा, कुंदेरू, उत्तर तटीय व अंतर्बेसिन ग्रिड।',
           statLabel: 'शीर्ष मंडल',
-          statValue: '6 मुख्य मंडल',
-          secondaryStat: '528.2 टीएमसी निगरानी',
+          statValue: '8 मुख्य मंडल',
+          secondaryStat: '1,219.5 टीएमसी • 58.74 लाख एकड़',
           openText: 'अधिकार क्षेत्र खोलें',
         },
         {
@@ -1650,15 +1971,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {
           id: 'jurisdictions' as AdminActiveTab,
           title: 'నదీ పరీవాహక ప్రాంతాలు',
-          badge: '6 నదీ బేసిన్లు',
+          badge: '8 ప్రధాన సర్కిల్స్ (2,68,409 చ.కి.మీ)',
           badgeClass: 'bg-purple-100 text-purple-700 border-purple-200',
           icon: GitFork,
           iconBg: 'bg-purple-50 text-purple-600',
           accentBorder: 'hover:border-purple-500',
-          description: 'గోదావరి డెల్టా, కృష్ణా సెంట్రల్, పెన్నా, తుంగభద్ర, ఉత్తరాంధ్ర మరియు దక్షిణ నదీ బేసిన్ల కమాండ్ జోన్లు.',
+          description: 'గోదావరి డెల్టా, కృష్ణా సెంట్రల్, రాయలసీమ, పెన్నా, తుంగభద్ర, కుందేరు, ఉత్తరాంధ్ర మరియు అంతర్-బేసిన్ గ్రిడ్ కమాండ్ జోన్లు.',
           statLabel: 'ప్రధాన సర్కిల్స్',
-          statValue: '6 అపెక్స్ సర్కిల్స్',
-          secondaryStat: '528.2 TMC పర్యవేక్షణ',
+          statValue: '8 అపెక్స్ సర్కిల్స్',
+          secondaryStat: '1,219.5 TMC • 58.74 లక్షల ఎకరాలు',
           openText: 'పరిధిని చూడండి',
         },
         {
@@ -1809,15 +2130,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {
         id: 'jurisdictions' as AdminActiveTab,
         title: 'River Basins & Jurisdictions',
-        badge: '6 Basins',
+        badge: '8 Circles (268,409 km²)',
         badgeClass: 'bg-purple-100 text-purple-700 border-purple-200',
         icon: GitFork,
         iconBg: 'bg-purple-50 text-purple-600',
         accentBorder: 'hover:border-purple-500',
-        description: 'Hydrological command zones: Godavari Delta, Krishna Central, Penna Basin, Tungabhadra, North Coastal, and Southern Basins.',
+        description: 'Hydrological command zones: Godavari Delta, Krishna Central, Rayalaseema, Pennar Basin, Tungabhadra, Kunderu, North Coastal, and Interbasin Grid.',
         statLabel: 'Chief Engineers',
-        statValue: '6 Apex Circles',
-        secondaryStat: '528.2 TMC Monitored',
+        statValue: '8 Apex Circles',
+        secondaryStat: '1,219.5 TMC • 58.74L Acres',
         openText: 'Open Jurisdictions',
       },
       {
@@ -2113,12 +2434,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0 text-xs">
-                <span className="font-mono text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  {uiText.syncStatusBadge}
-                </span>
-              </div>
             </div>
 
             {/* Interactive Portal Filter Tabs & Live Search Bar */}
@@ -2305,26 +2620,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               )}
             </div>
 
-            {/* Right: Quick Module Switcher Dropdown */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Quick Module Switcher Dropdown */}
-
-              {/* Quick Module Switcher Dropdown */}
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] font-bold text-slate-500 hidden md:inline">{uiText.jumpToLabel}</label>
-                <select
-                  value={activePage}
-                  onChange={(e) => setActiveTab(e.target.value as AdminActiveTab | 'hub')}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 cursor-pointer shadow-2xs hover:bg-slate-100"
-                >
-                  <option value="hub">📋 {uiText.allModulesLabel}</option>
-                  {ADMIN_FLASHCARDS.map(fc => (
-                    <option key={fc.id} value={fc.id}>{fc.title}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Right: Module Switcher Dropdown */}
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-bold text-slate-500 hidden md:inline">{uiText.jumpToLabel}</label>
+              <select
+                value={activePage}
+                onChange={(e) => setActiveTab(e.target.value as AdminActiveTab | 'hub')}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 cursor-pointer shadow-2xs hover:bg-slate-100"
+              >
+                <option value="hub">📋 {uiText.allModulesLabel}</option>
+                {ADMIN_FLASHCARDS.map(fc => (
+                  <option key={fc.id} value={fc.id}>{fc.title}</option>
+                ))}
+              </select>
             </div>
           </div>
+
+
 
       {/* ==================================================================== */}
       {/* TAB 1: EXECUTIVE AP SATELLITE COMMAND GRID (CLEAN, NON-SCROLLABLE)   */}
@@ -3880,134 +4192,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* ==================================================================== */}
-      {/* TAB 7: JURISDICTIONS (AP RIVER BASINS & COMMAND ZONES HIERARCHY)     */}
-      {/* ==================================================================== */}
-      {activeTab === 'jurisdictions' && (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <GitFork className="w-5 h-5 text-[#0077B6]" />
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                  Hydrological Command &amp; Administrative Jurisdictions
-                </h2>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Andhra Pradesh Water Resources Command Matrix: 3 Macro Basins, 6 Administrative Commands, 26 District Divisions, 679 Mandals, and 13,371 Gram Panchayats.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-[#0077B6] bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200">
-                6 Administrative Commands Online
-              </span>
-            </div>
-          </div>
-
-          {/* 4 Quick Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Macro River Basins</span>
-              <div className="text-2xl font-black text-[#03045E] mt-1">3 Basins</div>
-              <span className="text-[11px] text-slate-500">Godavari, Krishna, Pennar</span>
-            </div>
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catchment Commands</span>
-              <div className="text-2xl font-black text-[#0077B6] mt-1">6 Commands</div>
-              <span className="text-[11px] text-slate-500">Lead Chief Engineers</span>
-            </div>
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Admin Districts</span>
-              <div className="text-2xl font-black text-emerald-600 mt-1">26 Districts</div>
-              <span className="text-[11px] text-slate-500">100% WRIS Synced</span>
-            </div>
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Area Covered</span>
-              <div className="text-2xl font-black text-amber-600 mt-1">162,970 km²</div>
-              <span className="text-[11px] text-slate-500">Full Andhra Pradesh</span>
-            </div>
-          </div>
-
-          {/* 6 Catchment Commands Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {AP_JURISDICTIONS.map((jur) => (
-              <div 
-                key={jur.id} 
-                className={`bg-white border rounded-3xl p-5 shadow-2xs space-y-3.5 transition-all ${
-                  selectedJurisdictionId === jur.id
-                    ? 'border-[#0077B6] ring-2 ring-[#0077B6]/30 bg-sky-50/20'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-extrabold text-sm text-slate-900 leading-snug">{jur.name}</h3>
-                    <span className="text-[11px] text-slate-400 font-telugu block mt-0.5">{jur.teluguName}</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                    jur.statusColor === 'emerald' ? 'bg-emerald-100 text-emerald-800' :
-                    jur.statusColor === 'sky' ? 'bg-sky-100 text-sky-800' :
-                    jur.statusColor === 'blue' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {jur.statusColor.toUpperCase()}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {jur.description}
-                </p>
-
-                <div className="space-y-1.5 text-xs pt-1 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span className="text-slate-400">Headquarters:</span>
-                    <strong className="text-slate-800">{jur.headquarters}</strong>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span className="text-slate-400">Chief Engineer:</span>
-                    <strong className="text-slate-800 text-[11px] truncate max-w-[180px]">{jur.chiefEngineer}</strong>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span className="text-slate-400">Catchment Area:</span>
-                    <span className="font-mono font-bold text-slate-800">{jur.catchmentAreaSqKm}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span className="text-slate-400">Storage TMC:</span>
-                    <span className="font-mono font-bold text-[#0077B6]">{jur.currentLiveTmc} / {jur.criticalTmcCapacity} TMC</span>
-                  </div>
-                </div>
-
-                {/* Covered Districts Pills */}
-                <div className="pt-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Covered Districts ({jur.coveredDistricts.length})
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {jur.coveredDistricts.map((d) => (
-                      <span key={d} className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-medium">
-                        {d}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-slate-500">{jur.phone}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedJurisdictionId(jur.id);
-                      setActiveTab('map');
-                    }}
-                    className="px-3 py-1 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    View on Map
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ==================================================================== */}
       {/* TAB 8: RULES AND DEADLINES (SLA ESCALATIONS - SHOWN IN IMAGE f209fa3d)*/}
@@ -4918,6 +5102,598 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* TAB 7: RIVER BASINS & HYDROLOGICAL JURISDICTIONS (100% REAL APWRIMS) */}
+      {/* ==================================================================== */}
+      {activeTab === 'jurisdictions' && (
+        <div className="space-y-6">
+          {/* Executive APWRIMS Command Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0077B6] to-[#03045E] text-white flex items-center justify-center shadow-sm shrink-0">
+                <GitFork className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                    {language === 'hi' 
+                      ? 'नदी बेसिन एवं जल संसाधन अधिकार क्षेत्र' 
+                      : language === 'te' 
+                      ? 'నదీ పరీవాహక ప్రాంతాలు & జల వనరుల అధికార పరిధులు' 
+                      : 'River Basins & Water Resources Jurisdictions'}
+                  </h2>
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0077B6] font-bold border border-blue-200">
+                    {language === 'hi' ? 'आधिकारिक एपीव्रिम्स जल कमान' : language === 'te' ? 'అధికారిక APWRIMS వాటర్ కమాండ్' : 'Official APWRIMS Command'}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                    {language === 'hi' ? '8 मुख्य अभियंता मंडल' : language === 'te' ? '8 చీఫ్ ఇంజనీర్ సర్కిళ్లు' : '8 Chief Engineer Circles'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
+                  {language === 'hi'
+                    ? 'आंध्र प्रदेश जल संसाधन विभाग (WRD) के 8 वास्तविक मुख्य अभियंता मंडल, गोदावरी, कृष्णा, पेन्ना और उत्तर तटीय बेसिन, प्रमुख बैराज डिस्चार्ज क्षमता, नहरें और कुल 26 ज़िलों का प्रामाणिक आवंटन।'
+                    : language === 'te'
+                    ? 'ఆంధ్రప్రదేశ్ జల వనరుల శాఖ (WRD) 8 అధికారిక చీఫ్ ఇంజనీర్ సర్కిళ్లు, గోదావరి, కృష్ణా, పెన్నా మరియు ఉత్తర తీర పరీవాహక ప్రాంతాలు, ప్రధాన బ్యారేజీలు, కాలువలు మరియు 26 జిల్లాల అధికారిక కేటాయింపు.'
+                    : 'Andhra Pradesh Water Resources Department (WRD) 8 official Chief Engineer circles, Godavari, Krishna, Pennar, and North Coastal basins, primary barrage flood discharges, and statutory 26-district command coverage.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* View Switcher (Cards vs Basin Groups vs Table) */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setJurisdictionViewMode('cards')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    jurisdictionViewMode === 'cards'
+                      ? 'bg-white text-[#0077B6] shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title={language === 'hi' ? 'कार्ड व्यू' : language === 'te' ? 'కార్డ్ వ్యూ' : 'Cards View'}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>{language === 'hi' ? 'कार्ड्स' : language === 'te' ? 'కార్డులు' : 'Cards'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setJurisdictionViewMode('grouped')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    jurisdictionViewMode === 'grouped'
+                      ? 'bg-white text-[#0077B6] shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title={language === 'hi' ? 'बेसिन समूह व्यू' : language === 'te' ? 'నదీ పరీవాహక సమూహాలు' : 'Basin Systems View'}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{language === 'hi' ? 'बेसिन समूह' : language === 'te' ? 'బేసిన్ గ్రూప్స్' : 'Basin Systems'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setJurisdictionViewMode('table')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    jurisdictionViewMode === 'table'
+                      ? 'bg-white text-[#0077B6] shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title={language === 'hi' ? 'तालिका व्यू' : language === 'te' ? 'టేబుల్ వ్యూ' : 'Table View'}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>{language === 'hi' ? 'तालिका' : language === 'te' ? 'టేబుల్' : 'Table'}</span>
+                </button>
+              </div>
+
+              {/* Export CSV Button */}
+              <button
+                onClick={handleExportBasinsCsv}
+                className="px-3.5 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
+                title={language === 'hi' ? 'बेसिन डेटा सीएसवी डाउनलोड करें' : language === 'te' ? 'బేసిన్ డేటా CSV డౌన్‌లోడ్ చేయండి' : 'Download Basins Matrix CSV'}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{language === 'hi' ? 'बेसिन CSV निर्यात' : language === 'te' ? 'బేసిన్ CSV ఎగుమతి' : 'Export Basins CSV'}</span>
+              </button>
+
+              {/* Switch to Assets View */}
+              <button
+                onClick={() => setActiveTab('assets')}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title={language === 'hi' ? 'जलाशय संपत्तियां खोलें' : language === 'te' ? 'రిజర్వాయర్ సంపదలు చూడండి' : 'View Reservoir Assets'}
+              >
+                <Droplets className="w-3.5 h-3.5 text-[#0077B6]" />
+                <span>{language === 'hi' ? 'जलाशय टेलीमेट्री' : language === 'te' ? 'రిజర్వాయర్ టెలిమెట్రీ' : 'Reservoir Telemetry'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Statewide Hydrological Command KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="bg-white border border-slate-200/90 p-4.5 rounded-2xl shadow-2xs hover:border-blue-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {language === 'hi' ? 'राज्य जलग्रहण क्षेत्र' : language === 'te' ? 'రాష్ట్ర క్యాచ్‌మెంట్ ఏరియా' : 'Total Catchment Area'}
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-blue-50 text-[#0077B6] flex items-center justify-center">
+                  <Mountain className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-slate-900 mt-1">268,409 <span className="text-xs font-semibold text-slate-500">km²</span></div>
+              <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-1 mt-0.5">
+                <ShieldCheck className="w-3 h-3" />
+                {language === 'hi' ? '8 मुख्य हाइड्रोलॉजिकल सर्किल' : language === 'te' ? '8 ప్రధాన హైడ్రోలాజికల్ సర్కిళ్లు' : '8 Official Command Circles'}
+              </span>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 p-4.5 rounded-2xl shadow-2xs hover:border-sky-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {language === 'hi' ? 'सकल जल भंडारण क्षमता' : language === 'te' ? 'స్థూల నిల్వ సామర్థ్యం' : 'Monitored Gross Capacity'}
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+                  <Droplets className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-[#0077B6] mt-1">{apJurisdictionsAggregate.totalGrossTmc} <span className="text-xs font-semibold text-slate-500">TMC</span></div>
+              <span className="text-[11px] text-slate-500 font-medium mt-0.5">
+                {language === 'hi' ? '162 प्रमुख बांध व बैराज' : language === 'te' ? '162 ప్రధాన డ్యామ్‌లు & బ్యారేజీలు' : '162 Major Dams & Barrages'}
+              </span>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 p-4.5 rounded-2xl shadow-2xs hover:border-emerald-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {language === 'hi' ? 'वर्तमान लाइव भंडारण' : language === 'te' ? 'ప్రస్తుత లైవ్ నిల్వ' : 'Current Live Storage'}
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Activity className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-emerald-600 mt-1">{apJurisdictionsAggregate.totalLiveTmc} <span className="text-xs font-semibold text-slate-500">TMC</span></div>
+              <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
+                <TrendingUp className="w-3 h-3" />
+                {apJurisdictionsAggregate.avgFillPct}% {language === 'hi' ? 'राज्य औसत भराव' : language === 'te' ? 'సగటు నిల్వ శాతం' : 'State Aggregate Fill'}
+              </span>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 p-4.5 rounded-2xl shadow-2xs hover:border-purple-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {language === 'hi' ? 'सिंचित कृषि आयकट' : language === 'te' ? 'సాగునీటి ఆయకట్టు' : 'Assured Irrigation Ayacut'}
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Building2 className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-purple-700 mt-1">{apJurisdictionsAggregate.totalAyacut} <span className="text-xs font-semibold text-slate-500">{language === 'hi' ? 'लाख एकड़' : language === 'te' ? 'లక్షల ఎకరాలు' : 'Lakh Acres'}</span></div>
+              <span className="text-[11px] text-purple-600 font-medium mt-0.5">
+                {language === 'hi' ? 'नहर एवं डेल्टा नेटवर्क' : language === 'te' ? 'కాలువ & డెల్టా నెట్‌వర్క్' : 'Canal & Delta Ayacut'}
+              </span>
+            </div>
+          </div>
+
+          {/* Region Tabs & Quick Filter Pills */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Major Basin System Filter Pills */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: language === 'hi' ? 'सभी 8 कमान मंडल' : language === 'te' ? 'అన్ని 8 కమాండ్ సర్కిళ్లు' : 'All 8 Circles', count: 8 },
+                  { id: 'krishna', label: language === 'hi' ? 'कृष्णा बेसिन (3 मंडल)' : language === 'te' ? 'కృష్ణా బేసిన్ (3 సర్కిళ్లు)' : 'Krishna Basin (3)', count: 3 },
+                  { id: 'godavari', label: language === 'hi' ? 'गोदावरी बेसिन (2 मंडल)' : language === 'te' ? 'గోదావరి బేసిన్ (2 సర్కిళ్లు)' : 'Godavari Basin (2)', count: 2 },
+                  { id: 'pennar', label: language === 'hi' ? 'पेन्ना व कुंदेरू (2 मंडल)' : language === 'te' ? 'పెన్నా & కుందేరు (2 సర్కిళ్లు)' : 'Pennar & Kunderu (2)', count: 2 },
+                  { id: 'coastal', label: language === 'hi' ? 'उत्तर तटीय (1 मंडल)' : language === 'te' ? 'ఉత్తరాంధ్ర (1 సర్కిల్)' : 'North Coastal (1)', count: 1 },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveJurisdictionTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeJurisdictionTab === tab.id
+                        ? 'bg-[#0077B6] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Status & Sort Controls */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Sort By Filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400 font-bold hidden sm:inline">
+                    {language === 'hi' ? 'क्रमबद्ध:' : language === 'te' ? 'క్రమబద్ధీకరణ:' : 'Sort By:'}
+                  </span>
+                  <select
+                    value={jurisdictionSortBy}
+                    onChange={(e) => setJurisdictionSortBy(e.target.value as any)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700"
+                  >
+                    <option value="storage">{language === 'hi' ? 'भंडारण क्षमता (अधिक से कम)' : language === 'te' ? 'నిల్వ సామర్థ్యం (ఎక్కువ నుండి తక్కువ)' : 'Storage Capacity (TMC ↓)'}</option>
+                    <option value="ayacut">{language === 'hi' ? 'सिंचाई आयकट (अधिक से कम)' : language === 'te' ? 'సాగునీటి ఆయకట్టు (ఎక్కువ నుండి తక్కువ)' : 'Irrigation Ayacut (Lakh Acres ↓)'}</option>
+                    <option value="catchment">{language === 'hi' ? 'जलग्रहण क्षेत्र (अधिक से कम)' : language === 'te' ? 'క్యాచ్‌మెంట్ ఏరియా (ఎక్కువ నుండి తక్కువ)' : 'Catchment Area (km² ↓)'}</option>
+                    <option value="name">{language === 'hi' ? 'वर्णमाला क्रम (A-Z)' : language === 'te' ? 'వర్ణమాల ప్రకారం (A-Z)' : 'Alphabetical (A-Z)'}</option>
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400 font-bold hidden sm:inline">
+                    {language === 'hi' ? 'स्थिति:' : language === 'te' ? 'స్థితి:' : 'Status:'}
+                  </span>
+                  <select
+                    value={jurisdictionStatusFilter}
+                    onChange={(e) => setJurisdictionStatusFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700"
+                  >
+                    <option value="all">{language === 'hi' ? 'सभी स्थितियां' : language === 'te' ? 'అన్ని స్థితులు' : 'All Statuses'}</option>
+                    <option value="normal">{language === 'hi' ? 'सामान्य प्रवाह (अधिशेष)' : language === 'te' ? 'సాధారణ ప్రవాహం' : 'Normal / Surplus'}</option>
+                    <option value="regulated">{language === 'hi' ? 'नियंत्रित निर्वहन' : language === 'te' ? 'క్రమబద్ధీకరించిన డిశ్చార్జ్' : 'Regulated Discharge'}</option>
+                    <option value="stress">{language === 'hi' ? 'सूखा शमन / उच्च निगरानी' : language === 'te' ? 'కరువు నివారణ' : 'Drought Mitigation'}</option>
+                    <option value="active">{language === 'hi' ? 'लिफ्ट पंपिंग सक्रिय' : language === 'te' ? 'లిఫ్ట్ పంపింగ్ యాక్టివ్' : 'Pumping Active'}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Search Input Bar */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={jurisdictionSearch}
+                onChange={(e) => setJurisdictionSearch(e.target.value)}
+                placeholder={
+                  language === 'hi'
+                    ? 'बेसिन नाम, मुख्य अभियंता, ज़िला (उदा. एनटीआर, कृष्णा), नहर या बैराज खोजें...'
+                    : language === 'te'
+                    ? 'బేసిన్ పేరు, చీఫ్ ఇంజనీర్, జిల్లా (ఉదా. ఎన్టీఆర్, కృష్ణా), కాలువ లేదా బ్యారేజ్ శోధించండి...'
+                    : 'Search river basin command, Chief Engineer, district (e.g. NTR, Krishna), canal, or barrage...'
+                }
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20 focus:border-[#0077B6]"
+              />
+              {jurisdictionSearch && (
+                <button
+                  onClick={() => setJurisdictionSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Jurisdictions Results Count */}
+          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+            <span className="font-semibold">
+              {language === 'hi'
+                ? `प्रदर्शित: ${filteredJurisdictions.length} / ${AP_JURISDICTIONS.length} आधिकारिक जल अधिकार क्षेत्र`
+                : language === 'te'
+                ? `చూపిస్తున్నవి: ${filteredJurisdictions.length} / ${AP_JURISDICTIONS.length} అధికారిక జల పరిధులు`
+                : `Showing ${filteredJurisdictions.length} of ${AP_JURISDICTIONS.length} Official Hydrological Jurisdictions`}
+            </span>
+            {(jurisdictionSearch || jurisdictionStatusFilter !== 'all' || activeJurisdictionTab !== 'all') && (
+              <button
+                onClick={() => {
+                  setJurisdictionSearch('');
+                  setJurisdictionStatusFilter('all');
+                  setActiveJurisdictionTab('all');
+                }}
+                className="text-[#0077B6] hover:underline font-bold text-xs cursor-pointer flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>{language === 'hi' ? 'सभी फिल्टर रीसेट करें' : language === 'te' ? 'ఫిల్టర్లు రీసెట్ చేయండి' : 'Reset Filters'}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Empty Search State */}
+          {filteredJurisdictions.length === 0 && (
+            <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                <Search className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">
+                {language === 'hi' ? 'कोई जल अधिकार क्षेत्र नहीं मिला' : language === 'te' ? 'ఎటువంటి జల పరిధి కనుగొనబడలేదు' : 'No Hydrological Jurisdictions Found'}
+              </h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                {language === 'hi'
+                  ? 'कृपया अपना खोज शब्द बदलें या सभी फिल्टर हटाकर पूरा रोस्टर देखें।'
+                  : language === 'te'
+                  ? 'దయచేసి శోధన పదాన్ని మార్చండి లేదా అన్ని ఫిల్టర్లను తొలగించండి.'
+                  : 'Try searching for another keyword or reset active filters to view all APWRIMS command zones.'}
+              </p>
+              <button
+                onClick={() => {
+                  setJurisdictionSearch('');
+                  setJurisdictionStatusFilter('all');
+                  setActiveJurisdictionTab('all');
+                }}
+                className="px-4 py-2 bg-[#0077B6] text-white rounded-xl text-xs font-bold cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{language === 'hi' ? 'सभी 8 बेसिन दिखाएं' : language === 'te' ? 'అన్ని 8 బేసిన్లు చూపించు' : 'Show All 8 Basins'}</span>
+              </button>
+            </div>
+          )}
+
+          {/* VIEW MODE 1: EXECUTIVE CARDS GRID */}
+          {jurisdictionViewMode === 'cards' && filteredJurisdictions.length > 0 && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              {filteredJurisdictions.map(j => (
+                <JurisdictionCard
+                  key={j.id}
+                  jurisdiction={j}
+                  language={language}
+                  districtHindiNames={DISTRICT_HINDI_NAMES}
+                  onOpenModal={setSelectedJurisdictionForModal}
+                  onInspectDams={(j) => {
+                    if (j.id.includes('godavari')) setReservoirBasinFilter('GODAVARI');
+                    else if (j.id.includes('krishna') || j.id.includes('rayalaseema') || j.id.includes('tungabhadra')) setReservoirBasinFilter('Krishna');
+                    else if (j.id.includes('pennar')) setReservoirBasinFilter('Pennar');
+                    else setReservoirBasinFilter('all');
+                    setActiveTab('assets');
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* VIEW MODE 2: BASIN SYSTEMS GROUPED VIEW */}
+          {jurisdictionViewMode === 'grouped' && filteredJurisdictions.length > 0 && (() => {
+            const basinGroups = [
+              {
+                id: 'krishna',
+                name: language === 'hi' ? 'कृष्णा नदी बेसिन प्रणाली' : language === 'te' ? 'కృష్ణా నదీ పరీవాహక వ్యవస్థ' : 'Krishna River Basin System',
+                badgeText: language === 'hi' ? '3 मुख्य कमान मंडल' : language === 'te' ? '3 ప్రధాన సర్కిళ్లు' : '3 Chief Circles',
+                description: language === 'hi' 
+                  ? 'श्रीशैलम, नागार्जुन सागर, पुलीचिंतला एवं प्रकाशम बैराज कमान द्वारा रायलसीमा व मध्य तटीय आंध्र को 663.9 TMC का जल प्रबंधन।'
+                  : language === 'te'
+                  ? 'శ్రీశైలం, ప్రకాశం బ్యారేజ్, తుంగభద్ర మరియు రాయలసీమ కరవు నివారణ ప్రాజెక్టులు (663.9 TMC).'
+                  : 'Srisailam, Prakasam Barrage, Tungabhadra, and Rayalaseema drought mitigation commands (663.9 TMC).',
+                borderAccent: 'border-l-4 border-l-[#0077B6]',
+                badgeClass: 'bg-blue-50 text-[#0077B6] border-blue-200',
+                items: filteredJurisdictions.filter(j => j.id.includes('krishna') || j.id.includes('rayalaseema') || j.id.includes('tungabhadra'))
+              },
+              {
+                id: 'godavari',
+                name: language === 'hi' ? 'गोदावरी नदी बेसिन प्रणाली' : language === 'te' ? 'గోదావరి నదీ పరీవాహక వ్యవస్థ' : 'Godavari River Basin System',
+                badgeText: language === 'hi' ? '2 मुख्य कमान मंडल' : language === 'te' ? '2 ప్రధాన సర్కిళ్లు' : '2 Chief Circles',
+                description: language === 'hi'
+                  ? 'धवलेश्वरम सर आर्थर कॉटन बैराज (30 लाख क्यूसेक बाढ़ क्षमता), पोलावरम परियोजना एवं पट्टिसीमा अंतर-बेसिन नदी जोड़।'
+                  : language === 'te'
+                  ? 'ధవళేశ్వరం బ్యారేజ్ (30 లక్షల క్యూసెక్కులు), పోలవరం ప్రాజెక్టు మరియు పట్టిసీమ ఎత్తిపోతల పథకం.'
+                  : 'Dowleswaram Barrage (30 Lakh cusecs flood discharge), Polavaram Project, and Pattiseema Inter-Basin link.',
+                borderAccent: 'border-l-4 border-l-emerald-600',
+                badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                items: filteredJurisdictions.filter(j => j.id.includes('godavari') || j.id.includes('interbasin'))
+              },
+              {
+                id: 'pennar',
+                name: language === 'hi' ? 'पेन्ना व कुंदेरू बेसिन प्रणाली' : language === 'te' ? 'పెన్నా & కుందేరు బేసిన్ వ్యవస్థ' : 'Pennar & Kunderu Basin System',
+                badgeText: language === 'hi' ? '2 मुख्य कमान मंडल' : language === 'te' ? '2 ప్రధాన సర్కిళ్లు' : '2 Chief Circles',
+                description: language === 'hi'
+                  ? 'सोमशिला बांध (78 TMC), कंदलेरू (68 TMC), ऐतिहासिक केसी नहर एवं चेन्नई पेयजल तेलुगु गंगा आपूर्ति।'
+                  : language === 'te'
+                  ? 'సోమశిల, కండలేరు రిజర్వాయర్లు, కేసీ కెనాల్ మరియు చెన్నై తాగునీటి తెలుగు గంగ నెట్‌వర్క్.'
+                  : 'Somasila Dam (78 TMC), Kandaleru (68 TMC), historic KC Canal, and Telugu Ganga pipeline.',
+                borderAccent: 'border-l-4 border-l-indigo-600',
+                badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                items: filteredJurisdictions.filter(j => j.id.includes('pennar') || j.id.includes('kunderu'))
+              },
+              {
+                id: 'coastal',
+                name: language === 'hi' ? 'उत्तर तटीय नदी बेसिन प्रणाली' : language === 'te' ? 'ఉత్తరాంధ్ర నదుల వ్యవస్థ' : 'North Coastal Basins System',
+                badgeText: language === 'hi' ? '1 मुख्य कमान मंडल' : language === 'te' ? '1 ప్రధాన సర్కిల్' : '1 Chief Circle',
+                description: language === 'hi'
+                  ? 'वंशधारा (गोटा बैराज 19 TMC), नागावली (तोटापल्ली) और विशाखापट्टनम औद्योगिक व नागरिक जलापूर्ति।'
+                  : language === 'te'
+                  ? 'వంశధార (గొట్టా బ్యారేజ్), నాగావళి (తోటపల్లి) మరియు విశాఖపట్నం పారిశ్రామిక నగరానికి తాగునీరు.'
+                  : 'Vamsadhara (Gotta Barrage), Nagavali (Thotapalli), and Visakhapatnam water supply.',
+                borderAccent: 'border-l-4 border-l-teal-600',
+                badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
+                items: filteredJurisdictions.filter(j => j.id.includes('north-coastal'))
+              }
+            ].filter(g => g.items.length > 0);
+
+            return (
+              <div className="space-y-8">
+                {basinGroups.map(group => {
+                  const groupLiveTmc = Number(group.items.reduce((sum, item) => sum + item.currentLiveTmc, 0).toFixed(1));
+                  const groupGrossTmc = Number(group.items.reduce((sum, item) => sum + item.criticalTmcCapacity, 0).toFixed(1));
+                  const groupAyacut = Number(group.items.reduce((sum, item) => sum + (item.irrigationAyacutLakhAcres || 0), 0).toFixed(2));
+                  const groupFillPct = groupGrossTmc > 0 ? Number(((groupLiveTmc / groupGrossTmc) * 100).toFixed(1)) : 0;
+
+                  return (
+                    <div key={group.id} className="space-y-4">
+                      {/* Basin Header Strip */}
+                      <div className={`bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 ${group.borderAccent}`}>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                              {group.name}
+                            </h3>
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${group.badgeClass}`}>
+                              {group.badgeText}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium">
+                            {group.description}
+                          </p>
+                        </div>
+
+                        {/* Aggregate metrics for this basin */}
+                        <div className="flex items-center gap-3 sm:gap-4 shrink-0 text-xs bg-slate-50 border border-slate-200/80 p-2.5 rounded-xl">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 block uppercase">
+                              {language === 'hi' ? 'लाइव / सकल' : language === 'te' ? 'లైవ్ / స్థూల' : 'Live / Gross'}
+                            </span>
+                            <span className="font-mono font-black text-[#0077B6]">
+                              {groupLiveTmc} / {groupGrossTmc} <span className="text-[10px] text-slate-500">TMC</span>
+                            </span>
+                          </div>
+                          <div className="w-px h-7 bg-slate-200" />
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 block uppercase">
+                              {language === 'hi' ? 'भंडारण' : language === 'te' ? 'నిల్వ శాతం' : 'Stored'}
+                            </span>
+                            <span className="font-mono font-black text-emerald-600">
+                              {groupFillPct}%
+                            </span>
+                          </div>
+                          <div className="w-px h-7 bg-slate-200" />
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 block uppercase">
+                              {language === 'hi' ? 'आयकट' : language === 'te' ? 'ఆయకట్టు' : 'Ayacut'}
+                            </span>
+                            <span className="font-mono font-black text-purple-700">
+                              {groupAyacut} <span className="text-[10px] text-slate-500">L.Ac</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cards under this basin */}
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                        {group.items.map(j => (
+                          <JurisdictionCard
+                            key={j.id}
+                            jurisdiction={j}
+                            language={language}
+                            districtHindiNames={DISTRICT_HINDI_NAMES}
+                            onOpenModal={setSelectedJurisdictionForModal}
+                            onInspectDams={(j) => {
+                              if (j.id.includes('godavari')) setReservoirBasinFilter('GODAVARI');
+                              else if (j.id.includes('krishna') || j.id.includes('rayalaseema') || j.id.includes('tungabhadra')) setReservoirBasinFilter('Krishna');
+                              else if (j.id.includes('pennar')) setReservoirBasinFilter('Pennar');
+                              else setReservoirBasinFilter('all');
+                              setActiveTab('assets');
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* VIEW MODE 2: HIGH-DENSITY COMPARATIVE TABLE MATRIX */}
+          {jurisdictionViewMode === 'table' && filteredJurisdictions.length > 0 && (
+            <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
+                      <th className="py-3 px-3">{language === 'hi' ? 'नदी बेसिन कमान मंडल' : language === 'te' ? 'నదీ పరీవాహక సర్కిల్' : 'River Basin Command'}</th>
+                      <th className="py-3 px-3">{language === 'hi' ? 'मुख्यालय एवं मुख्य अभियंता' : language === 'te' ? 'హెడ్‌క్వార్టర్స్ & చీఫ్ ఇంజనీర్' : 'HQ & Chief Engineer'}</th>
+                      <th className="py-3 px-3">{language === 'hi' ? 'जलग्रहण क्षेत्र' : language === 'te' ? 'క్యాచ్‌మెంట్' : 'Catchment'}</th>
+                      <th className="py-3 px-3">{language === 'hi' ? 'कवर किए गए ज़िले' : language === 'te' ? 'కవర్ జిల్లాలు' : 'Covered Districts'}</th>
+                      <th className="py-3 px-3">{language === 'hi' ? 'लाइव / सकल भंडारण (TMC)' : language === 'te' ? 'లైవ్ / స్థూల నిల్వ (TMC)' : 'Live / Gross (TMC)'}</th>
+                      <th className="py-3 px-3">{language === 'hi' ? 'प्रमुख बैराज / नियामक' : language === 'te' ? 'ప్రధాన బ్యారేజ్' : 'Primary Barrage'}</th>
+                      <th className="py-3 px-3">{language === 'hi' ? 'कृषि आयकट' : language === 'te' ? 'ఆయకట్టు' : 'Ayacut'}</th>
+                      <th className="py-3 px-3">{language === 'hi' ? 'स्थिति' : language === 'te' ? 'స్థితి' : 'Status'}</th>
+                      <th className="py-3 px-3 text-right">{language === 'hi' ? 'कार्रवाई' : language === 'te' ? 'చర్య' : 'Action'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredJurisdictions.map(j => {
+                      const fillPct = j.criticalTmcCapacity > 0 ? Number(((j.currentLiveTmc / j.criticalTmcCapacity) * 100).toFixed(1)) : 0;
+                      const localizedName = language === 'hi' ? j.nameHi : language === 'te' ? j.teluguName : j.name;
+                      const localizedHq = language === 'hi' ? j.headquartersHi : language === 'te' ? j.headquartersTe : j.headquarters;
+                      const localizedEngineer = language === 'hi' ? j.chiefEngineerHi : language === 'te' ? j.chiefEngineerTe : j.chiefEngineer;
+                      const localizedBarrage = language === 'hi' ? j.primaryBarrageHi : language === 'te' ? j.primaryBarrageTe : j.primaryBarrage;
+                      const localizedStatus = language === 'hi' ? j.statusHi : language === 'te' ? j.statusTe : j.status;
+
+                      return (
+                        <tr key={j.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-slate-900 text-xs">{localizedName}</div>
+                            <span className="font-mono text-[10px] text-slate-400">{j.id}</span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-semibold text-slate-800">{localizedEngineer}</div>
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-[#0077B6]" />
+                              <span>{localizedHq}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-700">
+                            {j.catchmentAreaSqKm}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-bold text-slate-800 block text-xs">
+                              {j.coveredDistricts.length} {language === 'hi' ? 'ज़िले' : language === 'te' ? 'జిల్లాలు' : 'Districts'}
+                            </span>
+                            <span className="text-[10px] text-slate-500 line-clamp-1 max-w-[180px]">
+                              {j.coveredDistricts.join(', ')}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-mono font-bold text-xs text-slate-900">
+                              <span className="text-[#0077B6]">{j.currentLiveTmc}</span> / {j.criticalTmcCapacity} TMC
+                            </div>
+                            <div className="w-24 bg-slate-200 h-1.5 rounded-full overflow-hidden mt-1">
+                              <div
+                                className={`h-full ${fillPct > 70 ? 'bg-emerald-500' : fillPct > 45 ? 'bg-[#0077B6]' : 'bg-amber-500'}`}
+                                style={{ width: `${Math.min(100, fillPct)}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">{fillPct}% full</span>
+                          </td>
+                          <td className="py-3 px-3 max-w-[200px]">
+                            <span className="text-xs text-slate-800 font-medium line-clamp-2">
+                              {localizedBarrage}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-purple-700">
+                            {j.irrigationAyacutLakhAcres || 0} L.Ac
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              j.statusColor === 'emerald' ? 'bg-emerald-100 text-emerald-800' :
+                              j.statusColor === 'sky' ? 'bg-sky-100 text-sky-800' :
+                              j.statusColor === 'amber' ? 'bg-amber-100 text-amber-800' :
+                              'bg-indigo-100 text-indigo-800'
+                            }`}>
+                              ● {localizedStatus}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <a
+                                href={`tel:${j.phone}`}
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
+                                title={`Call ${j.chiefEngineer}`}
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                              </a>
+                              <a
+                                href={`mailto:${j.email}`}
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
+                                title={`Email ${j.email}`}
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                              </a>
+                              <button
+                                onClick={() => setSelectedJurisdictionForModal(j)}
+                                className="px-2.5 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0077B6] font-bold text-xs transition-colors cursor-pointer"
+                              >
+                                {language === 'hi' ? 'डोज़ियर' : language === 'te' ? 'డాసియర్' : 'Dossier'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -5947,7 +6723,313 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-    {/* ==================================================================== */}
+      {/* ==================================================================== */}
+      {/* RIVER BASIN & HYDROLOGICAL JURISDICTION TECHNICAL DOSSIER MODAL      */}
+      {/* ==================================================================== */}
+      {selectedJurisdictionForModal && (() => {
+        const j = selectedJurisdictionForModal;
+        const fillPct = j.criticalTmcCapacity > 0 ? Number(((j.currentLiveTmc / j.criticalTmcCapacity) * 100).toFixed(1)) : 0;
+        const localizedName = language === 'hi' ? j.nameHi : language === 'te' ? j.teluguName : j.name;
+        const localizedHq = language === 'hi' ? j.headquartersHi : language === 'te' ? j.headquartersTe : j.headquarters;
+        const localizedEngineer = language === 'hi' ? j.chiefEngineerHi : language === 'te' ? j.chiefEngineerTe : j.chiefEngineer;
+        const localizedBarrage = language === 'hi' ? j.primaryBarrageHi : language === 'te' ? j.primaryBarrageTe : j.primaryBarrage;
+        const localizedStatus = language === 'hi' ? j.statusHi : language === 'te' ? j.statusTe : j.status;
+        const localizedDescription = language === 'hi' ? j.descriptionHi : language === 'te' ? j.descriptionTe : j.description;
+        const localizedCanals = language === 'hi' && j.majorCanalsHi ? j.majorCanalsHi : language === 'te' && j.majorCanalsTe ? j.majorCanalsTe : (j.majorCanals || []);
+
+        return (
+          <div 
+            onClick={() => setSelectedJurisdictionForModal(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200"
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[#0077B6] text-white flex items-center justify-center shadow-md shrink-0">
+                    <GitFork className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 uppercase">
+                        {j.id.replace('jur-', 'AP-WRD-')}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#0077B6] border border-blue-200">
+                        {language === 'hi' ? 'एपी जल संसाधन विभाग (WRD)' : language === 'te' ? 'AP జల వనరుల విభాగం (WRD)' : 'AP Water Resources Dept'}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        ● {localizedStatus}
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight mt-1">
+                      {localizedName}
+                    </h2>
+                    <p className="text-xs font-semibold text-slate-500">
+                      {j.name} • {j.teluguName}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedJurisdictionForModal(null)}
+                  className="p-2 rounded-2xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Top 4 Telemetry Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/70">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {language === 'hi' ? 'जलग्रहण क्षेत्र' : language === 'te' ? 'క్యాచ్‌మెంట్' : 'Catchment Area'}
+                  </span>
+                  <div className="text-base font-black text-slate-900 mt-0.5">{j.catchmentAreaSqKm}</div>
+                  <span className="text-[10px] text-slate-500 font-semibold">{localizedHq}</span>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/70">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {language === 'hi' ? 'लाइव / सकल भंडारण' : language === 'te' ? 'లైవ్ / స్థూల నిల్వ' : 'Live / Gross Storage'}
+                  </span>
+                  <div className="text-base font-black text-[#0077B6] mt-0.5">
+                    {j.currentLiveTmc} <span className="text-xs font-semibold text-slate-500">/ {j.criticalTmcCapacity} TMC</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 font-bold">{fillPct}% {language === 'hi' ? 'भराव' : language === 'te' ? 'నిల్వ' : 'Filled'}</span>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/70">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {language === 'hi' ? 'वार्षिक प्रवाह' : language === 'te' ? 'వార్షిక ప్రవాహం' : 'Annual Inflow Yield'}
+                  </span>
+                  <div className="text-base font-black text-slate-900 mt-0.5">
+                    {j.annualYieldTmc || 0} <span className="text-xs font-semibold text-slate-500">TMC</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">75% Dependability</span>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/70">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {language === 'hi' ? 'कमान आयकट' : language === 'te' ? 'సాగునీటి ఆయకట్టు' : 'Assured Ayacut'}
+                  </span>
+                  <div className="text-base font-black text-purple-700 mt-0.5">
+                    {j.irrigationAyacutLakhAcres || 0} <span className="text-xs font-semibold text-slate-500">{language === 'hi' ? 'लाख एकड़' : language === 'te' ? 'లక్షల ఎకరాలు' : 'Lakh Ac'}</span>
+                  </div>
+                  <span className="text-[10px] text-purple-600 font-semibold">{j.monitoredReservoirs} Assets</span>
+                </div>
+              </div>
+
+              {/* Primary Barrage & Flood Regulator */}
+              <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-100 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[#0077B6]" />
+                  <h4 className="font-extrabold text-xs text-[#0077B6] uppercase tracking-wider">
+                    {language === 'hi' ? 'प्राथमिक नियामक बैराज एवं बाढ़ डिस्चार्ज क्षमता' : language === 'te' ? 'ప్రధాన బ్యారేజ్ & వరద సామర్థ్యం' : 'Primary Barrage & Flood Discharge Specification'}
+                  </h4>
+                </div>
+                <div className="text-sm font-bold text-slate-900 pl-6">
+                  {localizedBarrage}
+                </div>
+                <p className="text-xs text-slate-600 pl-6">
+                  {localizedDescription}
+                </p>
+              </div>
+
+              {/* Chief Engineer Administration Strip */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white border border-slate-200 text-[#0077B6] font-black text-sm flex items-center justify-center shadow-xs">
+                    {j.chiefEngineer.slice(4, 6).toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                      {language === 'hi' ? 'कमान मुख्य अभियंता' : language === 'te' ? 'కమాండ్ చీఫ్ ఇంజనీర్' : 'Command Chief Engineer'}
+                    </span>
+                    <strong className="text-xs text-slate-900 block">{localizedEngineer}</strong>
+                    <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3 text-[#0077B6]" />
+                      {localizedHq}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`tel:${j.phone}`}
+                    className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{j.phone}</span>
+                  </a>
+                  <a
+                    href={`mailto:${j.email}`}
+                    className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-[#0077B6]" />
+                    <span>{language === 'hi' ? 'ईमेल भेजें' : language === 'te' ? 'ఇమెయిల్ చేయండి' : 'Email'}</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Major Canals & Covered Districts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Major Canals */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/70 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-[#0077B6]" />
+                    {language === 'hi' ? 'प्रमुख नहर नेटवर्क' : language === 'te' ? 'ప్రధాన కాలువల నెట్‌వర్క్' : 'Major Canal Distributors'}
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {localizedCanals.map((c, i) => (
+                      <span key={i} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-2xs">
+                        &bull; {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Covered Districts */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/70 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
+                    {language === 'hi' ? 'अधिकार क्षेत्र के ज़िले' : language === 'te' ? 'అధికార పరిధిలోని జిల్లాలు' : 'Covered AP Districts'} ({j.coveredDistricts.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {j.coveredDistricts.map(d => (
+                      <span key={d} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-2xs">
+                        {language === 'hi' && DISTRICT_HINDI_NAMES[d] ? DISTRICT_HINDI_NAMES[d] : d}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Associated Live Reservoirs from APWRIMS Telemetry */}
+              {associatedJurisdictionReservoirs.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Droplets className="w-3.5 h-3.5 text-[#0077B6]" />
+                      {language === 'hi' ? 'संबद्ध प्रमुख जलाशय टेलीमेट्री' : language === 'te' ? 'సంబంధిత ప్రధాన రిజర్వాయర్ల టెలిమెట్రీ' : 'Key Associated APWRIMS Reservoirs'}
+                    </h4>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      {associatedJurisdictionReservoirs.length} {language === 'hi' ? 'जलाशय प्रदर्शित' : language === 'te' ? 'రిజర్వాయర్లు' : 'Dams listed'}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
+                          <th className="py-2.5 px-3">{language === 'hi' ? 'जलाशय का नाम' : language === 'te' ? 'రిజర్వాయర్ పేరు' : 'Dam / Reservoir'}</th>
+                          <th className="py-2.5 px-3">{language === 'hi' ? 'ज़िला' : language === 'te' ? 'జిల్లా' : 'District'}</th>
+                          <th className="py-2.5 px-3">{language === 'hi' ? 'सकल क्षमता (TMC)' : language === 'te' ? 'పూర్తి సామర్థ్యం' : 'Gross TMC'}</th>
+                          <th className="py-2.5 px-3">{language === 'hi' ? 'वर्तमान भंडारण' : language === 'te' ? 'ప్రస్తుత నిల్వ' : 'Current Live'}</th>
+                          <th className="py-2.5 px-3">{language === 'hi' ? 'भराव %' : language === 'te' ? 'నిల్వ %' : 'Fill %'}</th>
+                          <th className="py-2.5 px-3 text-right">{language === 'hi' ? 'अंतर्वाह / बहिर्वाह' : language === 'te' ? 'ఇన్‌ఫ్లో / అవుట్‌ఫ్లో' : 'Inflow / Outflow'}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {associatedJurisdictionReservoirs.map(r => (
+                          <tr key={r.id} className="hover:bg-slate-50/80">
+                            <td className="py-2 px-3 font-bold text-slate-900">
+                              {r.name}
+                              <span className="block text-[10px] text-slate-400 font-normal">{r.teluguName}</span>
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">{r.district || '-'}</td>
+                            <td className="py-2 px-3 font-mono font-bold text-slate-700">{r.grossCapacityTMC}</td>
+                            <td className="py-2 px-3 font-mono font-bold text-[#0077B6]">{r.currentStorageTMC}</td>
+                            <td className="py-2 px-3 font-mono">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                r.storagePercentage > 75 ? 'bg-emerald-100 text-emerald-800' :
+                                r.storagePercentage > 35 ? 'bg-sky-100 text-sky-800' :
+                                'bg-amber-100 text-amber-800'
+                              }`}>
+                                {r.storagePercentage}%
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono text-[11px] text-slate-600">
+                              <span className="text-emerald-600 font-semibold">{r.inflowCusecs}</span> / <span className="text-slate-700">{r.outflowCusecs} cusecs</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Actions Footer */}
+              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  onClick={() => {
+                    const csvHeaders = ['Parameter', 'Value'];
+                    const csvRows = [
+                      ['Jurisdiction ID', j.id],
+                      ['Command Name', j.name],
+                      ['Telugu Name', j.teluguName],
+                      ['Headquarters', j.headquarters],
+                      ['Chief Engineer', j.chiefEngineer],
+                      ['Telephone', j.phone],
+                      ['Email', j.email],
+                      ['Catchment Area', j.catchmentAreaSqKm],
+                      ['Gross Capacity TMC', j.criticalTmcCapacity.toString()],
+                      ['Current Live TMC', j.currentLiveTmc.toString()],
+                      ['Fill Percentage', `${fillPct}%`],
+                      ['Primary Barrage', j.primaryBarrage],
+                      ['Annual Yield TMC', (j.annualYieldTmc || 0).toString()],
+                      ['Irrigation Ayacut Lakh Acres', (j.irrigationAyacutLakhAcres || 0).toString()],
+                      ['Covered Districts', j.coveredDistricts.join('; ')],
+                      ['Status', j.status],
+                    ];
+                    const csvContent = 'data:text/csv;charset=utf-8,' + [csvHeaders.join(','), ...csvRows.map(r => `"${r[0]}","${r[1]}"`)].join('\n');
+                    const encoded = encodeURI(csvContent);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', encoded);
+                    link.setAttribute('download', `${j.id}_Technical_Dossier_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{language === 'hi' ? 'डोजियर डाउनलोड करें' : language === 'te' ? 'డాసియర్ డౌన్‌లోడ్' : 'Export Dossier CSV'}</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (j.id.includes('godavari')) setReservoirBasinFilter('GODAVARI');
+                      else if (j.id.includes('krishna') || j.id.includes('rayalaseema') || j.id.includes('tungabhadra')) setReservoirBasinFilter('Krishna');
+                      else if (j.id.includes('pennar')) setReservoirBasinFilter('Pennar');
+                      else setReservoirBasinFilter('all');
+                      setSelectedJurisdictionForModal(null);
+                      setActiveTab('assets');
+                    }}
+                    className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Droplets className="w-3.5 h-3.5" />
+                    <span>{language === 'hi' ? 'जलाशय संपत्तियां में खोलें' : language === 'te' ? 'రిజర్వాయర్ ఆస్తులలో చూడండి' : 'Open in Reservoir Assets'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedJurisdictionForModal(null)}
+                    className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    {language === 'hi' ? 'बंद करें' : language === 'te' ? 'మూసివేయి' : 'Close'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ==================================================================== */}
       {/* LIGHTBOX MODAL: High-Resolution Photographic Ground Evidence Preview */}
       {/* ==================================================================== */}
       {photoPreviewModal && (

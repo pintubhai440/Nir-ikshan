@@ -1,4 +1,4 @@
-import { Droplets, LogIn, Menu, ArrowLeft } from 'lucide-react';
+import { Droplets, LogIn, ArrowLeft } from 'lucide-react';
 import { UserRoleType } from '../types/nirikshan';
 import { useLanguage } from '../context/LanguageContext';
 

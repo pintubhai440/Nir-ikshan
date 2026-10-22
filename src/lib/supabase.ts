@@ -3,7 +3,7 @@ import { CitizenComplaint } from '../types/nirikshan';
 import { DepartmentalPersonnel, INITIAL_DEPARTMENTAL_PERSONNEL } from '../data/stateAdminData';
 
 // Support Vite import.meta.env, window globals, and safe browser localStorage (which never touches git)
-const getStoredSupabaseConfig = () => {
+export const getStoredSupabaseConfig = () => {
   let url = '';
   let key = '';
   try {
@@ -15,32 +15,38 @@ const getStoredSupabaseConfig = () => {
   return { url, key };
 };
 
-const storedConfig = getStoredSupabaseConfig();
+export const getEffectiveSupabaseConfig = () => {
+  const stored = getStoredSupabaseConfig();
+  const url = 
+    stored.url ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
+    (typeof window !== 'undefined' && (window as any).__SUPABASE_URL__) ||
+    '';
 
-const supabaseUrl = 
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
-  storedConfig.url ||
-  (typeof window !== 'undefined' && (window as any).__SUPABASE_URL__) ||
-  '';
+  const key = 
+    stored.key ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+    (typeof window !== 'undefined' && (window as any).__SUPABASE_ANON_KEY__) ||
+    '';
 
-const supabaseAnonKey = 
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
-  storedConfig.key ||
-  (typeof window !== 'undefined' && (window as any).__SUPABASE_ANON_KEY__) ||
-  '';
-
-export const isSupabaseConfigured = (): boolean => {
-  return Boolean(
-    supabaseUrl && 
-    supabaseUrl.trim() !== '' && 
-    supabaseAnonKey && 
-    supabaseAnonKey.trim() !== '' &&
-    !supabaseUrl.includes('placeholder')
+  const isConfigured = Boolean(
+    url && 
+    url.trim() !== '' && 
+    key && 
+    key.trim() !== '' &&
+    !url.includes('placeholder')
   );
+
+  return { url: url.trim(), key: key.trim(), isConfigured };
 };
 
-export const supabase: SupabaseClient | null = isSupabaseConfigured()
-  ? createClient(supabaseUrl.trim(), supabaseAnonKey.trim(), {
+let activeSupabaseClient: SupabaseClient | null = null;
+
+function initClient(): SupabaseClient | null {
+  const { url, key, isConfigured } = getEffectiveSupabaseConfig();
+  if (!isConfigured) return null;
+  try {
+    return createClient(url, key, {
       auth: {
         persistSession: true,
       },
@@ -49,8 +55,117 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured()
           eventsPerSecond: 10,
         },
       },
-    })
-  : null;
+    });
+  } catch (err) {
+    console.warn('[Supabase] Failed to initialize client:', err);
+    return null;
+  }
+}
+
+activeSupabaseClient = initClient();
+
+export function getSupabaseClient(): SupabaseClient | null {
+  if (!activeSupabaseClient) {
+    activeSupabaseClient = initClient();
+  }
+  return activeSupabaseClient;
+}
+
+export const isSupabaseConfigured = (): boolean => {
+  return getEffectiveSupabaseConfig().isConfigured;
+};
+
+// Backwards-compatible exported proxy that dynamically delegates to active client
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getSupabaseClient();
+    if (!client) return undefined;
+    const value = (client as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
+
+/**
+ * Configure or update Supabase credentials at runtime with live ping test
+ */
+export async function setSupabaseCredentials(
+  url: string,
+  key: string
+): Promise<{ success: boolean; message: string; counts?: { complaints: number; inspectors: number; workers: number } }> {
+  const cleanUrl = url.trim();
+  const cleanKey = key.trim();
+
+  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+    return { success: false, message: 'Invalid URL. Must start with https:// or http://' };
+  }
+  if (!cleanKey || cleanKey.length < 20) {
+    return { success: false, message: 'Invalid Supabase anon key.' };
+  }
+
+  try {
+    const testClient = createClient(cleanUrl, cleanKey);
+    // Ping tables to verify access
+    let compCount = 0;
+    let inspCount = 0;
+    let workCount = 0;
+
+    const [compRes, inspRes, workRes] = await Promise.allSettled([
+      testClient.from('citizen_complaints').select('id', { count: 'exact', head: true }),
+      testClient.from('field_inspectors').select('id', { count: 'exact', head: true }),
+      testClient.from('action_workers').select('id', { count: 'exact', head: true }),
+    ]);
+
+    if (compRes.status === 'fulfilled' && compRes.value.count !== null) {
+      compCount = compRes.value.count || 0;
+    }
+    if (inspRes.status === 'fulfilled' && inspRes.value.count !== null) {
+      inspCount = inspRes.value.count || 0;
+    }
+    if (workRes.status === 'fulfilled' && workRes.value.count !== null) {
+      workCount = workRes.value.count || 0;
+    }
+
+    // Save to localStorage safely
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('nir_supabase_url', cleanUrl);
+      localStorage.setItem('nir_supabase_anon_key', cleanKey);
+    }
+
+    activeSupabaseClient = testClient;
+
+    // Trigger custom event for UI updates
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('supabase-config-changed', {
+        detail: { url: cleanUrl, counts: { compCount, inspCount, workCount } }
+      }));
+    }
+
+    return {
+      success: true,
+      message: `Connected live to Supabase! Found ${compCount} complaints, ${inspCount} inspectors, and ${workCount} workers in your tables.`,
+      counts: { complaints: compCount, inspectors: inspCount, workers: workCount },
+    };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Connection failed. Please verify credentials.' };
+  }
+}
+
+/**
+ * Clear stored credentials
+ */
+export function clearSupabaseCredentials() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.removeItem('nir_supabase_url');
+    localStorage.removeItem('nir_supabase_anon_key');
+  }
+  activeSupabaseClient = null;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('supabase-config-changed', { detail: null }));
+  }
+}
 
 /**
  * Maps a database row into the TypeScript CitizenComplaint interface
@@ -127,10 +242,11 @@ const lastSavedSignature = new Map<string, string>();
  * Fetch all complaints from Supabase with strict ID deduplication
  */
 export async function fetchComplaintsFromSupabase(): Promise<CitizenComplaint[] | null> {
-  if (!supabase) return null;
+  const client = getSupabaseClient();
+  if (!client) return null;
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('citizen_complaints')
       .select('*')
       .order('submitted_at', { ascending: false });
@@ -164,7 +280,8 @@ export async function fetchComplaintsFromSupabase(): Promise<CitizenComplaint[] 
  * 3. Enforces PostgreSQL upsert ON CONFLICT (id) DO UPDATE to prevent duplicate rows
  */
 export async function saveComplaintToSupabase(complaint: CitizenComplaint): Promise<boolean> {
-  if (!supabase || !complaint?.id) return false;
+  const client = getSupabaseClient();
+  if (!client || !complaint?.id) return false;
 
   const row = mapComplaintToRow(complaint);
   const rowSignature = JSON.stringify(row);
@@ -183,7 +300,7 @@ export async function saveComplaintToSupabase(complaint: CitizenComplaint): Prom
   inFlightSaves.add(complaint.id);
 
   try {
-    const { error } = await supabase
+    const { error } = await client
       .from('citizen_complaints')
       .upsert(row, { onConflict: 'id' });
 
@@ -211,9 +328,10 @@ export function subscribeToComplaints(
   onInsert: (complaint: CitizenComplaint) => void,
   onUpdate: (complaint: CitizenComplaint) => void
 ) {
-  if (!supabase) return () => {};
+  const client = getSupabaseClient();
+  if (!client) return () => {};
 
-  const channel = supabase
+  const channel = client
     .channel('complaints-realtime')
     .on(
       'postgres_changes',
@@ -244,7 +362,7 @@ export function subscribeToComplaints(
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    client.removeChannel(channel);
   };
 }
 
@@ -337,14 +455,15 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
     mergedMap.set(key, { ...p, sourceTable: 'official_ap_roster' });
   }
 
-  if (!supabase) {
+  const client = getSupabaseClient();
+  if (!client) {
     return Array.from(mergedMap.values());
   }
 
   try {
     // 2. Query user's real 'field_inspectors' table from Supabase
     try {
-      const { data: fieldData, error: fieldErr } = await supabase
+      const { data: fieldData, error: fieldErr } = await client
         .from('field_inspectors')
         .select('*');
 
@@ -399,7 +518,7 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
 
     // 3. Query user's real 'action_workers' table from Supabase
     try {
-      const { data: workerData, error: workerErr } = await supabase
+      const { data: workerData, error: workerErr } = await client
         .from('action_workers')
         .select('*');
 
@@ -458,7 +577,7 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
 
     // 4. Query departmental_roster table if available
     try {
-      const { data: rosterData, error: rosterErr } = await supabase
+      const { data: rosterData, error: rosterErr } = await client
         .from('departmental_roster')
         .select('*');
 
@@ -475,7 +594,7 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
 
     // 5. Query departmental_personnel table if available
     try {
-      const { data: staffData, error: staffErr } = await supabase
+      const { data: staffData, error: staffErr } = await client
         .from('departmental_personnel')
         .select('*');
 
@@ -492,7 +611,7 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
 
     // 6. Query citizen_complaints table to reflect any active field officer task counts
     try {
-      const { data: complaintsData, error: compErr } = await supabase
+      const { data: complaintsData, error: compErr } = await client
         .from('citizen_complaints')
         .select('assigned_nodal_officer, assigned_inspector, assigned_engineer, district');
 
@@ -533,7 +652,8 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
  * - If Nodal Officer -> saves to 'departmental_roster' / 'departmental_personnel' table!
  */
 export async function savePersonnelToSupabase(p: DepartmentalPersonnel): Promise<boolean> {
-  if (!supabase || !p?.id) return false;
+  const client = getSupabaseClient();
+  if (!client || !p?.id) return false;
 
   let savedSuccessfully = false;
 
@@ -558,7 +678,7 @@ export async function savePersonnelToSupabase(p: DepartmentalPersonnel): Promise
         joined_on: new Date().toISOString().split('T')[0],
       };
 
-      const { error: inspErr } = await supabase
+      const { error: inspErr } = await client
         .from('field_inspectors')
         .upsert(inspRow, { onConflict: 'inspector_id' });
 
@@ -597,7 +717,7 @@ export async function savePersonnelToSupabase(p: DepartmentalPersonnel): Promise
         added_on: new Date().toISOString().split('T')[0],
       };
 
-      const { error: workerErr } = await supabase
+      const { error: workerErr } = await client
         .from('action_workers')
         .upsert(workerRow, { onConflict: 'worker_id' });
 
@@ -612,13 +732,13 @@ export async function savePersonnelToSupabase(p: DepartmentalPersonnel): Promise
   // 3. Always also persist to central departmental_roster or departmental_personnel
   try {
     const row = mapPersonnelToRow(p);
-    const { error: err1 } = await supabase
+    const { error: err1 } = await client
       .from('departmental_roster')
       .upsert(row, { onConflict: 'id' });
 
     if (!err1) return true;
 
-    const { error: err2 } = await supabase
+    const { error: err2 } = await client
       .from('departmental_personnel')
       .upsert(row, { onConflict: 'id' });
 
@@ -636,7 +756,8 @@ export async function savePersonnelToSupabase(p: DepartmentalPersonnel): Promise
 export async function seedDepartmentalRosterToSupabase(
   roster: DepartmentalPersonnel[]
 ): Promise<{ success: boolean; count: number }> {
-  if (!supabase) return { success: false, count: 0 };
+  const client = getSupabaseClient();
+  if (!client) return { success: false, count: 0 };
 
   let successCount = 0;
 
@@ -654,9 +775,10 @@ export async function seedDepartmentalRosterToSupabase(
 export function subscribeToPersonnel(
   onChanged: () => void
 ): () => void {
-  if (!supabase) return () => {};
+  const client = getSupabaseClient();
+  if (!client) return () => {};
 
-  const channel = supabase
+  const channel = client
     .channel('personnel-realtime-channel')
     .on(
       'postgres_changes',
@@ -686,6 +808,6 @@ export function subscribeToPersonnel(
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    client.removeChannel(channel);
   };
 }
