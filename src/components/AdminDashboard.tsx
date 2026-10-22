@@ -4225,62 +4225,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'users_and_roles' && (
         <div className="space-y-5">
           {/* Executive AP State Command Hero Banner */}
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#021B38] via-[#004B7A] to-[#0077B6] text-white p-6 shadow-xl border border-sky-800/40">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#021B38] via-[#004B7A] to-[#0077B6] text-white p-6 md:p-7 shadow-2xl border border-sky-400/20">
             {/* Subtle radial decorative ambient accents */}
-            <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-sky-400/10 blur-3xl pointer-events-none" />
-            <div className="absolute right-1/3 -bottom-20 w-80 h-80 rounded-full bg-teal-400/10 blur-3xl pointer-events-none" />
+            <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl pointer-events-none" />
+            <div className="absolute right-1/3 -bottom-20 w-88 h-88 rounded-full bg-teal-400/15 blur-3xl pointer-events-none" />
             
-            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-5">
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg shrink-0">
                   <Users className="w-7 h-7 text-sky-200" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-sky-400/20 text-sky-200 font-bold border border-sky-300/30 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-sky-300" />
-                      Govt of Andhra Pradesh &bull; APWRIMS
+                    <span className="text-[10px] font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-sky-400/20 text-sky-100 font-bold border border-sky-300/30 flex items-center gap-1 shadow-2xs">
+                      <ShieldCheck className="w-3.5 h-3.5 text-sky-300" />
+                      {language === 'hi' ? 'आंध्र प्रदेश सरकार • APWRIMS' : language === 'te' ? 'ఆంధ్రప్రదేశ్ ప్రభుత్వం • APWRIMS' : 'Govt of Andhra Pradesh • APWRIMS'}
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 font-bold border border-emerald-300/30">
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-100 font-bold border border-emerald-300/30">
+                      {language === 'hi' ? '26 जिले संप्रभु कैडर' : language === 'te' ? '26 జిల్లాలు కేడర్' : '26 Districts Sovereign Cadre'}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/20">
                       RBAC Enforced
                     </span>
                   </div>
-                  <h2 className="text-2xl font-black text-white tracking-tight">
-                    Departmental Personnel Directory &amp; Cadre Roster
+                  <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                    {language === 'hi' 
+                      ? 'विभागीय कार्मिक निर्देशिका एवं कैडर रोस्टर' 
+                      : language === 'te' 
+                      ? 'విభాగపు సిబ్బంది డైరెక్టరీ & కేడర్ రోస్టర్' 
+                      : 'Departmental Personnel Directory & Cadre Roster'}
                   </h2>
-                  <p className="text-xs text-sky-100/80 max-w-2xl leading-relaxed">
-                    Apex District Nodal Officers (IAS/SE), Certified Field Quality Inspectors, and Heavy Earthmoving Restoration Crews across all 26 districts &bull; Synchronized with Supabase Central Ledger.
+                  <p className="text-xs text-sky-100/90 max-w-2xl leading-relaxed">
+                    {language === 'hi'
+                      ? 'सभी 26 जिलों के शीर्ष जिला नोडल अधिकारी (IAS/SE), प्रमाणित फील्ड गुणवत्ता निरीक्षक, एवं त्वरित मरम्मत दल • सुपाबेस केंद्रीय लेजर से लाइव समन्वित।'
+                      : language === 'te'
+                      ? 'అన్ని 26 జిల్లాల అత్యున్నత జిల్లా నోడల్ అధికారులు (IAS/SE), ధృవీకరించబడిన ఫీల్డ్ క్వాలిటీ ఇన్‌స్పెక్టర్లు & మరమ్మతు బృందాలు • సుపాబేస్ కేంద్రీయ లెడ్జర్‌తో సమకాలీకరించబడింది.'
+                      : 'Apex District Nodal Officers (IAS/SE), Certified Field Quality Inspectors, and Heavy Earthmoving Restoration Crews across all 26 districts • Synchronized with Supabase Central Ledger.'}
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons & Cloud Sync */}
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border backdrop-blur-md ${
+                <div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border backdrop-blur-md shadow-xs ${
                   isSupabaseConfigured() 
-                    ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30' 
-                    : 'bg-amber-500/20 text-amber-200 border-amber-400/30'
+                    ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40' 
+                    : 'bg-amber-500/20 text-amber-100 border-amber-400/40'
                 }`}>
-                  <div className={`w-2 h-2 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                  <span>{isSupabaseConfigured() ? 'Supabase Live Connected' : 'Local Directory Active'}</span>
+                  <div className={`w-2.5 h-2.5 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                  <span>
+                    {isSupabaseConfigured() 
+                      ? (language === 'hi' ? 'सुपाबेस लाइव कनेक्टेड' : language === 'te' ? 'సుపాబేస్ లైవ్ కనెక్ట్ అయింది' : 'Supabase Live Connected') 
+                      : (language === 'hi' ? 'स्थानीय निर्देशिका सक्रिय' : language === 'te' ? 'స్థానిక డైరెక్టరీ యాక్టివ్' : 'Local Directory Active')}
+                  </span>
                 </div>
 
                 <button
                   onClick={handleSyncWithSupabase}
                   disabled={isSyncingStaff}
-                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white border border-white/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer backdrop-blur-md"
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white border border-white/25 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer backdrop-blur-md hover:scale-[1.02]"
                   title="Sync and push personnel to Supabase cloud database"
                 >
                   <RefreshCw className={`w-4 h-4 text-sky-200 ${isSyncingStaff ? 'animate-spin' : ''}`} />
-                  <span>{isSyncingStaff ? 'Syncing Roster...' : 'Sync Supabase'}</span>
+                  <span>
+                    {isSyncingStaff 
+                      ? (language === 'hi' ? 'रोस्टर सिंक हो रहा है...' : language === 'te' ? 'సింక్ అవుతోంది...' : 'Syncing Roster...') 
+                      : (language === 'hi' ? 'सुपाबेस सिंक करें' : language === 'te' ? 'సుపాబేస్ సింక్' : 'Sync Supabase')}
+                  </span>
                 </button>
 
+                {/* Fixed Onboard Personnel Button - Clean single Plus icon without double ++ */}
                 <button
                   onClick={() => setIsAddUserModalOpen(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-emerald-950/20 cursor-pointer transform hover:scale-[1.02]"
+                  className="px-4.5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-emerald-950/25 cursor-pointer transform hover:scale-[1.03] active:scale-[0.98]"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>+ Onboard Personnel</span>
+                  <Plus className="w-4 h-4 shrink-0 text-white" />
+                  <span>
+                    {language === 'hi' 
+                      ? 'कार्मिक जोड़ें (Onboard Personnel)' 
+                      : language === 'te' 
+                      ? 'సిబ్బందిని చేర్చండి' 
+                      : 'Onboard Personnel'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -4288,14 +4314,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Sync Success Notification Toast */}
           {staffSyncSuccessToast && (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-3.5 flex items-center justify-between text-xs font-semibold shadow-xs animate-in fade-in duration-200">
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 flex items-center justify-between text-xs font-semibold shadow-xs animate-in fade-in duration-200">
               <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
                 <span>{staffSyncSuccessToast}</span>
               </div>
               <button 
                 onClick={() => setStaffSyncSuccessToast(null)}
-                className="text-emerald-700 hover:text-emerald-900 font-bold p-1 cursor-pointer"
+                className="text-emerald-700 hover:text-emerald-900 font-bold p-1 cursor-pointer text-base leading-none"
               >
                 &times;
               </button>
@@ -4305,82 +4331,168 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* 4 Executive KPI Metric Cards with Glassmorphic Accents */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Verified Cadre */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50/30 border border-slate-200/90 hover:border-sky-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50/40 border border-slate-200/90 hover:border-sky-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Total Verified Cadre
+                  {language === 'hi' ? 'कुल सत्यापित कैडर' : language === 'te' ? 'మొత్తం ధృవీకరించబడిన కేడర్' : 'Total Verified Cadre'}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-sky-100 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Users className="w-4.5 h-4.5" />
+                <div className="w-10 h-10 rounded-xl bg-sky-100 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                  <Users className="w-5 h-5" />
                 </div>
               </div>
               <div className="text-3xl font-black text-slate-900 mt-2 tracking-tight">
-                {staffList.length} <span className="text-sm font-bold text-slate-500 font-normal">Officers</span>
+                {staffList.length}{' '}
+                <span className="text-sm font-bold text-slate-500 font-normal">
+                  {language === 'hi' ? 'अधिकारी' : language === 'te' ? 'అధికారులు' : 'Officers'}
+                </span>
               </div>
               <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100 text-xs">
                 <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span className="text-emerald-700 font-bold text-[11px]">
-                  {staffList.filter(s => s.status === 'Active' || s.status === 'On Duty').length} Active on Field
+                  {staffList.filter(s => s.status === 'Active' || s.status === 'On Duty').length}{' '}
+                  {language === 'hi' ? 'फील्ड पर सक्रिय' : 'Active on Field'}
                 </span>
-                <span className="text-slate-400 text-[10px] ml-auto">26 Districts</span>
+                <span className="text-slate-400 text-[10px] ml-auto font-mono">
+                  {language === 'hi' ? '26 जिले' : '26 Districts'}
+                </span>
               </div>
             </div>
 
             {/* Nodal Officers */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50/30 border border-slate-200/90 hover:border-blue-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50/40 border border-slate-200/90 hover:border-blue-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Nodal Officers (Apex)
+                  {language === 'hi' ? 'नोडल अधिकारी (शीर्ष 26 जिले)' : language === 'te' ? 'నోడల్ అధికారులు (అపెక్స్)' : 'Nodal Officers (Apex)'}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Briefcase className="w-4.5 h-4.5" />
+                <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                  <Briefcase className="w-5 h-5" />
                 </div>
               </div>
               <div className="text-3xl font-black text-[#0077B6] mt-2 tracking-tight">
-                {staffList.filter(s => s.role === 'Nodal Officer').length} <span className="text-sm font-bold text-slate-500 font-normal">Leads</span>
+                {staffList.filter(s => s.role === 'Nodal Officer').length}{' '}
+                <span className="text-sm font-bold text-slate-500 font-normal">
+                  {language === 'hi' ? 'जिलेदार' : 'Leads'}
+                </span>
               </div>
               <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-slate-100 text-[11px] text-slate-600">
                 <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span className="truncate">District Collectors &amp; SEs</span>
+                <span className="truncate">
+                  {language === 'hi' ? 'जिला कलेक्टर एवं अधीक्षण अभियंता' : 'District Collectors & SEs'}
+                </span>
               </div>
             </div>
 
             {/* Field Quality Inspectors */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-purple-50/30 border border-slate-200/90 hover:border-purple-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-purple-50/40 border border-slate-200/90 hover:border-purple-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Field Inspectors
+                  {language === 'hi' ? 'फील्ड गुणवत्ता निरीक्षक' : language === 'te' ? 'ఫీల్డ్ క్వాలిటీ ఇన్‌స్పెక్టర్లు' : 'Field Inspectors'}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Microscope className="w-4.5 h-4.5" />
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                  <Microscope className="w-5 h-5" />
                 </div>
               </div>
               <div className="text-3xl font-black text-purple-700 mt-2 tracking-tight">
-                {staffList.filter(s => s.role === 'Field Inspector').length} <span className="text-sm font-bold text-slate-500 font-normal">Auditors</span>
+                {staffList.filter(s => s.role === 'Field Inspector').length}{' '}
+                <span className="text-sm font-bold text-slate-500 font-normal">
+                  {language === 'hi' ? 'परीक्षक' : 'Auditors'}
+                </span>
               </div>
               <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-slate-100 text-[11px] text-slate-600">
                 <Droplets className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span className="truncate">TDS Testing &amp; Silt Audits</span>
+                <span className="truncate">
+                  {language === 'hi' ? 'टीडीएस परीक्षण व गाद निरीक्षण' : 'TDS Testing & Silt Audits'}
+                </span>
               </div>
             </div>
 
             {/* Action Workers & Heavy Crews */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-emerald-50/30 border border-slate-200/90 hover:border-emerald-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-emerald-50/40 border border-slate-200/90 hover:border-emerald-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Action Workers
+                  {language === 'hi' ? 'एक्शन वर्कर एवं दल' : language === 'te' ? 'యాక్షన్ వర్కర్లు & బృందాలు' : 'Action Workers'}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Truck className="w-4.5 h-4.5" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                  <Truck className="w-5 h-5" />
                 </div>
               </div>
               <div className="text-3xl font-black text-emerald-700 mt-2 tracking-tight">
-                {staffList.filter(s => s.role === 'Action Worker').length} <span className="text-sm font-bold text-slate-500 font-normal">Crews</span>
+                {staffList.filter(s => s.role === 'Action Worker').length}{' '}
+                <span className="text-sm font-bold text-slate-500 font-normal">
+                  {language === 'hi' ? 'टीमें' : 'Crews'}
+                </span>
               </div>
               <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-slate-100 text-[11px] text-slate-600">
                 <Wrench className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">JCB 3DX &amp; Suction Fleets</span>
+                <span className="truncate">
+                  {language === 'hi' ? 'जेसीबी 3DX व त्वरित ड्रेजिंग बेड़ा' : 'JCB 3DX & Suction Fleets'}
+                </span>
               </div>
+            </div>
+          </div>
+
+          {/* Quick 26 Districts Interactive Navigation Strip */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-4 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
+                <span>
+                  {language === 'hi' ? 'आंध्र प्रदेश के सभी 26 जिले (त्वरित फ़िल्टर)' : language === 'te' ? 'ఆంధ్రప్రదేశ్ 26 జిల్లాలు (శీఘ్ర ఫిల్టర్)' : 'Andhra Pradesh 26 Districts (1-Click Cadre View)'}
+                </span>
+              </span>
+              <span className="text-[11px] font-mono text-slate-400">
+                {staffDistrictFilter === 'all' 
+                  ? (language === 'hi' ? 'सभी 26 जिले चयनित' : 'All 26 Districts Selected')
+                  : `${staffDistrictFilter}: ${staffList.filter(s => s.district === staffDistrictFilter).length} ${language === 'hi' ? 'कार्मिक' : 'Officers'}`}
+              </span>
+            </div>
+
+            {/* Scrollable / Wrapping District Filter Badges */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+              <button
+                type="button"
+                onClick={() => setStaffDistrictFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                  staffDistrictFilter === 'all'
+                    ? 'bg-[#0077B6] text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <span>{language === 'hi' ? 'सभी 26 जिले' : 'All 26'}</span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                  staffDistrictFilter === 'all' ? 'bg-white/20 text-white' : 'bg-white text-slate-600'
+                }`}>
+                  {staffList.length}
+                </span>
+              </button>
+
+              {ANDHRA_PRADESH_26_DISTRICTS.map((d) => {
+                const count = staffList.filter(s => s.district === d.name).length;
+                const isSelected = staffDistrictFilter === d.name;
+                const displayName = language === 'hi' && DISTRICT_HINDI_NAMES[d.name] 
+                  ? DISTRICT_HINDI_NAMES[d.name] 
+                  : d.name;
+
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => setStaffDistrictFilter(isSelected ? 'all' : d.name)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-[#0077B6] text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <span>{displayName}</span>
+                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-white text-slate-600'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -4388,7 +4500,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="bg-white border border-slate-200/90 rounded-3xl p-4 shadow-2xs space-y-3">
             {/* 1-Click Role Segmented Filter Pills */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-2xl flex-wrap">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-2xl flex-wrap">
                 <button
                   type="button"
                   onClick={() => setStaffRoleFilter('all')}
@@ -4399,7 +4511,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <Users className="w-3.5 h-3.5 text-slate-500" />
-                  <span>All Cadre</span>
+                  <span>{language === 'hi' ? 'सभी कैडर' : language === 'te' ? 'అన్ని కేడర్లు' : 'All Cadre'}</span>
                   <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
                     staffRoleFilter === 'all' ? 'bg-slate-100 text-slate-800' : 'bg-slate-200/70 text-slate-600'
                   }`}>
@@ -4417,7 +4529,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <Briefcase className="w-3.5 h-3.5" />
-                  <span>Nodal Officers</span>
+                  <span>{language === 'hi' ? 'नोडल अधिकारी (26 जिले)' : language === 'te' ? 'నోడల్ అధికారులు' : 'Nodal Officers (26)'}</span>
                   <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
                     staffRoleFilter === 'Nodal Officer' ? 'bg-sky-400/30 text-white' : 'bg-sky-100 text-[#0077B6]'
                   }`}>
@@ -4435,7 +4547,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <Microscope className="w-3.5 h-3.5" />
-                  <span>Field Inspectors</span>
+                  <span>{language === 'hi' ? 'फील्ड निरीक्षक' : language === 'te' ? 'ఫీల్డ్ ఇన్‌స్పెక్టర్లు' : 'Field Inspectors'}</span>
                   <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
                     staffRoleFilter === 'Field Inspector' ? 'bg-purple-400/30 text-white' : 'bg-purple-100 text-purple-700'
                   }`}>
@@ -4453,7 +4565,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <Truck className="w-3.5 h-3.5" />
-                  <span>Action Workers</span>
+                  <span>{language === 'hi' ? 'एक्शन वर्कर एवं दल' : language === 'te' ? 'యాక్షన్ వర్కర్లు' : 'Action Workers'}</span>
                   <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
                     staffRoleFilter === 'Action Worker' ? 'bg-emerald-400/30 text-white' : 'bg-emerald-100 text-emerald-700'
                   }`}>
@@ -4475,7 +4587,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   title="Card Grid View"
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>Cards</span>
+                  <span>{language === 'hi' ? 'कार्ड' : 'Cards'}</span>
                 </button>
                 <button
                   type="button"
@@ -4488,7 +4600,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   title="Administrative Table View"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>Table</span>
+                  <span>{language === 'hi' ? 'तालिका' : 'Table'}</span>
                 </button>
               </div>
             </div>
@@ -4499,10 +4611,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search by officer name, staff ID, phone, mandal, sub-basin, machinery..."
+                  placeholder={
+                    language === 'hi'
+                      ? 'अधिकारी का नाम, स्टाफ ID, फोन, मंडल, उप-बेसिन, मशीनरी से खोजें...'
+                      : language === 'te'
+                      ? 'అధికారి పేరు, స్టాఫ్ ఐడీ, ఫోన్, మండలం ద్వారా శోధించండి...'
+                      : 'Search by officer name, staff ID, phone, mandal, sub-basin, machinery...'
+                  }
                   value={staffSearchQuery}
                   onChange={(e) => setStaffSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9.5 pr-8 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9.5 pr-8 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all shadow-2xs"
                 />
                 {staffSearchQuery && (
                   <button
@@ -4518,11 +4636,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <select
                 value={staffDistrictFilter}
                 onChange={(e) => setStaffDistrictFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all shadow-2xs"
               >
-                <option value="all">District: All (26 Districts)</option>
+                <option value="all">
+                  {language === 'hi' ? 'जिला: सभी (26 जिले)' : language === 'te' ? 'జిల్లా: అన్ని (26 జిల్లాలు)' : 'District: All (26 Districts)'}
+                </option>
                 {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
-                  <option key={d.id} value={d.name}>{d.name}</option>
+                  <option key={d.id} value={d.name}>
+                    {language === 'hi' && DISTRICT_HINDI_NAMES[d.name] ? `${DISTRICT_HINDI_NAMES[d.name]} (${d.name})` : d.name}
+                  </option>
                 ))}
               </select>
 
@@ -4530,13 +4652,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <select
                 value={staffStatusFilter}
                 onChange={(e) => setStaffStatusFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all shadow-2xs"
               >
-                <option value="all">Duty: All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="On Duty">On Duty</option>
-                <option value="Standby">Standby</option>
-                <option value="Inactive">Inactive</option>
+                <option value="all">{language === 'hi' ? 'ड्यूटी स्थिति: सभी' : 'Duty: All Statuses'}</option>
+                <option value="Active">{language === 'hi' ? 'सक्रिय (Active)' : 'Active'}</option>
+                <option value="On Duty">{language === 'hi' ? 'कार्यरत (On Duty)' : 'On Duty'}</option>
+                <option value="Standby">{language === 'hi' ? 'स्टैंडबाय (Standby)' : 'Standby'}</option>
+                <option value="Inactive">{language === 'hi' ? 'निष्क्रिय (Inactive)' : 'Inactive'}</option>
               </select>
 
               {/* Reset Filters button if any are applied */}
@@ -4644,6 +4766,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                       : 'bg-amber-50 text-amber-800 border-amber-200';
 
+                    const roleDisplayName = language === 'hi'
+                      ? (isNodal ? 'नोडल अधिकारी' : isInspector ? 'फील्ड निरीक्षक' : 'एक्शन वर्कर')
+                      : person.role;
+
+                    const statusDisplayName = language === 'hi'
+                      ? (person.status === 'Active' ? 'सक्रिय' : person.status === 'On Duty' ? 'कार्यरत' : 'स्टैंडबाय')
+                      : person.status;
+
+                    const localizedDistrict = language === 'hi' && DISTRICT_HINDI_NAMES[person.district]
+                      ? DISTRICT_HINDI_NAMES[person.district]
+                      : person.district;
+
                     return (
                       <div 
                         key={person.id}
@@ -4659,16 +4793,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {isNodal && <Briefcase className="w-3 h-3" />}
                               {isInspector && <Microscope className="w-3 h-3" />}
                               {isWorker && <Truck className="w-3 h-3" />}
-                              <span>{person.role}</span>
+                              <span>{roleDisplayName}</span>
                             </span>
 
                             <button
                               onClick={() => handleToggleStaffStatus(person.id)}
                               className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1 cursor-pointer hover:scale-105 ${statusPill}`}
-                              title="Click to cycle status (Active -> On Duty -> Standby)"
+                              title={language === 'hi' ? 'स्थिति बदलने के लिए क्लिक करें' : 'Click to cycle status'}
                             >
                               <div className={`w-1.5 h-1.5 rounded-full ${person.status === 'Active' ? 'bg-emerald-500' : person.status === 'On Duty' ? 'bg-sky-500' : 'bg-amber-500'}`} />
-                              <span>{person.status}</span>
+                              <span>{statusDisplayName}</span>
                             </button>
                           </div>
 
@@ -4706,7 +4840,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <div className="space-y-1 bg-slate-50/90 p-3 rounded-2xl text-xs border border-slate-100">
                             <div className="flex items-center gap-1.5 text-slate-800 font-bold">
                               <MapPin className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
-                              <span className="truncate">{person.district} District</span>
+                              <span className="truncate">{localizedDistrict} {language === 'hi' ? 'ज़िला' : 'District'}</span>
                             </div>
                             <p className="text-[11px] text-slate-500 pl-5 line-clamp-1">
                               {person.jurisdictionSubBasin}
@@ -4717,10 +4851,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <div className="space-y-1.5 text-xs">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                               {isWorker 
-                                ? 'Assigned Machinery & Equipment' 
+                                ? (language === 'hi' ? 'नियुक्त भारी मशीनरी एवं उपकरण' : 'Assigned Machinery & Equipment')
                                 : isInspector 
-                                ? 'Testing Scope & Laboratory Protocols' 
-                                : 'Administrative Mandate & Governance'}
+                                ? (language === 'hi' ? 'परीक्षण दायरा एवं प्रयोगशाला प्रोटोकॉल' : 'Testing Scope & Laboratory Protocols')
+                                : (language === 'hi' ? 'प्रशासनिक क्षेत्राधिकार एवं जनादेश' : 'Administrative Mandate & Governance')}
                             </span>
                             <div className={`p-3 rounded-2xl border text-[11px] font-medium leading-relaxed ${roleColor.accentLight}`}>
                               <div className="flex items-start gap-1.5 text-slate-800">
@@ -4736,7 +4870,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <span className="truncate">{person.agencyOrUnit}</span>
                                   {person.crewStrength && (
                                     <span className="font-bold shrink-0 text-slate-600">
-                                      &bull; Crew: {person.crewStrength}
+                                      &bull; {language === 'hi' ? 'दल' : 'Crew'}: {person.crewStrength}
                                     </span>
                                   )}
                                 </div>
@@ -4765,7 +4899,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               title={`Call ${person.name} (${person.phone})`}
                             >
                               <Phone className="w-3 h-3" />
-                              <span className="hidden sm:inline">Call</span>
+                              <span className="hidden sm:inline">{language === 'hi' ? 'कॉल' : 'Call'}</span>
                             </a>
                             <a
                               href={`mailto:${person.email}`}
@@ -4773,7 +4907,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               title={`Email ${person.name}`}
                             >
                               <Mail className="w-3 h-3" />
-                              <span className="hidden sm:inline">Mail</span>
+                              <span className="hidden sm:inline">{language === 'hi' ? 'ईमेल' : 'Mail'}</span>
                             </a>
                           </div>
 
@@ -4782,7 +4916,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-slate-900 to-[#0077B6] hover:from-[#0077B6] hover:to-[#03045E] text-white font-bold text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                           >
                             <Eye className="w-3 h-3" />
-                            <span>Dossier</span>
+                            <span>{language === 'hi' ? 'डोज़ियर' : 'Dossier'}</span>
                           </button>
                         </div>
                       </div>
@@ -4799,88 +4933,102 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                        <th className="py-3 px-3">Personnel Name &amp; Contact</th>
-                        <th className="py-3 px-3">Staff ID</th>
-                        <th className="py-3 px-3">Assigned Role</th>
-                        <th className="py-3 px-3">District &amp; Jurisdiction</th>
-                        <th className="py-3 px-3">Specialization / Machinery</th>
-                        <th className="py-3 px-3">Duty Status</th>
-                        <th className="py-3 px-3 text-right">Actions</th>
+                        <th className="py-3 px-3">{language === 'hi' ? 'कार्मिक का नाम व संपर्क' : 'Personnel Name & Contact'}</th>
+                        <th className="py-3 px-3">{language === 'hi' ? 'स्टाफ ID' : 'Staff ID'}</th>
+                        <th className="py-3 px-3">{language === 'hi' ? 'निर्धारित पद / भूमिका' : 'Assigned Role'}</th>
+                        <th className="py-3 px-3">{language === 'hi' ? 'ज़िला व अधिकार क्षेत्र' : 'District & Jurisdiction'}</th>
+                        <th className="py-3 px-3">{language === 'hi' ? 'विशेषज्ञता / मशीनरी' : 'Specialization / Machinery'}</th>
+                        <th className="py-3 px-3">{language === 'hi' ? 'कार्य स्थिति' : 'Duty Status'}</th>
+                        <th className="py-3 px-3 text-right">{language === 'hi' ? 'कार्रवाई' : 'Actions'}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filtered.map((s) => (
-                        <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3 px-3">
-                            <div className="flex items-center gap-2.5">
-                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 ${
-                                s.role === 'Nodal Officer' ? 'bg-[#0077B6]' :
-                                s.role === 'Field Inspector' ? 'bg-purple-700' : 'bg-emerald-700'
+                      {filtered.map((s) => {
+                        const isNodal = s.role === 'Nodal Officer';
+                        const isInspector = s.role === 'Field Inspector';
+                        const roleDisplayName = language === 'hi'
+                          ? (isNodal ? 'नोडल अधिकारी' : isInspector ? 'फील्ड निरीक्षक' : 'एक्शन वर्कर')
+                          : s.role;
+                        const statusDisplayName = language === 'hi'
+                          ? (s.status === 'Active' ? 'सक्रिय' : s.status === 'On Duty' ? 'कार्यरत' : 'स्टैंडबाय')
+                          : s.status;
+                        const localizedDistrict = language === 'hi' && DISTRICT_HINDI_NAMES[s.district]
+                          ? DISTRICT_HINDI_NAMES[s.district]
+                          : s.district;
+
+                        return (
+                          <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 ${
+                                  s.role === 'Nodal Officer' ? 'bg-[#0077B6]' :
+                                  s.role === 'Field Inspector' ? 'bg-purple-700' : 'bg-emerald-700'
+                                }`}>
+                                  {s.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('') || 'AP'}
+                                </div>
+                                <div>
+                                  <strong className="text-slate-900 block font-bold text-xs">{s.name}</strong>
+                                  <span className="text-[10px] text-slate-400 block font-mono">{s.phone}</span>
+                                  <span className="text-[10px] text-slate-400 block">{s.email}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 font-mono font-bold text-[#0077B6]">
+                              <span className="bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                                {s.staffId}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                s.role === 'Nodal Officer' ? 'bg-sky-50 text-[#0077B6] border-sky-200' :
+                                s.role === 'Field Inspector' ? 'bg-purple-50 text-purple-800 border-purple-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                               }`}>
-                                {s.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('') || 'AP'}
-                              </div>
-                              <div>
-                                <strong className="text-slate-900 block font-bold text-xs">{s.name}</strong>
-                                <span className="text-[10px] text-slate-400 block font-mono">{s.phone}</span>
-                                <span className="text-[10px] text-slate-400 block">{s.email}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 font-mono font-bold text-[#0077B6]">
-                            <span className="bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
-                              {s.staffId}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                              s.role === 'Nodal Officer' ? 'bg-sky-50 text-[#0077B6] border-sky-200' :
-                              s.role === 'Field Inspector' ? 'bg-purple-50 text-purple-800 border-purple-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            }`}>
-                              {s.role}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className="text-slate-800 font-semibold block">{s.district}</span>
-                            <span className="text-[10px] text-slate-400 line-clamp-1">{s.jurisdictionSubBasin}</span>
-                          </td>
-                          <td className="py-3 px-3 max-w-xs text-[11px] text-slate-600">
-                            {s.specializationOrMachinery || s.jurisdictionSubBasin}
-                          </td>
-                          <td className="py-3 px-3">
-                            <button
-                              onClick={() => handleToggleStaffStatus(s.id)}
-                              className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px] hover:bg-emerald-100 cursor-pointer"
-                              title="Click to toggle status"
-                            >
-                              &bull; {s.status}
-                            </button>
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <a
-                                href={`tel:${s.phone}`}
-                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
-                                title="Call Officer"
-                              >
-                                <Phone className="w-3.5 h-3.5" />
-                              </a>
-                              <a
-                                href={`mailto:${s.email}`}
-                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
-                                title="Email Officer"
-                              >
-                                <Mail className="w-3.5 h-3.5" />
-                              </a>
+                                {roleDisplayName}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="text-slate-800 font-semibold block">{localizedDistrict}</span>
+                              <span className="text-[10px] text-slate-400 line-clamp-1">{s.jurisdictionSubBasin}</span>
+                            </td>
+                            <td className="py-3 px-3 max-w-xs text-[11px] text-slate-600">
+                              {s.specializationOrMachinery || s.jurisdictionSubBasin}
+                            </td>
+                            <td className="py-3 px-3">
                               <button
-                                onClick={() => setSelectedStaffDetail(s)}
-                                className="px-2.5 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0077B6] font-bold text-xs transition-colors cursor-pointer"
+                                onClick={() => handleToggleStaffStatus(s.id)}
+                                className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px] hover:bg-emerald-100 cursor-pointer"
+                                title={language === 'hi' ? 'स्थिति बदलने के लिए क्लिक करें' : 'Click to toggle status'}
                               >
-                                Dossier
+                                &bull; {statusDisplayName}
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <a
+                                  href={`tel:${s.phone}`}
+                                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
+                                  title={`Call ${s.name}`}
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                </a>
+                                <a
+                                  href={`mailto:${s.email}`}
+                                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
+                                  title={`Email ${s.name}`}
+                                >
+                                  <Mail className="w-3.5 h-3.5" />
+                                </a>
+                                <button
+                                  onClick={() => setSelectedStaffDetail(s)}
+                                  className="px-2.5 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0077B6] font-bold text-xs transition-colors cursor-pointer"
+                                >
+                                  {language === 'hi' ? 'डोज़ियर' : 'Dossier'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -5519,10 +5667,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-base">
-                    Add Departmental Personnel
+                    {language === 'hi' ? 'विभागीय कार्मिक जोड़ें' : 'Add Departmental Personnel'}
                   </h3>
                   <span className="text-xs text-slate-400">
-                    Provision credentials &bull; Syncs with Supabase Cloud
+                    {language === 'hi'
+                      ? 'क्रेडेंशियल्स असाइन करें • सुपाबेस क्लाउड के साथ स्वचालित सिंक'
+                      : 'Provision credentials • Syncs with Supabase Cloud'}
                   </span>
                 </div>
               </div>
@@ -5537,12 +5687,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <form onSubmit={handleAddNewStaff} className="space-y-3.5 text-xs">
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  Full Name &amp; Official Designation *
+                  {language === 'hi' ? 'पूरा नाम एवं आधिकारिक पदनाम *' : 'Full Name & Official Designation *'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Sri K. Rama Krishna / Er. T. Venkata Ramana"
+                  placeholder={
+                    language === 'hi'
+                      ? 'उदा. श्री के. राम कृष्ण / इंजी. टी. वेंकट रमण'
+                      : 'e.g. Sri K. Rama Krishna / Er. T. Venkata Ramana'
+                  }
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
@@ -5552,22 +5706,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                    Assigned Role *
+                    {language === 'hi' ? 'निर्धारित पद / भूमिका *' : 'Assigned Role *'}
                   </label>
                   <select
                     value={newUserRole}
                     onChange={(e) => setNewUserRole(e.target.value as any)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
                   >
-                    <option value="Nodal Officer">Nodal Officer</option>
-                    <option value="Field Inspector">Field Inspector</option>
-                    <option value="Action Worker">Action Worker</option>
+                    <option value="Nodal Officer">
+                      {language === 'hi' ? 'नोडल अधिकारी (Nodal Officer)' : 'Nodal Officer'}
+                    </option>
+                    <option value="Field Inspector">
+                      {language === 'hi' ? 'फील्ड निरीक्षक (Field Inspector)' : 'Field Inspector'}
+                    </option>
+                    <option value="Action Worker">
+                      {language === 'hi' ? 'एक्शन वर्कर दल (Action Worker)' : 'Action Worker'}
+                    </option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                    Assigned District *
+                    {language === 'hi' ? 'निर्धारित जिला (26 जिले) *' : 'Assigned District *'}
                   </label>
                   <select
                     value={newUserDistrict}
@@ -5575,7 +5735,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
                   >
                     {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
-                      <option key={d.id} value={d.name}>{d.name}</option>
+                      <option key={d.id} value={d.name}>
+                        {language === 'hi' && DISTRICT_HINDI_NAMES[d.name]
+                          ? `${DISTRICT_HINDI_NAMES[d.name]} (${d.name})`
+                          : d.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -5584,7 +5748,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                    Official Mobile Number *
+                    {language === 'hi' ? 'आधिकारिक मोबाइल नंबर *' : 'Official Mobile Number *'}
                   </label>
                   <input
                     type="tel"
@@ -5598,7 +5762,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                    Official Email
+                    {language === 'hi' ? 'आधिकारिक ईमेल' : 'Official Email'}
                   </label>
                   <input
                     type="email"
@@ -5612,11 +5776,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  Jurisdiction Catchment / Sub-Basin Zone
+                  {language === 'hi' ? 'अधिकार क्षेत्र कैचमेंट / उप-बेसिन ज़ोन' : 'Jurisdiction Catchment / Sub-Basin Zone'}
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Champavathi Basin & Tatipudi Command Cell"
+                  placeholder={
+                    language === 'hi'
+                      ? 'उदा. चंपावती बेसिन एवं तातिपुडी कमान सेल'
+                      : 'e.g. Champavathi Basin & Tatipudi Command Cell'
+                  }
                   value={newUserSubBasin}
                   onChange={(e) => setNewUserSubBasin(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
@@ -5626,19 +5794,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
                   {newUserRole === 'Action Worker' 
-                    ? 'Assigned Machinery & Equipment (e.g. 1x JCB 3DX Excavator + 2x Tipper Trucks)' 
+                    ? (language === 'hi' ? 'नियुक्त भारी मशीनरी एवं उपकरण (उदा. 1x JCB 3DX + 2x टिपर)' : 'Assigned Machinery & Equipment (e.g. 1x JCB 3DX Excavator + 2x Tipper Trucks)')
                     : newUserRole === 'Field Inspector' 
-                    ? 'Testing Specialization (e.g. TDS Multi-Parameter Water Testing & Silt Auditing)' 
-                    : 'Governance Specialization & Directive Scope'}
+                    ? (language === 'hi' ? 'परीक्षण विशेषज्ञता (उदा. TDS जल गुणवत्ता परीक्षण एवं सिल्ट ऑडिट)' : 'Testing Specialization (e.g. TDS Multi-Parameter Water Testing & Silt Auditing)')
+                    : (language === 'hi' ? 'प्रशासनिक क्षेत्राधिकार एवं जनादेश' : 'Governance Specialization & Directive Scope')}
                 </label>
                 <input
                   type="text"
                   placeholder={
                     newUserRole === 'Action Worker'
-                      ? 'e.g. 1x JCB 3DX Heavy Excavator + 2x High-Pressure Sludge Tankers'
+                      ? (language === 'hi' ? 'उदा. 1x JCB 3DX भारी उत्खनक + 2x उच्च-दबाव कीचड़ टैंकर' : 'e.g. 1x JCB 3DX Heavy Excavator + 2x High-Pressure Sludge Tankers')
                       : newUserRole === 'Field Inspector'
-                      ? 'e.g. TDS Testing, Siltation Photogrammetry & Industrial Effluent Tracing'
-                      : 'e.g. District Apex Water Surveillance & Emergency Directive Oversight'
+                      ? (language === 'hi' ? 'उदा. TDS परीक्षण, गाद फोटोग्रामेट्री एवं औद्योगिक अपशिष्ट ट्रैकिंग' : 'e.g. TDS Testing, Siltation Photogrammetry & Industrial Effluent Tracing')
+                      : (language === 'hi' ? 'उदा. जिला शीर्ष जल निगरानी एवं आपातकालीन निर्देश पर्यवेक्षण' : 'e.g. District Apex Water Surveillance & Emergency Directive Oversight')
                   }
                   value={newUserSpecialization}
                   onChange={(e) => setNewUserSpecialization(e.target.value)}
@@ -5648,11 +5816,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  Departmental Division / Contracting Agency
+                  {language === 'hi' ? 'विभागीय प्रभाग / ठेका एजेंसी' : 'Departmental Division / Contracting Agency'}
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. AP Minor Irrigation Mechanical Unit #4 / GVMC Eco-Restoration"
+                  placeholder={
+                    language === 'hi'
+                      ? 'उदा. एपी लघु सिंचाई यांत्रिक इकाई #4 / जीवीएमसी पर्यावरण बहाली'
+                      : 'e.g. AP Minor Irrigation Mechanical Unit #4 / GVMC Eco-Restoration'
+                  }
                   value={newUserAgency}
                   onChange={(e) => setNewUserAgency(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
@@ -5665,14 +5837,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setIsAddUserModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 cursor-pointer"
                 >
-                  Cancel
+                  {language === 'hi' ? 'रद्द करें' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Database className="w-4 h-4" />
-                  <span>Save &amp; Sync to Supabase</span>
+                  <span>{language === 'hi' ? 'सुपाबेस में सुरक्षित करें' : 'Save & Sync to Supabase'}</span>
                 </button>
               </div>
             </form>
@@ -5710,7 +5882,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {selectedStaffDetail.name}
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                      {selectedStaffDetail.status}
+                      {language === 'hi'
+                        ? (selectedStaffDetail.status === 'Active' ? 'सक्रिय' : selectedStaffDetail.status === 'On Duty' ? 'कार्यरत' : 'स्टैंडबाय')
+                        : selectedStaffDetail.status}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -5718,7 +5892,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {selectedStaffDetail.staffId}
                     </span>
                     <span className="text-xs text-slate-500 font-semibold">
-                      {selectedStaffDetail.role}
+                      {language === 'hi'
+                        ? (selectedStaffDetail.role === 'Nodal Officer' ? 'नोडल अधिकारी' : selectedStaffDetail.role === 'Field Inspector' ? 'फील्ड निरीक्षक' : 'एक्शन वर्कर दल')
+                        : selectedStaffDetail.role}
                     </span>
                   </div>
                 </div>
@@ -5738,10 +5914,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-                    District &amp; Command
+                    {language === 'hi' ? 'ज़िला एवं कमान' : 'District & Command'}
                   </span>
                   <span className="font-bold text-slate-800 block text-xs">
-                    {selectedStaffDetail.district} District
+                    {language === 'hi' && DISTRICT_HINDI_NAMES[selectedStaffDetail.district]
+                      ? DISTRICT_HINDI_NAMES[selectedStaffDetail.district]
+                      : selectedStaffDetail.district} {language === 'hi' ? 'ज़िला' : 'District'}
                   </span>
                   <span className="text-[11px] text-slate-500 block mt-0.5">
                     {selectedStaffDetail.jurisdictionSubBasin}
@@ -5750,14 +5928,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-                    Department / Agency
+                    {language === 'hi' ? 'विभाग / अनुबंधित एजेंसी' : 'Department / Agency'}
                   </span>
                   <span className="font-bold text-slate-800 block text-xs">
                     {selectedStaffDetail.agencyOrUnit || `${selectedStaffDetail.district} Water Resources Unit`}
                   </span>
                   {selectedStaffDetail.crewStrength && (
                     <span className="text-[11px] text-slate-500 block mt-0.5">
-                      Crew Capacity: {selectedStaffDetail.crewStrength} Personnel
+                      {language === 'hi' ? 'दल क्षमता' : 'Crew Capacity'}: {selectedStaffDetail.crewStrength} {language === 'hi' ? 'कार्मिक' : 'Personnel'}
                     </span>
                   )}
                 </div>
@@ -5767,10 +5945,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#0077B6] block">
                   {selectedStaffDetail.role === 'Action Worker' 
-                    ? 'Assigned Machinery & Earthmoving Equipment' 
+                    ? (language === 'hi' ? 'नियुक्त भारी मशीनरी एवं पृथ्वी-उत्खनन उपकरण' : 'Assigned Machinery & Earthmoving Equipment')
                     : selectedStaffDetail.role === 'Field Inspector'
-                    ? 'Field Testing Capabilities & Laboratory Scope'
-                    : 'Governance & Directive Authority'}
+                    ? (language === 'hi' ? 'फील्ड परीक्षण क्षमता एवं प्रयोगशाला दायरा' : 'Field Testing Capabilities & Laboratory Scope')
+                    : (language === 'hi' ? 'प्रशासनिक क्षेत्राधिकार एवं निर्देश अधिकार' : 'Governance & Directive Authority')}
                 </span>
                 <p className="text-xs text-slate-800 font-semibold leading-relaxed">
                   {selectedStaffDetail.specializationOrMachinery || selectedStaffDetail.jurisdictionSubBasin}
@@ -5781,7 +5959,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {selectedStaffDetail.assignedMandals && selectedStaffDetail.assignedMandals.length > 0 && (
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    Assigned Mandals / Circles
+                    {language === 'hi' ? 'नियुक्त मंडल / क्षेत्र' : 'Assigned Mandals / Circles'}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedStaffDetail.assignedMandals.map((m, idx) => (
@@ -5796,7 +5974,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Direct Contact Channels */}
               <div className="space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Official Communication Coordinates
+                  {language === 'hi' ? 'आधिकारिक संपर्क माध्यम' : 'Official Communication Coordinates'}
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <a
@@ -5807,7 +5985,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <Phone className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 group-hover:text-sky-100 block font-medium">Direct Phone</span>
+                      <span className="text-[10px] text-slate-400 group-hover:text-sky-100 block font-medium">
+                        {language === 'hi' ? 'सीधा फोन' : 'Direct Phone'}
+                      </span>
                       <strong className="text-xs text-slate-900 group-hover:text-white font-mono">{selectedStaffDetail.phone}</strong>
                     </div>
                   </a>
@@ -5820,7 +6000,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <Mail className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[10px] text-slate-400 group-hover:text-sky-100 block font-medium">Govt Email</span>
+                      <span className="text-[10px] text-slate-400 group-hover:text-sky-100 block font-medium">
+                        {language === 'hi' ? 'सरकारी ईमेल' : 'Govt Email'}
+                      </span>
                       <strong className="text-xs text-slate-900 group-hover:text-white truncate block">{selectedStaffDetail.email}</strong>
                     </div>
                   </a>
@@ -5831,7 +6013,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Active Assigned Surveillance Cases
+                    {language === 'hi' ? 'सक्रिय निगरानी मामले (लाइव केस)' : 'Active Assigned Surveillance Cases'}
                   </span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-[#0077B6]">
                     {complaints.filter(c => 
@@ -5839,7 +6021,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       c.assignedInspector?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
                       c.assignedEngineer?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
                       c.district.toLowerCase() === selectedStaffDetail.district.toLowerCase()
-                    ).length} Live Cases
+                    ).length} {language === 'hi' ? 'लाइव मामले' : 'Live Cases'}
                   </span>
                 </div>
 

@@ -320,12 +320,21 @@ export function mapPersonnelToRow(p: DepartmentalPersonnel) {
  * and aggregates assigned inspectors & action workers from 'citizen_complaints'.
  * Seamlessly merges with the verified AP operational roster.
  */
+/**
+ * Fetch all real personnel from Supabase:
+ * 1. Queries user's 'field_inspectors' table directly
+ * 2. Queries user's 'action_workers' table directly
+ * 3. Queries 'departmental_roster' and 'departmental_personnel' tables
+ * 4. Extracts assigned personnel from 'citizen_complaints'
+ * 5. Guarantees all 26 Andhra Pradesh districts have their official Nodal Officer (1 per district)
+ */
 export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonnel[]> {
   const mergedMap = new Map<string, DepartmentalPersonnel>();
 
-  // 1. Seed base verified Andhra Pradesh operational roster so data is never empty or fake
+  // 1. Seed base verified Andhra Pradesh operational roster (includes all 26 District Nodal Officers)
   for (const p of INITIAL_DEPARTMENTAL_PERSONNEL) {
-    mergedMap.set(p.name.toLowerCase().trim(), { ...p, sourceTable: 'official_ap_roster' });
+    const key = `${p.role.toLowerCase()}-${p.name.toLowerCase().trim()}`;
+    mergedMap.set(key, { ...p, sourceTable: 'official_ap_roster' });
   }
 
   if (!supabase) {
@@ -333,7 +342,121 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
   }
 
   try {
-    // 2. Query departmental_roster table if user created it in Supabase
+    // 2. Query user's real 'field_inspectors' table from Supabase
+    try {
+      const { data: fieldData, error: fieldErr } = await supabase
+        .from('field_inspectors')
+        .select('*');
+
+      if (!fieldErr && Array.isArray(fieldData) && fieldData.length > 0) {
+        for (const row of fieldData) {
+          if (row?.full_name || row?.name) {
+            const name = String(row.full_name || row.name).trim();
+            const rawPhone = String(row.phone || '+91 90000 10001');
+            const cleanDigits = rawPhone.replace(/\D/g, '');
+            const maskedMobile = cleanDigits.length >= 4 
+              ? `+91 ${cleanDigits.slice(0, 2)}••••••${cleanDigits.slice(-2)}` 
+              : '+91 90••••••01';
+
+            const district = String(row.district || 'Vizianagaram');
+            const mandal = String(row.mandal || '');
+            const staffId = String(row.inspector_id || row.id || `INS-${Math.floor(100 + Math.random() * 900)}`);
+            const statusRaw = String(row.status || 'Active').toLowerCase();
+            const status: 'Active' | 'On Duty' | 'Standby' | 'Inactive' = 
+              statusRaw === 'on leave' || statusRaw === 'standby' ? 'Standby' :
+              statusRaw === 'inactive' ? 'Inactive' : 'Active';
+
+            const p: DepartmentalPersonnel = {
+              id: `sup-insp-${staffId}`,
+              staffId,
+              name,
+              email: String(row.email || `${name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@example.org`),
+              role: 'Field Inspector',
+              district,
+              jurisdictionSubBasin: mandal ? `${mandal} Mandal • Meter ${row.meter_id || 'TDS-AP'}` : `${district} Catchment`,
+              maskedMobile,
+              phone: rawPhone,
+              status,
+              lastActive: 'Active in Supabase',
+              specializationOrMachinery: row.meter_id 
+                ? `Calibrated Digital Meter (${row.meter_id}) • Water Quality & Silt Auditing` 
+                : 'TDS Multi-Parameter Water Testing & Field Auditing',
+              agencyOrUnit: `District Water Surveillance Wing (${row.nodal_officer_id || 'NO-' + district.slice(0, 3).toUpperCase() + '-01'})`,
+              assignedMandals: mandal ? [mandal] : undefined,
+              activeTasksCount: Number(row.open_inspections) || 0,
+              rating: 4.9,
+              sourceTable: 'supabase',
+            };
+
+            const key = `field inspector-${name.toLowerCase()}`;
+            mergedMap.set(key, p);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase] Note on field_inspectors table:', e);
+    }
+
+    // 3. Query user's real 'action_workers' table from Supabase
+    try {
+      const { data: workerData, error: workerErr } = await supabase
+        .from('action_workers')
+        .select('*');
+
+      if (!workerErr && Array.isArray(workerData) && workerData.length > 0) {
+        for (const row of workerData) {
+          const crewName = String(row.name_or_crew_type || row.contact_person || row.name || 'Remediation Crew').trim();
+          const contactPerson = String(row.contact_person || crewName).trim();
+          const rawPhone = String(row.phone || '+91 90000 20001');
+          const cleanDigits = rawPhone.replace(/\D/g, '');
+          const maskedMobile = cleanDigits.length >= 4 
+            ? `+91 ${cleanDigits.slice(0, 2)}••••••${cleanDigits.slice(-2)}` 
+            : '+91 90••••••01';
+
+          const district = String(row.district || 'Vizianagaram');
+          const serviceAreas = String(row.service_areas || row.mandal || district);
+          const staffId = String(row.worker_id || row.id || `MW-${Math.floor(100 + Math.random() * 900)}`);
+          const workerType = String(row.type || 'Crew');
+          const skills = String(row.skills || 'waste cleaning/desilting');
+          const availRaw = String(row.availability || row.status || 'Available').toLowerCase();
+          const status: 'Active' | 'On Duty' | 'Standby' | 'Inactive' = 
+            availRaw === 'busy' ? 'On Duty' :
+            availRaw === 'on leave' || availRaw === 'standby' ? 'Standby' :
+            availRaw === 'inactive' ? 'Inactive' : 'Active';
+
+          const p: DepartmentalPersonnel = {
+            id: `sup-worker-${staffId}`,
+            staffId,
+            name: crewName,
+            email: `${contactPerson.toLowerCase().replace(/[^a-z0-9]/g, '.')}@works.ap.gov.in`,
+            role: 'Action Worker',
+            district,
+            jurisdictionSubBasin: serviceAreas ? `${serviceAreas} Command Area` : `${district} Catchment`,
+            maskedMobile,
+            phone: rawPhone,
+            status,
+            lastActive: `${row.availability || 'Available'} in Supabase`,
+            specializationOrMachinery: `${workerType}: ${skills} • Lead: ${contactPerson}`,
+            agencyOrUnit: workerType === 'Contractor' 
+              ? `Registered APWRIMS Earthworks Contractor (${row.nodal_officer_id || district})`
+              : workerType === 'Engineer' 
+              ? `AP Minor Irrigation Mechanical Unit (${row.nodal_officer_id || district})`
+              : `APWRIMS Rapid Remediation Fleet (${row.nodal_officer_id || district})`,
+            crewStrength: workerType === 'Contractor' ? 12 : workerType === 'Crew' ? 6 : undefined,
+            activeTasksCount: Number(row.open_tasks) || 0,
+            rating: 4.9,
+            sourceTable: 'supabase',
+          };
+
+          const key = `action worker-${crewName.toLowerCase()}`;
+          mergedMap.set(key, p);
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase] Note on action_workers table:', e);
+    }
+
+    // 4. Query departmental_roster table if available
     try {
       const { data: rosterData, error: rosterErr } = await supabase
         .from('departmental_roster')
@@ -343,15 +466,14 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
         for (const row of rosterData) {
           if (row?.name) {
             const mapped = mapRowToPersonnel(row);
-            mergedMap.set(mapped.name.toLowerCase().trim(), mapped);
+            const key = `${mapped.role.toLowerCase()}-${mapped.name.toLowerCase().trim()}`;
+            mergedMap.set(key, mapped);
           }
         }
       }
-    } catch {
-      // Table may not exist yet, continue
-    }
+    } catch {}
 
-    // 3. Query departmental_personnel table
+    // 5. Query departmental_personnel table if available
     try {
       const { data: staffData, error: staffErr } = await supabase
         .from('departmental_personnel')
@@ -361,114 +483,42 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
         for (const row of staffData) {
           if (row?.name) {
             const mapped = mapRowToPersonnel(row);
-            mergedMap.set(mapped.name.toLowerCase().trim(), mapped);
+            const key = `${mapped.role.toLowerCase()}-${mapped.name.toLowerCase().trim()}`;
+            mergedMap.set(key, mapped);
           }
         }
       }
-    } catch {
-      // Table may not exist yet, continue
-    }
+    } catch {}
 
-    // 4. Query citizen_complaints table to extract real assigned officers currently active in Supabase!
+    // 6. Query citizen_complaints table to reflect any active field officer task counts
     try {
       const { data: complaintsData, error: compErr } = await supabase
         .from('citizen_complaints')
-        .select('assigned_nodal_officer, assigned_inspector, assigned_inspector_phone, assigned_engineer, assigned_engineer_phone, district, mandal, inspection_report, work_execution');
+        .select('assigned_nodal_officer, assigned_inspector, assigned_engineer, district');
 
       if (!compErr && Array.isArray(complaintsData) && complaintsData.length > 0) {
         for (const row of complaintsData) {
-          // Extract Nodal Officer
-          if (row.assigned_nodal_officer && typeof row.assigned_nodal_officer === 'string' && row.assigned_nodal_officer.trim() !== '') {
-            const key = row.assigned_nodal_officer.toLowerCase().trim();
+          if (row.assigned_nodal_officer) {
+            const key = `nodal officer-${row.assigned_nodal_officer.toLowerCase().trim()}`;
             if (mergedMap.has(key)) {
-              const existing = mergedMap.get(key)!;
-              existing.activeTasksCount = (existing.activeTasksCount || 0) + 1;
-            } else {
-              mergedMap.set(key, {
-                id: `usr-nodal-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                staffId: `AP-WRA-${Math.floor(1000 + Math.random() * 9000)}`,
-                name: row.assigned_nodal_officer.trim(),
-                email: `${row.assigned_nodal_officer.toLowerCase().replace(/[^a-z0-9]/g, '.')}@water.ap.gov.in`,
-                role: 'Nodal Officer',
-                district: row.district || 'Vizianagaram',
-                jurisdictionSubBasin: `${row.district || 'District'} Water Command & Grievance Cell`,
-                maskedMobile: '+91 94••••••89',
-                phone: '+91 94401 56789',
-                status: 'Active',
-                lastActive: 'Active in Live Complaints',
-                specializationOrMachinery: 'District Water Governance & Apex Interventions',
-                activeTasksCount: 1,
-                rating: 4.95,
-                sourceTable: 'supabase_complaints',
-              });
+              mergedMap.get(key)!.activeTasksCount = (mergedMap.get(key)!.activeTasksCount || 0) + 1;
             }
           }
-
-          // Extract Field Inspector
-          if (row.assigned_inspector && typeof row.assigned_inspector === 'string' && row.assigned_inspector.trim() !== '') {
-            const key = row.assigned_inspector.toLowerCase().trim();
-            const phone = row.assigned_inspector_phone || '+91 94401 22334';
+          if (row.assigned_inspector) {
+            const key = `field inspector-${row.assigned_inspector.toLowerCase().trim()}`;
             if (mergedMap.has(key)) {
-              const existing = mergedMap.get(key)!;
-              existing.activeTasksCount = (existing.activeTasksCount || 0) + 1;
-              if (phone) existing.phone = phone;
-            } else {
-              mergedMap.set(key, {
-                id: `usr-insp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                staffId: `AP-INSP-${Math.floor(1000 + Math.random() * 9000)}`,
-                name: row.assigned_inspector.trim(),
-                email: `${row.assigned_inspector.toLowerCase().replace(/[^a-z0-9]/g, '.')}@field.ap.gov.in`,
-                role: 'Field Inspector',
-                district: row.district || 'Vizianagaram',
-                jurisdictionSubBasin: `${row.mandal ? row.mandal + ', ' : ''}${row.district || 'Vizianagaram'} Sub-basin`,
-                maskedMobile: `+91 ${phone.replace(/\D/g, '').slice(0, 2)}••••••${phone.replace(/\D/g, '').slice(-2)}`,
-                phone: phone,
-                status: 'Active',
-                lastActive: 'Active in Live Inspections',
-                specializationOrMachinery: 'Physical Site Auditing & Water Quality Verification',
-                agencyOrUnit: 'District Water & Sanitation Surveillance Wing',
-                activeTasksCount: 1,
-                rating: 4.9,
-                sourceTable: 'supabase_complaints',
-              });
+              mergedMap.get(key)!.activeTasksCount = (mergedMap.get(key)!.activeTasksCount || 0) + 1;
             }
           }
-
-          // Extract Action Worker / Engineer
-          if (row.assigned_engineer && typeof row.assigned_engineer === 'string' && row.assigned_engineer.trim() !== '') {
-            const key = row.assigned_engineer.toLowerCase().trim();
-            const phone = row.assigned_engineer_phone || '+91 94402 33445';
+          if (row.assigned_engineer) {
+            const key = `action worker-${row.assigned_engineer.toLowerCase().trim()}`;
             if (mergedMap.has(key)) {
-              const existing = mergedMap.get(key)!;
-              existing.activeTasksCount = (existing.activeTasksCount || 0) + 1;
-              if (phone) existing.phone = phone;
-            } else {
-              mergedMap.set(key, {
-                id: `usr-wrk-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                staffId: `AP-CREW-${Math.floor(100 + Math.random() * 900)}`,
-                name: row.assigned_engineer.trim(),
-                email: `${row.assigned_engineer.toLowerCase().replace(/[^a-z0-9]/g, '.')}@works.ap.gov.in`,
-                role: 'Action Worker',
-                district: row.district || 'Vizianagaram',
-                jurisdictionSubBasin: `${row.mandal ? row.mandal + ', ' : ''}${row.district || 'Vizianagaram'} Remediation Site`,
-                maskedMobile: `+91 ${phone.replace(/\D/g, '').slice(0, 2)}••••••${phone.replace(/\D/g, '').slice(-2)}`,
-                phone: phone,
-                status: 'Active',
-                lastActive: 'Active in Remediation Works',
-                specializationOrMachinery: 'Heavy Earthmoving Excavator & Silt Desilting Crew',
-                agencyOrUnit: 'AP Minor Irrigation Mechanical Unit',
-                crewStrength: 6,
-                activeTasksCount: 1,
-                rating: 4.88,
-                sourceTable: 'supabase_complaints',
-              });
+              mergedMap.get(key)!.activeTasksCount = (mergedMap.get(key)!.activeTasksCount || 0) + 1;
             }
           }
         }
       }
-    } catch {
-      // If complaints query fails, continue
-    }
+    } catch {}
   } catch (err) {
     console.warn('[Supabase Personnel] Error fetching from database:', err);
   }
@@ -477,31 +527,107 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
 }
 
 /**
- * Upsert personnel record to Supabase table
+ * Upsert / Save personnel record to Supabase tables:
+ * - If Field Inspector -> saves directly to user's 'field_inspectors' table!
+ * - If Action Worker -> saves directly to user's 'action_workers' table!
+ * - If Nodal Officer -> saves to 'departmental_roster' / 'departmental_personnel' table!
  */
 export async function savePersonnelToSupabase(p: DepartmentalPersonnel): Promise<boolean> {
   if (!supabase || !p?.id) return false;
 
-  const row = mapPersonnelToRow(p);
+  let savedSuccessfully = false;
 
+  // 1. If Field Inspector -> write to user's 'field_inspectors' table
+  if (p.role === 'Field Inspector') {
+    try {
+      const mandalName = p.assignedMandals?.[0] || p.jurisdictionSubBasin?.split(' ')?.[0] || 'Central';
+      const districtShort = p.district.slice(0, 3).toUpperCase();
+      const inspRow = {
+        inspector_id: p.staffId,
+        full_name: p.name,
+        phone: p.phone,
+        email: p.email,
+        district: p.district,
+        mandal: mandalName,
+        nodal_officer_id: `NO-${districtShort}-01`,
+        languages: 'Telugu/English',
+        status: p.status === 'Standby' ? 'On leave' : p.status === 'Inactive' ? 'Inactive' : 'Active',
+        meter_id: `TDS-${districtShort}-${Math.floor(100 + Math.random() * 900)}`,
+        open_inspections: p.activeTasksCount || 0,
+        overdue_inspections: 0,
+        joined_on: new Date().toISOString().split('T')[0],
+      };
+
+      const { error: inspErr } = await supabase
+        .from('field_inspectors')
+        .upsert(inspRow, { onConflict: 'inspector_id' });
+
+      if (!inspErr) {
+        savedSuccessfully = true;
+      }
+    } catch (e) {
+      console.warn('[Supabase] Note saving to field_inspectors:', e);
+    }
+  }
+
+  // 2. If Action Worker -> write to user's 'action_workers' table
+  if (p.role === 'Action Worker') {
+    try {
+      const districtShort = p.district.slice(0, 3).toUpperCase();
+      const isContractor = p.agencyOrUnit?.toLowerCase().includes('contract') || p.name.toLowerCase().includes('earthwork');
+      const isEngineer = p.name.toLowerCase().startsWith('eng') || p.agencyOrUnit?.toLowerCase().includes('engineer');
+      const workerType = isContractor ? 'Contractor' : isEngineer ? 'Engineer' : 'Crew';
+
+      const workerRow = {
+        worker_id: p.staffId,
+        name_or_crew_type: p.name,
+        type: workerType,
+        contact_person: p.name,
+        phone: p.phone,
+        skills: p.specializationOrMachinery || 'waste cleaning/desilting',
+        service_areas: p.jurisdictionSubBasin || p.district,
+        district: p.district,
+        nodal_officer_id: `NO-${districtShort}-01`,
+        availability: p.status === 'On Duty' ? 'Busy' : p.status === 'Standby' ? 'On leave' : 'Available',
+        languages: 'Telugu/English',
+        status: p.status === 'Inactive' ? 'Inactive' : 'Active',
+        open_tasks: p.activeTasksCount || 0,
+        tasks_declined: 0,
+        no_response: 0,
+        added_on: new Date().toISOString().split('T')[0],
+      };
+
+      const { error: workerErr } = await supabase
+        .from('action_workers')
+        .upsert(workerRow, { onConflict: 'worker_id' });
+
+      if (!workerErr) {
+        savedSuccessfully = true;
+      }
+    } catch (e) {
+      console.warn('[Supabase] Note saving to action_workers:', e);
+    }
+  }
+
+  // 3. Always also persist to central departmental_roster or departmental_personnel
   try {
-    // Try departmental_roster
+    const row = mapPersonnelToRow(p);
     const { error: err1 } = await supabase
       .from('departmental_roster')
       .upsert(row, { onConflict: 'id' });
 
     if (!err1) return true;
 
-    // Fallback to departmental_personnel
     const { error: err2 } = await supabase
       .from('departmental_personnel')
       .upsert(row, { onConflict: 'id' });
 
-    return !err2;
+    if (!err2) return true;
   } catch (err) {
-    console.error('[Supabase Personnel] Error saving personnel to Supabase:', err);
-    return false;
+    console.error('[Supabase Personnel] Error saving to roster tables:', err);
   }
+
+  return savedSuccessfully;
 }
 
 /**
@@ -512,31 +638,18 @@ export async function seedDepartmentalRosterToSupabase(
 ): Promise<{ success: boolean; count: number }> {
   if (!supabase) return { success: false, count: 0 };
 
-  const rows = roster.map(mapPersonnelToRow);
+  let successCount = 0;
 
-  try {
-    const { error } = await supabase
-      .from('departmental_roster')
-      .upsert(rows, { onConflict: 'id' });
-
-    if (!error) {
-      return { success: true, count: rows.length };
-    }
-
-    // Try fallback table
-    const { error: fallbackErr } = await supabase
-      .from('departmental_personnel')
-      .upsert(rows, { onConflict: 'id' });
-
-    return { success: !fallbackErr, count: !fallbackErr ? rows.length : 0 };
-  } catch (err) {
-    console.error('[Supabase Roster Seed] Error syncing roster to Supabase:', err);
-    return { success: false, count: 0 };
+  for (const person of roster) {
+    const ok = await savePersonnelToSupabase(person);
+    if (ok) successCount++;
   }
+
+  return { success: successCount > 0, count: successCount };
 }
 
 /**
- * Subscribe to real-time changes on departmental roster
+ * Subscribe to real-time changes on departmental roster across all tables
  */
 export function subscribeToPersonnel(
   onChanged: () => void
@@ -547,7 +660,22 @@ export function subscribeToPersonnel(
     .channel('personnel-realtime-channel')
     .on(
       'postgres_changes',
+      { event: '*', schema: 'public', table: 'field_inspectors' },
+      () => onChanged()
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'action_workers' },
+      () => onChanged()
+    )
+    .on(
+      'postgres_changes',
       { event: '*', schema: 'public', table: 'departmental_roster' },
+      () => onChanged()
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'departmental_personnel' },
       () => onChanged()
     )
     .on(
