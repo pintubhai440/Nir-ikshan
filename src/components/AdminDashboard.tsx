@@ -15,6 +15,10 @@ import {
 } from '../data/stateAdminData';
 import { MonthlyGrievanceAnalytics } from './MonthlyGrievanceAnalytics';
 import { StateAdminSatelliteMap } from './StateAdminSatelliteMap';
+import { ComplaintLiveSLACounter } from './ComplaintLiveSLACounter';
+import { ComplaintWorkflowTimeline } from './ComplaintWorkflowTimeline';
+import { WorkflowActionModal } from './WorkflowActionModal';
+import { SupabaseVercelModal } from './SupabaseVercelModal';
 import { generateWatershedPdfReport } from '../utils/generateWatershedPdf';
 import { RAW_MICRO_WATERSHEDS_DATA } from '../data/watershedData';
 import { useLanguage } from '../context/LanguageContext';
@@ -70,7 +74,8 @@ import {
   Camera,
   CheckCircle,
   Wrench,
-  ShieldAlert
+  ShieldAlert,
+  Database
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -391,6 +396,99 @@ const STATE_ADMIN_UI_TEXT = {
     statusNormal: 'NORMAL',
     statusStress: 'STRESS',
     statusCritical: 'CRITICAL',
+    // Issues and Tasks Console Translations
+    issuesConsoleTitle: 'Apex Grievance & Multi-Role Task Surveillance Console',
+    issuesConsoleDesc: 'Continuous oversight tracking all 4 operational stakeholders: Citizen Complainants, District Nodal Officers, Field Inspectors, and Action Engineers. Zero unverified claims — complete end-to-end evidence telemetry.',
+    statTotalDockets: 'Total Dockets',
+    statCases: 'Cases',
+    statPending: 'Pending',
+    statNodalDispatched: 'Nodal Dispatched',
+    stat100Assigned: '100% Assigned',
+    statGroundInspected: 'Ground Inspected',
+    statPhysicalProbe: 'Physical Probe Done',
+    statRemediationActive: 'Remediation Active',
+    statHeavyMachinery: 'Heavy Machinery on Field',
+    statSlaHealth: '72h SLA Health',
+    statRealtimeClock: 'Real-Time SLA Clock',
+    toolbarFilters: 'Surveillance Filters',
+    toolbarActiveRecords: 'Active Records',
+    toolbarSupabaseGuide: 'Supabase & Vercel SQL Guide',
+    toolbarRadarCards: '360° Surveillance Radar',
+    toolbarTableMatrix: 'Accountability Matrix',
+    searchComplaintsPlaceholder: 'Search by Citizen Name, Mobile, ID, Landmark, Officer, Engineer...',
+    filterDistrictAll: 'District: All 26 Districts',
+    filterStatusAll: 'Status: All',
+    filterStatusSubmitted: 'Submitted',
+    filterStatusInspectorAssigned: 'Inspector Assigned',
+    filterStatusWorkerProgress: 'Worker in Progress',
+    filterStatusResolved: 'Resolved',
+    filterAccountabilityAll: 'Accountability: All',
+    filterAccountabilityOnTrack: '🟢 On-Track (Diligent)',
+    filterAccountabilityNeedsAttention: '🟡 Needs Inspection',
+    btnAdvanceStage: 'Advance Stage',
+    btnSlaDirective: 'SLA Directive',
+    btnReassign: 'Reassign',
+    cardCamCitizen: 'CAM 01 • Citizen',
+    cardVerifiedCitizen: 'Verified Citizen',
+    cardAge: 'Age',
+    cardRegisteredCitizen: 'Registered Citizen',
+    cardGps: 'GPS',
+    cardViewEvidencePhoto: 'View Evidence Photo',
+    cardCamNodal: 'CAM 02 • Nodal Officer',
+    cardApexTriage: 'Apex Triage',
+    cardWaterDivision: 'Water Division',
+    cardTriageSpeed: 'Triage Speed:',
+    cardDispatchedTime: 'Dispatched in 2.4 hrs',
+    cardStatutorySla: 'Statutory SLA:',
+    card72hWindow: '72h Window',
+    cardAccountabilityLabel: 'Accountability:',
+    cardDiligentCompliant: '🟢 Diligent & Compliant',
+    cardAssignedPipeline: 'Assigned Pipeline:',
+    cardInspectorLabel: 'Inspector:',
+    cardEngineerLabel: 'Engineer:',
+    cardDispatchMemo: 'Dispatch Direct Memo',
+    cardCamInspector: 'CAM 03 • Inspector',
+    cardInspectedBadge: 'Inspected',
+    cardEnrouteBadge: 'En-route',
+    cardGpsVerification: 'GPS Verification:',
+    cardMatched100: 'Matched (100%)',
+    cardWasteSeverity: 'Waste Severity:',
+    cardWaterPresence: 'Water Presence:',
+    cardCamWorker: 'CAM 04 • Worker / Engineer',
+    cardWorkInProgress: 'In Progress',
+    cardMachineryLabel: 'Machinery:',
+    cardManpowerLabel: 'Manpower:',
+    cardWasteClearedLabel: 'Waste Cleared:',
+    cardWorkersDeployed: 'Workers Deployed',
+    thDocketId: 'Docket ID',
+    thCitizenLandmark: 'Citizen & Landmark',
+    thNodalOfficer: 'District Nodal Officer',
+    thFieldInspector: 'Field Inspector',
+    thActionEngineer: 'Action Engineer',
+    thStatusSla: 'Status & SLA',
+    thIntervention: 'Intervention',
+    noMatchingRecords: 'No Matching Surveillance Records Found',
+    noMatchingRecordsDesc: 'No active complaint matches your search or filter parameters. Try clearing your filters to view all real records.',
+    resetFilters: 'Reset Surveillance Filters',
+    cardInspectorEnrouteDesc: 'Inspector en-route for physical GPS inspection and water quality probing. Within standard 24h SLA.',
+    cardInspectorEvidence: 'Inspector Evidence',
+    cardProgressLabel: 'Progress:',
+    card100Completed: '100% Completed',
+    card65Cleaned: '65% Cleaned',
+    card31TonsHauled: '3.1+ tons hauled',
+    labelNotes: 'Notes:',
+    labelReport: 'Report:',
+    cardWorkOrderDispatched: 'Work Order Dispatched',
+    cardWorkOrderStagedDesc: 'Sanitation crew and equipment staged for site remediation upon inspector clearance.',
+    modalDirectiveTitle: 'Dispatch SLA Directive',
+    modalDirectiveTarget: 'Target:',
+    modalDeadlineLabel: 'Enforcement Deadline',
+    modalMemoLabel: 'State Administrative Memo / Instructions',
+    modalTransmitBtn: 'Transmit Notice',
+    modalCancelBtn: 'Cancel',
+    modalReassignTitle: 'Reassign Nodal Officer',
+    modalSelectNewNodal: 'Select New Responsible Nodal Officer',
+    modalConfirmReassign: 'Confirm Reassignment',
   },
   hi: {
     heroTag: 'आंध्र प्रदेश राज्य जल कमान • जल-वैज्ञानिक निगरानी',
@@ -451,6 +549,99 @@ const STATE_ADMIN_UI_TEXT = {
     statusNormal: 'सामान्य',
     statusStress: 'तनावपूर्ण',
     statusCritical: 'गंभीर',
+    // Issues and Tasks Console Translations (Hindi)
+    issuesConsoleTitle: 'शीर्ष शिकायत एवं बहु-भूमिका कार्य निगरानी कंसोल',
+    issuesConsoleDesc: 'सभी 4 परिचालन हितधारकों की निरंतर निगरानी: नागरिक शिकायतकर्ता, जिला नोडल अधिकारी, फील्ड इंस्पेक्टर और एक्शन इंजीनियर। निष्पक्ष एवं पूर्ण एंड-टू-एंड साक्ष्य टेलीमेट्री।',
+    statTotalDockets: 'कुल शिकायतें',
+    statCases: 'केस',
+    statPending: 'लंबित',
+    statNodalDispatched: 'नोडल द्वारा प्रेषित',
+    stat100Assigned: '100% नियुक्त',
+    statGroundInspected: 'ग्राउंड जांच पूर्ण',
+    statPhysicalProbe: 'भौतिक स्थल जांच',
+    statRemediationActive: 'सफाई कार्य प्रगति पर',
+    statHeavyMachinery: 'फील्ड में भारी मशीनरी',
+    statSlaHealth: '72 घंटे एसएलए स्थिति',
+    statRealtimeClock: 'लाइव एसएलए टाइमर',
+    toolbarFilters: 'निगरानी फ़िल्टर',
+    toolbarActiveRecords: 'सक्रिय रिकॉर्ड',
+    toolbarSupabaseGuide: 'सुपाबेस व वर्सेल SQL गाइड',
+    toolbarRadarCards: '360° निगरानी रडार (कार्ड्स)',
+    toolbarTableMatrix: 'जवाबदेही तालिका (टेबल)',
+    searchComplaintsPlaceholder: 'नागरिक का नाम, मोबाइल, आईडी, लैंडमार्क, अधिकारी या इंजीनियर खोजें...',
+    filterDistrictAll: 'ज़िला: सभी 26 ज़िले',
+    filterStatusAll: 'स्थिति: सभी',
+    filterStatusSubmitted: 'दर्ज (नया)',
+    filterStatusInspectorAssigned: 'इंस्पेक्टर नियुक्त',
+    filterStatusWorkerProgress: 'वर्कर कार्य प्रगति पर',
+    filterStatusResolved: 'समाधान हो गया',
+    filterAccountabilityAll: 'जवाबदेही: सभी',
+    filterAccountabilityOnTrack: '🟢 सही समय पर (नियमबद्ध)',
+    filterAccountabilityNeedsAttention: '🟡 जांच की आवश्यकता',
+    btnAdvanceStage: 'अगला चरण बढ़ाएं',
+    btnSlaDirective: 'एसएलए निर्देश',
+    btnReassign: 'पुनः आवंटित करें',
+    cardCamCitizen: 'कैमरा 01 • नागरिक',
+    cardVerifiedCitizen: 'सत्यापित नागरिक',
+    cardAge: 'उम्र',
+    cardRegisteredCitizen: 'पंजीकृत नागरिक',
+    cardGps: 'जीपीएस',
+    cardViewEvidencePhoto: 'सबूत फोटो देखें',
+    cardCamNodal: 'कैमरा 02 • नोडल अधिकारी',
+    cardApexTriage: 'त्वरित समीक्षा',
+    cardWaterDivision: 'जल प्रभाग',
+    cardTriageSpeed: 'निस्तारण गति:',
+    cardDispatchedTime: '2.4 घंटे में प्रेषित',
+    cardStatutorySla: 'वैधानिक एसएलए:',
+    card72hWindow: '72 घंटे की समय-सीमा',
+    cardAccountabilityLabel: 'जवाबदेही:',
+    cardDiligentCompliant: '🟢 नियमबद्ध एवं तत्पर',
+    cardAssignedPipeline: 'आवंटित टीम:',
+    cardInspectorLabel: 'इंस्पेक्टर:',
+    cardEngineerLabel: 'इंजीनियर/वर्कर:',
+    cardDispatchMemo: 'सीधा मेमो जारी करें',
+    cardCamInspector: 'कैमरा 03 • फील्ड इंस्पेक्टर',
+    cardInspectedBadge: 'जांच पूर्ण',
+    cardEnrouteBadge: 'मौके पर रवाना',
+    cardGpsVerification: 'जीपीएस सत्यापन:',
+    cardMatched100: 'सत्यापित (100%)',
+    cardWasteSeverity: 'कचरा गंभीरता:',
+    cardWaterPresence: 'पानी की स्थिति:',
+    cardCamWorker: 'कैमरा 04 • वर्कर / इंजीनियर',
+    cardWorkInProgress: 'कार्य प्रगति पर',
+    cardMachineryLabel: 'मशीनरी:',
+    cardManpowerLabel: 'कार्यबल:',
+    cardWasteClearedLabel: 'कचरा हटाया गया:',
+    cardWorkersDeployed: 'वर्कर तैनात',
+    thDocketId: 'शिकायत आईडी',
+    thCitizenLandmark: 'नागरिक व स्थल',
+    thNodalOfficer: 'जिला नोडल अधिकारी',
+    thFieldInspector: 'फील्ड इंस्पेक्टर',
+    thActionEngineer: 'कार्यकारी इंजीनियर/वर्कर',
+    thStatusSla: 'स्थिति व एसएलए',
+    thIntervention: 'कार्रवाई',
+    noMatchingRecords: 'कोई मेल खाता रिकॉर्ड नहीं मिला',
+    noMatchingRecordsDesc: 'आपके द्वारा चुने गए फ़िल्टर या खोज के अनुसार कोई सक्रिय शिकायत नहीं है। सभी रिकॉर्ड देखने के लिए फ़िल्टर रीसेट करें।',
+    resetFilters: 'फ़िल्टर रीसेट करें',
+    cardInspectorEnrouteDesc: 'इंस्पेक्टर मौके पर भौतिक जीपीएस जांच और जल गुणवत्ता परीक्षण हेतु रवाना। 24 घंटे की एसएलए सीमा में।',
+    cardInspectorEvidence: 'इंस्पेक्टर द्वारा साक्ष्य',
+    cardProgressLabel: 'प्रगति:',
+    card100Completed: '100% कार्य पूर्ण',
+    card65Cleaned: '65% सफाई पूर्ण',
+    card31TonsHauled: '3.1+ टन कचरा हटाया',
+    labelNotes: 'टिप्पणी:',
+    labelReport: 'रिपोर्ट:',
+    cardWorkOrderDispatched: 'कार्य आदेश जारी',
+    cardWorkOrderStagedDesc: 'इंस्पेक्टर की मंजूरी मिलते ही सफाई दल व मशीनरी तुरंत कार्य प्रारंभ करने हेतु तैयार।',
+    modalDirectiveTitle: 'आधिकारिक एसएलए निर्देश जारी करें',
+    modalDirectiveTarget: 'लक्षित अधिकारी:',
+    modalDeadlineLabel: 'कार्यान्वयन समय-सीमा',
+    modalMemoLabel: 'राज्य प्रशासनिक मेमो / विशेष निर्देश',
+    modalTransmitBtn: 'निर्देश प्रेषित करें',
+    modalCancelBtn: 'रद्द करें',
+    modalReassignTitle: 'नोडल अधिकारी पुनः आवंटित करें',
+    modalSelectNewNodal: 'नए उत्तरदायी नोडल अधिकारी का चयन करें',
+    modalConfirmReassign: 'पुनः आवंटन की पुष्टि करें',
   },
   te: {
     heroTag: 'ఆంధ్రప్రదేశ్ రాష్ట్ర జల కమాండ్ • హైడ్రోలాజికల్ నిఘా',
@@ -512,6 +703,99 @@ const STATE_ADMIN_UI_TEXT = {
     statusNormal: 'సాధారణం',
     statusStress: 'ఒత్తిడి',
     statusCritical: 'తీవ్రమైనది',
+    // Issues and Tasks Console Translations (Telugu)
+    issuesConsoleTitle: 'అగ్రశ్రేణి ఫిర్యాదులు & బహుళ-పాత్ర టాస్క్ నిఘా కన్సోల్',
+    issuesConsoleDesc: 'అన్ని 4 కార్యాచరణ భాగస్వాముల నిరంతర పర్యవేక్షణ: పౌర ఫిర్యాదుదారులు, జిల్లా నోడల్ అధికారులు, ఫీల్డ్ ఇన్‌స్పెక్టర్లు మరియు యాక్షన్ ఇంజనీర్లు.',
+    statTotalDockets: 'మొత్తం ఫిర్యాదులు',
+    statCases: 'కేసులు',
+    statPending: 'పెండింగ్',
+    statNodalDispatched: 'నోడల్ కేటాయింపు',
+    stat100Assigned: '100% కేటాయించబడింది',
+    statGroundInspected: 'క్షేత్ర తనిఖీ పూర్తయింది',
+    statPhysicalProbe: 'భౌతిక తనిఖీ జరిగింది',
+    statRemediationActive: 'పునరుద్ధరణ పనులు జరుగుతున్నాయి',
+    statHeavyMachinery: 'ఫీల్డ్‌లో భారీ యంత్రాలు',
+    statSlaHealth: '72 గంటల SLA ఆరోగ్యం',
+    statRealtimeClock: 'లైవ్ SLA గడియారం',
+    toolbarFilters: 'నిఘా ఫిల్టర్లు',
+    toolbarActiveRecords: 'క్రియాశీల రికార్డులు',
+    toolbarSupabaseGuide: 'సుపాబేస్ & వెర్సెల్ SQL గైడ్',
+    toolbarRadarCards: '360° నిఘా రాడార్ (కార్డులు)',
+    toolbarTableMatrix: 'బాధ్యత మాత్రిక (టేబుల్)',
+    searchComplaintsPlaceholder: 'పౌరుడి పేరు, మొబైల్, ఐడి, ల్యాండ్‌మార్క్, అధికారిని శోధించండి...',
+    filterDistrictAll: 'జిల్లా: మొత్తం 26 జిల్లాలు',
+    filterStatusAll: 'స్థితి: అన్నీ',
+    filterStatusSubmitted: 'సమర్పించబడింది',
+    filterStatusInspectorAssigned: 'ఇన్‌స్పెక్టర్ కేటాయించబడింది',
+    filterStatusWorkerProgress: 'పని జరుగుతోంది',
+    filterStatusResolved: 'పరిష్కరించబడింది',
+    filterAccountabilityAll: 'బాధ్యత: అన్నీ',
+    filterAccountabilityOnTrack: '🟢 సకాలంలో (నిబద్ధత)',
+    filterAccountabilityNeedsAttention: '🟡 తనిఖీ అవసరం',
+    btnAdvanceStage: 'తదుపరి దశకు తరలించండి',
+    btnSlaDirective: 'SLA ఆదేశం',
+    btnReassign: 'మళ్ళీ కేటాయించండి',
+    cardCamCitizen: 'కెమెరా 01 • పౌరుడు',
+    cardVerifiedCitizen: 'ధృవీకరించిన పౌరుడు',
+    cardAge: 'వయస్సు',
+    cardRegisteredCitizen: 'నమోదిత పౌరుడు',
+    cardGps: 'GPS',
+    cardViewEvidencePhoto: 'సాక్ష్యపు ఫోటో చూడండి',
+    cardCamNodal: 'కెమెరా 02 • నోడల్ అధికారి',
+    cardApexTriage: 'సత్వర సమీక్ష',
+    cardWaterDivision: 'జల విభాగం',
+    cardTriageSpeed: 'స్పందన వేగం:',
+    cardDispatchedTime: '2.4 గంటల్లో పంపబడింది',
+    cardStatutorySla: 'చట్టబద్ధమైన SLA:',
+    card72hWindow: '72 గంటల వ్యవధి',
+    cardAccountabilityLabel: 'బాధ్యత:',
+    cardDiligentCompliant: '🟢 నిబంధనానుసారం',
+    cardAssignedPipeline: 'కేటాయించిన బృందం:',
+    cardInspectorLabel: 'ఇన్‌స్పెక్టర్:',
+    cardEngineerLabel: 'ఇంజనీర్/వర్కర్:',
+    cardDispatchMemo: 'ప్రత్యక్ష మెమో పంపండి',
+    cardCamInspector: 'కెమెరా 03 • ఫీల్డ్ ఇన్‌స్పెక్టర్',
+    cardInspectedBadge: 'తనిఖీ పూర్తయింది',
+    cardEnrouteBadge: 'మార్గంలో ఉన్నారు',
+    cardGpsVerification: 'GPS ధృవీకరణ:',
+    cardMatched100: 'సరిపోలింది (100%)',
+    cardWasteSeverity: 'వ్యర్థాల తీవ్రత:',
+    cardWaterPresence: 'నీటి లభ్యత:',
+    cardCamWorker: 'కెమెరా 04 • వర్కర్ / ఇంజనీర్',
+    cardWorkInProgress: 'పురోగతిలో ఉంది',
+    cardMachineryLabel: 'యంత్రాలు:',
+    cardManpowerLabel: 'సిబ్బంది:',
+    cardWasteClearedLabel: 'తొలగించిన వ్యర్థాలు:',
+    cardWorkersDeployed: 'సిబ్బంది మోహరింపు',
+    thDocketId: 'ఫిర్యాదు ఐడి',
+    thCitizenLandmark: 'పౌరుడు & ప్రదేశం',
+    thNodalOfficer: 'జిల్లా నోడల్ అధికారి',
+    thFieldInspector: 'ఫీల్డ్ ఇన్‌స్పెక్టర్',
+    thActionEngineer: 'యాక్షన్ ఇంజనీర్/వర్కర్',
+    thStatusSla: 'స్థితి & SLA',
+    thIntervention: 'చర్య',
+    noMatchingRecords: 'ఎటువంటి రికార్డులు కనుగొనబడలేదు',
+    noMatchingRecordsDesc: 'మీ శోధనకు తగిన క్రియాశీల ఫిర్యాదు లేదు. అన్ని రికార్డులను చూడటానికి ఫిల్టర్లను రీసెట్ చేయండి.',
+    resetFilters: 'ఫిల్టర్లను రీసెట్ చేయండి',
+    cardInspectorEnrouteDesc: 'భౌతిక GPS తనిఖీ మరియు నీటి నాణ్యత పరీక్ష కోసం ఇన్‌స్పెక్టర్ మార్గంలో ఉన్నారు. 24 గంటల SLA పరిధిలో.',
+    cardInspectorEvidence: 'ఇన్‌స్పెక్టర్ సాక్ష్యం',
+    cardProgressLabel: 'పురోగతి:',
+    card100Completed: '100% పూర్తయింది',
+    card65Cleaned: '65% శుభ్రమైంది',
+    card31TonsHauled: '3.1+ టన్నుల వ్యర్థాలు తొలగించబడ్డాయి',
+    labelNotes: 'గమనికలు:',
+    labelReport: 'నివేదిక:',
+    cardWorkOrderDispatched: 'వర్క్ ఆర్డర్ జారీ చేయబడింది',
+    cardWorkOrderStagedDesc: 'ఇన్‌స్పెక్టర్ ఆమోదం పొందిన వెంటనే శుభ్రపరిచే బృందం మరియు పరికరాలు సిద్ధంగా ఉన్నాయి.',
+    modalDirectiveTitle: 'SLA ఆదేశాన్ని పంపండి',
+    modalDirectiveTarget: 'లక్ష్యం:',
+    modalDeadlineLabel: 'అమలు గడువు',
+    modalMemoLabel: 'రాష్ట్ర పరిపాలనా మెమో / సూచనలు',
+    modalTransmitBtn: 'నోటీసు పంపండి',
+    modalCancelBtn: 'రద్దు చేయండి',
+    modalReassignTitle: 'నోడల్ అధికారిని మార్చండి',
+    modalSelectNewNodal: 'కొత్త బాధ్యతగల నోడల్ అధికారిని ఎంచుకోండి',
+    modalConfirmReassign: 'పునఃకేటాయింపును నిర్ధారించండి',
   }
 };
 
@@ -575,6 +859,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedComplaintId, setSelectedComplaintId] = useState<string>(() => {
     return complaints[0]?.id || 'CMP-AP-2026-403';
   });
+
+  // Operational Workflow & Real-Time Action State
+  const [workflowComplaint, setWorkflowComplaint] = useState<CitizenComplaint | null>(null);
+  const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
+  const [initialWorkflowStep, setInitialWorkflowStep] = useState<number>(2);
+  const [isSupabaseGuideModalOpen, setIsSupabaseGuideModalOpen] = useState(false);
 
   // Nodal Officer Management Modal & Memo Dispatch
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
@@ -2210,101 +2500,118 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {activeTab === 'issues_and_tasks' && (
         <div className="space-y-6">
-          {/* Statutory Surveillance Header & Protocol Banner (Light Clean Theme) */}
-          <div className="bg-[#f0f7fb] border border-sky-100/90 rounded-3xl p-5 sm:p-6 shadow-2xs relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-sky-200/40 via-blue-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+          {/* Statutory Surveillance Header & Protocol Banner (Clean Executive Government Water Command Theme) */}
+          {(() => {
+            const totalCases = complaints.length;
+            const unclosedCases = complaints.filter(c => c.status !== 'RESOLVED').length;
+            const nodalDispatchedCount = complaints.filter(c => Boolean(c.assignedInspector || c.assignedNodalOfficer)).length;
+            const inspectionDoneCount = complaints.filter(c => Boolean(c.inspectionReport)).length;
+            const remediationActiveCount = complaints.filter(c => c.status === 'WORKER_IN_PROGRESS' || c.status === 'ACTION_ASSIGNED' || c.status === 'VERIFICATION_PENDING' || Boolean(c.workExecution)).length;
+            const resolvedCount = complaints.filter(c => c.status === 'RESOLVED').length;
             
-            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="flex h-2.5 w-2.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                  </span>
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                    LIVE 360° SURVEILLANCE RADAR ACTIVE
-                  </span>
-                  <span className="text-[11px] font-mono font-medium bg-white text-slate-600 px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
-                    NON-REPUDIABLE AUDIT TRAIL
-                  </span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#03045E] tracking-tight mt-2 flex items-center gap-2">
-                  <span>Apex Grievance &amp; Multi-Role Task Surveillance Console</span>
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
-                  Continuous oversight tracking all 4 operational stakeholders: <strong className="text-slate-800">Citizen Complainants</strong>, <strong className="text-slate-800">District Nodal Officers</strong>, <strong className="text-slate-800">Field Inspectors</strong>, and <strong className="text-slate-800">Action Engineers</strong>. Zero unverified claims — complete end-to-end evidence telemetry.
-                </p>
-              </div>
+            // SLA Compliance strictly computed from 72h window
+            const overdueCount = complaints.filter(c => {
+              if (c.status === 'RESOLVED') return false;
+              if (!c.submittedAt) return false;
+              const subMs = new Date(c.submittedAt.includes('T') ? c.submittedAt : c.submittedAt.replace(' ', 'T')).getTime();
+              return !isNaN(subMs) && (Date.now() - subMs) > (72 * 3600 * 1000);
+            }).length;
+            const slaAdherencePct = totalCases > 0 ? Math.max(0, Math.round(((totalCases - overdueCount) / totalCases) * 100)) : 100;
 
-              <div className="flex items-center gap-2">
-                <div className="bg-white/90 backdrop-blur-xs border border-sky-100 rounded-2xl px-4 py-2.5 text-right shadow-2xs">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Live Cloud Sync</span>
-                  <span className="text-xs font-mono font-bold text-emerald-700 flex items-center gap-1.5 justify-end mt-0.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                    Supabase Connected ({complaints.length} Records)
-                  </span>
-                </div>
-              </div>
-            </div>
+            return (
+              <div className="bg-gradient-to-r from-[#f0f7fb] via-white to-sky-50/60 border border-sky-100/90 rounded-3xl p-5 sm:p-6 shadow-2xs relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-sky-200/30 via-blue-100/15 to-transparent rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-3xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200 text-[#0077B6] text-[11px] font-bold uppercase tracking-wider mb-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>APWRIMS 24×7 State Grievance Redressal Command</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#03045E] tracking-tight flex items-center gap-2">
+                      <span>{uiText.issuesConsoleTitle}</span>
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+                      {uiText.issuesConsoleDesc}
+                    </p>
+                  </div>
 
-            {/* 5 Real-Time Operational Telemetry Cards (Light Clean Theme, Strictly computed from real complaints) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-5 pt-5 border-t border-sky-200/60">
-              <div className="bg-white/90 backdrop-blur-xs border border-sky-100 rounded-2xl p-3.5 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Dockets</span>
-                <div className="text-xl sm:text-2xl font-black text-[#03045E] mt-0.5 font-mono">
-                  {complaints.length} Cases
+                  {/* Clean Government State Telemetry Seal */}
+                  <div className="hidden sm:flex flex-col items-end text-right shrink-0 bg-white/80 backdrop-blur-xs px-4 py-2.5 rounded-2xl border border-sky-100 shadow-2xs">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Department Status</span>
+                    <span className="text-xs font-black text-[#03045E] font-mono mt-0.5 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>26 AP Districts Monitored</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500 mt-0.5">
+                      Active Dockets: {totalCases} | Resolved: {resolvedCount}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[11px] text-[#0077B6] font-medium flex items-center gap-1 mt-1">
-                  <span>100% Real Supabase Data</span>
-                </span>
-              </div>
 
-              <div className="bg-white/90 backdrop-blur-xs border border-sky-100 rounded-2xl p-3.5 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Nodal Dispatched</span>
-                <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5 font-mono">
-                  {complaints.length} / {complaints.length}
-                </div>
-                <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>100% Assigned</span>
-                </span>
-              </div>
+                {/* 5 Real-Time Operational Telemetry Cards (Strictly computed from real complaints, Zero mock numbers) */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-5 pt-5 border-t border-sky-200/60">
+                  <div className="bg-white/95 backdrop-blur-xs border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs hover:border-sky-300 transition-all">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{uiText.statTotalDockets}</span>
+                    <div className="text-xl sm:text-2xl font-black text-[#03045E] mt-0.5 font-mono">
+                      {totalCases} {uiText.statCases}
+                    </div>
+                    <span className="text-[11px] text-amber-600 font-medium flex items-center gap-1 mt-1 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{unclosedCases} {uiText.statPending}</span>
+                    </span>
+                  </div>
 
-              <div className="bg-white/90 backdrop-blur-xs border border-sky-100 rounded-2xl p-3.5 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Ground Inspected</span>
-                <div className="text-xl sm:text-2xl font-black text-[#0077B6] mt-0.5 font-mono">
-                  {complaints.filter(c => c.inspectionReport !== undefined).length} / {complaints.length}
-                </div>
-                <span className="text-[11px] text-sky-700 font-medium flex items-center gap-1 mt-1">
-                  <Check className="w-3.5 h-3.5 text-[#0077B6]" />
-                  <span>Physical Probe Done</span>
-                </span>
-              </div>
+                  <div className="bg-white/95 backdrop-blur-xs border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs hover:border-emerald-300 transition-all">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{uiText.statNodalDispatched}</span>
+                    <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5 font-mono">
+                      {nodalDispatchedCount} / {totalCases}
+                    </div>
+                    <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-1 font-mono">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{totalCases > 0 ? Math.round((nodalDispatchedCount / totalCases) * 100) : 100}% Assigned</span>
+                    </span>
+                  </div>
 
-              <div className="bg-white/90 backdrop-blur-xs border border-sky-100 rounded-2xl p-3.5 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Remediation Active</span>
-                <div className="text-xl sm:text-2xl font-black text-amber-700 mt-0.5 font-mono">
-                  {complaints.filter(c => c.status === 'WORKER_IN_PROGRESS' || c.workExecution !== undefined).length}
-                </div>
-                <span className="text-[11px] text-amber-700 font-medium flex items-center gap-1 mt-1">
-                  <Wrench className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Heavy Machinery on Field</span>
-                </span>
-              </div>
+                  <div className="bg-white/95 backdrop-blur-xs border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs hover:border-sky-300 transition-all">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{uiText.statGroundInspected}</span>
+                    <div className="text-xl sm:text-2xl font-black text-[#0077B6] mt-0.5 font-mono">
+                      {inspectionDoneCount} / {totalCases}
+                    </div>
+                    <span className="text-[11px] text-sky-700 font-medium flex items-center gap-1 mt-1 font-mono">
+                      <Check className="w-3.5 h-3.5 text-[#0077B6]" />
+                      <span>{uiText.statPhysicalProbe}</span>
+                    </span>
+                  </div>
 
-              <div className="bg-white/90 backdrop-blur-xs border border-sky-100 rounded-2xl p-3.5 shadow-2xs col-span-2 sm:col-span-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">72h SLA Health</span>
-                <div className="text-xl sm:text-2xl font-black text-teal-700 mt-0.5 font-mono">
-                  100%
+                  <div className="bg-white/95 backdrop-blur-xs border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs hover:border-amber-300 transition-all">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{uiText.statRemediationActive}</span>
+                    <div className="text-xl sm:text-2xl font-black text-amber-700 mt-0.5 font-mono">
+                      {remediationActiveCount} Active
+                    </div>
+                    <span className="text-[11px] text-amber-700 font-medium flex items-center gap-1 mt-1 font-mono">
+                      <Wrench className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{resolvedCount} Resolved</span>
+                    </span>
+                  </div>
+
+                  <div className="bg-white/95 backdrop-blur-xs border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs col-span-2 sm:col-span-1 hover:border-teal-300 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{uiText.statSlaHealth}</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" title="Real-Time 1s SLA Engine Active" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-teal-700 mt-0.5 font-mono">
+                      {slaAdherencePct}%
+                    </div>
+                    <span className="text-[11px] text-teal-700 font-medium flex items-center gap-1 mt-1 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-teal-600 animate-pulse" />
+                      <span>{overdueCount === 0 ? 'Zero Breaches' : `${overdueCount} Overdue`}</span>
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[11px] text-teal-700 font-medium flex items-center gap-1 mt-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Zero Statutory Breaches</span>
-                </span>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Filter, Search & View Mode Toolbar */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-3">
@@ -2312,39 +2619,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <Filter className="w-4 h-4 text-[#0077B6]" />
-                  Surveillance Filters
+                  {uiText.toolbarFilters}
                 </span>
                 <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-sky-50 text-[#0077B6] border border-sky-200">
-                  {filteredComplaints.length} Active Records
+                  {filteredComplaints.length} {uiText.toolbarActiveRecords}
                 </span>
               </div>
 
-              {/* View Mode Toggle: Cards vs Table */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+              {/* View Mode Toggle & Supabase Guide Button */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setSurveillanceViewMode('cards')}
-                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    surveillanceViewMode === 'cards'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  onClick={() => setIsSupabaseGuideModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all shadow-2xs cursor-pointer text-xs"
+                  title="Supabase PostgreSQL Schema & Real-time Queries"
                 >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>360° Surveillance Radar</span>
+                  <Database className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{uiText.toolbarSupabaseGuide}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSurveillanceViewMode('table')}
-                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    surveillanceViewMode === 'table'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5" />
-                  <span>Accountability Matrix</span>
-                </button>
+
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSurveillanceViewMode('cards')}
+                    className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      surveillanceViewMode === 'cards'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>{uiText.toolbarRadarCards}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSurveillanceViewMode('table')}
+                    className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      surveillanceViewMode === 'table'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>{uiText.toolbarTableMatrix}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2353,7 +2672,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search by Citizen Name, Mobile, ID, Landmark, Officer, Engineer..."
+                  placeholder={uiText.searchComplaintsPlaceholder}
                   value={complaintSearch}
                   onChange={(e) => setComplaintSearch(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
@@ -2374,7 +2693,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => setComplaintDistrictFilter(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer"
                 >
-                  <option value="all">District: All 26 Districts</option>
+                  <option value="all">{uiText.filterDistrictAll}</option>
                   {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
                     <option key={d.id} value={d.name}>{d.name}</option>
                   ))}
@@ -2387,11 +2706,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => setComplaintStatusFilter(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer"
                 >
-                  <option value="all">Status: All</option>
-                  <option value="SUBMITTED">Submitted</option>
-                  <option value="INSPECTOR_ASSIGNED">Inspector Assigned</option>
-                  <option value="WORKER_IN_PROGRESS">Worker in Progress</option>
-                  <option value="RESOLVED">Resolved</option>
+                  <option value="all">{uiText.filterStatusAll}</option>
+                  <option value="SUBMITTED">{uiText.filterStatusSubmitted}</option>
+                  <option value="INSPECTOR_ASSIGNED">{uiText.filterStatusInspectorAssigned}</option>
+                  <option value="WORKER_IN_PROGRESS">{uiText.filterStatusWorkerProgress}</option>
+                  <option value="RESOLVED">{uiText.filterStatusResolved}</option>
                 </select>
               </div>
 
@@ -2401,9 +2720,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => setAccountabilityFilter(e.target.value as any)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer"
                 >
-                  <option value="all">Accountability: All</option>
-                  <option value="on_track">🟢 On-Track (Diligent)</option>
-                  <option value="needs_attention">🟡 Needs Inspection</option>
+                  <option value="all">{uiText.filterAccountabilityAll}</option>
+                  <option value="on_track">{uiText.filterAccountabilityOnTrack}</option>
+                  <option value="needs_attention">{uiText.filterAccountabilityNeedsAttention}</option>
                 </select>
               </div>
             </div>
@@ -2417,9 +2736,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
                     <Search className="w-7 h-7" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-800">No Matching Surveillance Records Found</h3>
+                  <h3 className="text-base font-bold text-slate-800">{uiText.noMatchingRecords}</h3>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    No active complaint matches your search or filter parameters. Try clearing your filters to view all real records.
+                    {uiText.noMatchingRecordsDesc}
                   </p>
                   <button
                     onClick={() => {
@@ -2431,7 +2750,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset Surveillance Filters</span>
+                    <span>{uiText.resetFilters}</span>
                   </button>
                 </div>
               ) : (
@@ -2478,10 +2797,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         {/* SLA Accountability Badge & Interventions */}
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>72h Statutory SLA: Active (On Schedule)</span>
-                          </span>
+                          <ComplaintLiveSLACounter complaint={c} variant="headerBadge" />
+
+                          <button
+                            onClick={() => {
+                              setWorkflowComplaint(c);
+                              const stepToOpen = 
+                                c.status === 'SUBMITTED' ? 2 :
+                                c.status === 'INSPECTOR_ASSIGNED' ? 3 :
+                                c.status === 'INSPECTION_COMPLETED' ? 4 :
+                                c.status === 'WORKER_IN_PROGRESS' || c.status === 'ACTION_ASSIGNED' ? 5 : 6;
+                              setInitialWorkflowStep(stepToOpen);
+                              setIsWorkflowModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                            title="प्रक्रिया आगे बढ़ाएं / अधिकारी नियुक्त करें"
+                          >
+                            <Wrench className="w-3.5 h-3.5" />
+                            <span>{uiText.btnAdvanceStage}</span>
+                          </button>
 
                           <button
                             onClick={() => {
@@ -2491,7 +2825,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="px-3 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                           >
                             <Send className="w-3.5 h-3.5" />
-                            <span>SLA Directive</span>
+                            <span>{uiText.btnSlaDirective}</span>
                           </button>
 
                           <button
@@ -2503,7 +2837,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <UserCheck className="w-3.5 h-3.5 text-slate-500" />
-                            <span>Reassign</span>
+                            <span>{uiText.btnReassign}</span>
                           </button>
                         </div>
                       </div>
@@ -2517,24 +2851,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                CAM 01 • Citizen
+                                {uiText.cardCamCitizen}
                               </span>
                               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                Verified Citizen
+                                {uiText.cardVerifiedCitizen}
                               </span>
                             </div>
 
                             <div className="mt-2.5 space-y-1">
                               <div className="flex items-center justify-between">
                                 <strong className="text-sm font-black text-slate-900 capitalize">{c.citizenName}</strong>
-                                <span className="text-[11px] text-slate-500 font-mono">Age {c.citizenAge || '—'} • {c.citizenGender || 'Citizen'}</span>
+                                <span className="text-[11px] text-slate-500 font-mono">{uiText.cardAge} {c.citizenAge || '—'} • {c.citizenGender || 'Citizen'}</span>
                               </div>
                               <a
                                 href={`tel:${c.citizenPhone}`}
                                 className="inline-flex items-center gap-1.5 text-xs text-[#0077B6] font-mono font-bold hover:underline"
                               >
                                 <Phone className="w-3 h-3 text-[#0077B6]" />
-                                <span>{c.citizenPhone || 'Registered Citizen'}</span>
+                                <span>{c.citizenPhone || uiText.cardRegisteredCitizen}</span>
                               </a>
                             </div>
 
@@ -2546,7 +2880,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </span>
                               </div>
                               <div className="text-[10px] font-mono text-slate-400 pl-5">
-                                GPS: {c.coordinates?.lat?.toFixed(4)}, {c.coordinates?.lng?.toFixed(4)}
+                                {uiText.cardGps}: {c.coordinates?.lat?.toFixed(4)}, {c.coordinates?.lng?.toFixed(4)}
                               </div>
                             </div>
 
@@ -2569,16 +2903,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
                                 <span className="bg-black/70 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
                                   <Maximize2 className="w-3 h-3 text-sky-400" />
-                                  <span>View Evidence Photo</span>
+                                  <span>{uiText.cardViewEvidencePhoto}</span>
                                 </span>
                               </div>
                             </div>
                           )}
 
-                          <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                            <span>Filed:</span>
-                            <span className="font-bold text-slate-700">{c.submittedAt?.slice(0, 16).replace('T', ' ')}</span>
-                          </div>
+                          {/* Real-Time Citizen Filing Date/Time & Live SLA Countdown Counter */}
+                          <ComplaintLiveSLACounter complaint={c} variant="citizenCard" />
                         </div>
 
                         {/* CAMERA 02: DISTRICT NODAL OFFICER */}
@@ -2587,10 +2919,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                               <span className="text-[10px] font-black uppercase tracking-wider text-[#0077B6] flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-[#0077B6]"></span>
-                                CAM 02 • Nodal Officer
+                                {uiText.cardCamNodal}
                               </span>
                               <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                                Apex Triage
+                                {uiText.cardApexTriage}
                               </span>
                             </div>
 
@@ -2599,38 +2931,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 {c.assignedNodalOfficer || 'District Nodal Officer'}
                               </strong>
                               <span className="text-xs text-[#0077B6] font-semibold block">
-                                {c.district} Water Division
+                                {c.district} {uiText.cardWaterDivision}
                               </span>
                             </div>
 
                             <div className="mt-3 p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
                               <div className="flex items-center justify-between">
-                                <span className="text-slate-400 text-[11px]">Triage Speed:</span>
-                                <span className="font-mono font-bold text-emerald-600">Dispatched in 2.4 hrs</span>
+                                <span className="text-slate-400 text-[11px]">{uiText.cardTriageSpeed}</span>
+                                <span className="font-mono font-bold text-emerald-600">{uiText.cardDispatchedTime}</span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-slate-400 text-[11px]">Statutory SLA:</span>
-                                <span className="font-mono font-bold text-slate-700">72h Window</span>
+                                <span className="text-slate-400 text-[11px]">{uiText.cardStatutorySla}</span>
+                                <span className="font-mono font-bold text-slate-700">{uiText.card72hWindow}</span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-slate-400 text-[11px]">Accountability:</span>
+                                <span className="text-slate-400 text-[11px]">{uiText.cardAccountabilityLabel}</span>
                                 <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                                  🟢 Diligent &amp; Compliant
+                                  {uiText.cardDiligentCompliant}
                                 </span>
                               </div>
                             </div>
 
                             <div className="mt-3 text-xs text-slate-600 space-y-1">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assigned Pipeline:</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{uiText.cardAssignedPipeline}</span>
                               <div className="bg-slate-100/80 p-2 rounded-lg space-y-1 text-[11px]">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-500">Inspector:</span>
+                                  <span className="text-slate-500">{uiText.cardInspectorLabel}</span>
                                   <span className="font-semibold text-slate-800 truncate max-w-[130px]">
                                     {c.assignedInspector || c.inspectionReport?.inspectorName || 'Assigned'}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-500">Engineer:</span>
+                                  <span className="text-slate-500">{uiText.cardEngineerLabel}</span>
                                   <span className="font-semibold text-slate-800 truncate max-w-[130px]">
                                     {c.assignedEngineer || c.workExecution?.engineerName || 'Assigned'}
                                   </span>
@@ -2648,7 +2980,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               className="w-full py-1.5 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-xl text-xs font-bold border border-sky-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <Send className="w-3 h-3" />
-                              <span>Dispatch Direct Memo</span>
+                              <span>{uiText.cardDispatchMemo}</span>
                             </button>
                           </div>
                         </div>
@@ -2659,14 +2991,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                               <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-purple-600"></span>
-                                CAM 03 • Inspector
+                                {uiText.cardCamInspector}
                               </span>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                                 hasInspection
                                   ? 'bg-purple-100 text-purple-800 border-purple-200'
                                   : 'bg-amber-100 text-amber-800 border-amber-200'
                               }`}>
-                                {hasInspection ? 'Inspected' : 'En-route'}
+                                {hasInspection ? uiText.cardInspectedBadge : uiText.cardEnrouteBadge}
                               </span>
                             </div>
 
@@ -2686,34 +3018,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {c.inspectionReport ? (
                               <div className="mt-3 p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-400 text-[11px]">GPS Verification:</span>
+                                  <span className="text-slate-400 text-[11px]">{uiText.cardGpsVerification}</span>
                                   <span className="font-mono font-bold text-emerald-600 flex items-center gap-1">
                                     <Check className="w-3 h-3" />
-                                    <span>Matched (100%)</span>
+                                    <span>{uiText.cardMatched100}</span>
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-400 text-[11px]">Waste Severity:</span>
+                                  <span className="text-slate-400 text-[11px]">{uiText.cardWasteSeverity}</span>
                                   <span className="font-bold text-rose-600 uppercase text-[11px]">
                                     {c.inspectionReport.wasteLevel || 'Heavy'}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-400 text-[11px]">Water Presence:</span>
+                                  <span className="text-slate-400 text-[11px]">{uiText.cardWaterPresence}</span>
                                   <span className="font-semibold text-slate-800">{c.inspectionReport.waterPresence || 'Moderate'}</span>
                                 </div>
                                 <div className="pt-1 border-t border-slate-100 text-[11px] text-slate-600 line-clamp-2">
-                                  <strong>Notes:</strong> {c.inspectionReport.validationRemarks || c.inspectionReport.sourcePinDescription}
+                                  <strong>{uiText.labelNotes}</strong> {c.inspectionReport.validationRemarks || c.inspectionReport.sourcePinDescription}
                                 </div>
                               </div>
                             ) : (
                               <div className="mt-3 p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1.5">
                                 <div className="flex items-center gap-1.5 font-bold text-amber-800">
                                   <Clock className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Field Verification Dispatched</span>
+                                  <span>{uiText.cardEnrouteBadge}</span>
                                 </div>
                                 <p className="text-[11px] text-amber-700">
-                                  Inspector en-route for physical GPS inspection and water quality probing. Within standard 24h SLA.
+                                  {uiText.cardInspectorEnrouteDesc}
                                 </p>
                               </div>
                             )}
@@ -2733,14 +3065,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
                                 <span className="bg-purple-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
                                   <Eye className="w-3 h-3 text-purple-300" />
-                                  <span>Inspector Evidence</span>
+                                  <span>{uiText.cardInspectorEvidence}</span>
                                 </span>
                               </div>
                             </div>
                           ) : (
                             <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                              <span>Accountability:</span>
-                              <span className="font-bold text-emerald-600">🟢 On Track</span>
+                              <span>{uiText.cardAccountabilityLabel}</span>
+                              <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
                             </div>
                           )}
                         </div>
@@ -2751,7 +3083,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                               <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                CAM 04 • Worker / Engineer
+                                {uiText.cardCamWorker}
                               </span>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                                 isResolved
@@ -2760,7 +3092,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   ? 'bg-amber-100 text-amber-800 border-amber-200'
                                   : 'bg-slate-100 text-slate-700 border-slate-200'
                               }`}>
-                                {isResolved ? 'Resolved' : hasWork ? 'In Progress' : 'Assigned'}
+                                {isResolved ? uiText.filterStatusResolved : hasWork ? uiText.cardWorkInProgress : uiText.filterStatusSubmitted}
                               </span>
                             </div>
 
@@ -2781,9 +3113,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <div className="mt-3 p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
                                 <div>
                                   <div className="flex items-center justify-between text-[11px] mb-1">
-                                    <span className="font-bold text-slate-600">Progress:</span>
+                                    <span className="font-bold text-slate-600">{uiText.cardProgressLabel}</span>
                                     <span className="font-mono font-bold text-amber-600">
-                                      {isResolved ? '100% Completed' : '65% Cleaned'}
+                                      {isResolved ? uiText.card100Completed : uiText.card65Cleaned}
                                     </span>
                                   </div>
                                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
@@ -2796,42 +3128,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                                 <div className="space-y-1 pt-1 text-[11px]">
                                   <div className="flex items-center justify-between text-slate-500">
-                                    <span>Machinery:</span>
+                                    <span>{uiText.cardMachineryLabel}</span>
                                     <span className="font-semibold text-slate-800 font-mono">1x JCB 3DX, 2x Tippers</span>
                                   </div>
                                   <div className="flex items-center justify-between text-slate-500">
-                                    <span>Manpower:</span>
-                                    <span className="font-semibold text-slate-800 font-mono">6 Workers Deployed</span>
+                                    <span>{uiText.cardManpowerLabel}</span>
+                                    <span className="font-semibold text-slate-800 font-mono">6 {uiText.cardWorkersDeployed}</span>
                                   </div>
                                   <div className="flex items-center justify-between text-slate-500">
-                                    <span>Waste Cleared:</span>
-                                    <span className="font-semibold text-emerald-600 font-mono">3.1+ tons hauled</span>
+                                    <span>{uiText.cardWasteClearedLabel}</span>
+                                    <span className="font-semibold text-emerald-600 font-mono">{uiText.card31TonsHauled}</span>
                                   </div>
                                 </div>
 
                                 {c.workExecution?.workSummary && (
                                   <div className="pt-1.5 border-t border-slate-100 text-[11px] text-slate-600 line-clamp-2">
-                                    <strong>Report:</strong> {c.workExecution.workSummary}
+                                    <strong>{uiText.labelReport}</strong> {c.workExecution.workSummary}
                                   </div>
                                 )}
                               </div>
                             ) : (
                               <div className="mt-3 p-3 bg-slate-100 rounded-xl text-xs text-slate-600 space-y-1">
-                                <span className="font-bold text-slate-700 block">Work Order Dispatched</span>
+                                <span className="font-bold text-slate-700 block">{uiText.cardWorkOrderDispatched}</span>
                                 <p className="text-[11px] text-slate-500">
-                                  Sanitation crew and equipment staged for site remediation upon inspector clearance.
+                                  {uiText.cardWorkOrderStagedDesc}
                                 </p>
                               </div>
                             )}
                           </div>
 
                           <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                            <span>Accountability:</span>
-                            <span className="font-bold text-emerald-600">🟢 Active on Field</span>
+                            <span>{uiText.cardAccountabilityLabel}</span>
+                            <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
                           </div>
                         </div>
 
                       </div>
+
+                      {/* 6-STAGE OPERATIONAL LIFECYCLE PROGRESS TRACKER */}
+                      <ComplaintWorkflowTimeline
+                        complaint={c}
+                        onOpenWorkflowAction={(step) => {
+                          setWorkflowComplaint(c);
+                          setInitialWorkflowStep(step || 2);
+                          setIsWorkflowModalOpen(true);
+                        }}
+                        onOpenPhotoPreview={(data) => setPhotoPreviewModal(data)}
+                      />
 
                     </div>
                   );
@@ -2847,13 +3190,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <table className="w-full text-xs text-left">
                   <thead>
                     <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50">
-                      <th className="py-3 px-3">Docket ID</th>
-                      <th className="py-3 px-3">Citizen &amp; Landmark</th>
-                      <th className="py-3 px-3">District Nodal Officer</th>
-                      <th className="py-3 px-3">Field Inspector</th>
-                      <th className="py-3 px-3">Action Engineer</th>
-                      <th className="py-3 px-3">Status &amp; SLA</th>
-                      <th className="py-3 px-3 text-right">Intervention</th>
+                      <th className="py-3 px-3">{uiText.thDocketId}</th>
+                      <th className="py-3 px-3">{uiText.thCitizenLandmark}</th>
+                      <th className="py-3 px-3">{uiText.thNodalOfficer}</th>
+                      <th className="py-3 px-3">{uiText.thFieldInspector}</th>
+                      <th className="py-3 px-3">{uiText.thActionEngineer}</th>
+                      <th className="py-3 px-3">{uiText.thStatusSla}</th>
+                      <th className="py-3 px-3 text-right">{uiText.thIntervention}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -2893,27 +3236,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </span>
                         </td>
                         <td className="py-3 px-3">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md inline-block ${
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md inline-block mb-1 ${
                             c.status === 'RESOLVED' ? 'bg-emerald-100 text-emerald-800' :
                             c.status === 'WORKER_IN_PROGRESS' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
                           }`}>
                             {c.status.replace(/_/g, ' ')}
                           </span>
-                          <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
-                            SLA: On Schedule
-                          </span>
+                          <ComplaintLiveSLACounter complaint={c} variant="tableBadge" />
                         </td>
                         <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={() => {
-                              setSelectedComplaintId(c.id);
-                              setIsReminderModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-lg text-xs font-bold border border-sky-200 transition-colors cursor-pointer inline-flex items-center gap-1"
-                          >
-                            <Send className="w-3 h-3" />
-                            <span>Directive</span>
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setWorkflowComplaint(c);
+                                const stepToOpen = 
+                                  c.status === 'SUBMITTED' ? 2 :
+                                  c.status === 'INSPECTOR_ASSIGNED' ? 3 :
+                                  c.status === 'INSPECTION_COMPLETED' ? 4 :
+                                  c.status === 'WORKER_IN_PROGRESS' || c.status === 'ACTION_ASSIGNED' ? 5 : 6;
+                                setInitialWorkflowStep(stepToOpen);
+                                setIsWorkflowModalOpen(true);
+                              }}
+                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200 transition-colors cursor-pointer inline-flex items-center gap-1"
+                              title="Advance Operational Workflow"
+                            >
+                              <Wrench className="w-3 h-3 text-emerald-600" />
+                              <span>Workflow</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedComplaintId(c.id);
+                                setIsReminderModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-lg text-xs font-bold border border-sky-200 transition-colors cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>Directive</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -3859,10 +4219,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-base">
-                    Dispatch SLA Directive
+                    {uiText.modalDirectiveTitle}
                   </h3>
                   <span className="text-xs text-slate-400">
-                    Target: {activeComplaint.assignedNodalOfficer}
+                    {uiText.modalDirectiveTarget} {activeComplaint.assignedNodalOfficer}
                   </span>
                 </div>
               </div>
@@ -3877,7 +4237,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <form onSubmit={handleDispatchReminder} className="space-y-4 text-xs">
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  Enforcement Deadline
+                  {uiText.modalDeadlineLabel}
                 </label>
                 <select
                   value={reminderDeadlineHours}
@@ -3892,7 +4252,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  State Administrative Memo / Instructions
+                  {uiText.modalMemoLabel}
                 </label>
                 <textarea
                   rows={3}
@@ -3909,14 +4269,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setIsReminderModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 cursor-pointer"
                 >
-                  Cancel
+                  {uiText.modalCancelBtn}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Transmit Notice</span>
+                  <span>{uiText.modalTransmitBtn}</span>
                 </button>
               </div>
             </form>
@@ -3937,7 +4297,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-base">
-                    Reassign Nodal Officer
+                    {uiText.modalReassignTitle}
                   </h3>
                   <span className="text-xs text-slate-400 font-mono">
                     Case: {activeComplaint.id}
@@ -3955,7 +4315,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="space-y-4 text-xs">
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  Select New Responsible Nodal Officer
+                  {uiText.modalSelectNewNodal}
                 </label>
                 <select
                   value={selectedNewNodalOfficer}
@@ -3976,7 +4336,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setIsReassignModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 cursor-pointer"
                 >
-                  Cancel
+                  {uiText.modalCancelBtn}
                 </button>
                 <button
                   type="button"
@@ -3987,7 +4347,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="px-5 py-2 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Confirm Reassignment</span>
+                  <span>{uiText.modalConfirmReassign}</span>
                 </button>
               </div>
             </div>
@@ -4162,6 +4522,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* ==================================================================== */}
+      {/* 6-STAGE OPERATIONAL WORKFLOW DISPATCH & VERIFICATION MODAL           */}
+      {/* ==================================================================== */}
+      <WorkflowActionModal
+        complaint={workflowComplaint}
+        isOpen={isWorkflowModalOpen}
+        initialStep={initialWorkflowStep}
+        onClose={() => setIsWorkflowModalOpen(false)}
+        onUpdateComplaint={(updated) => {
+          onUpdateComplaint?.(updated);
+          setWorkflowComplaint(updated);
+        }}
+      />
+
+      {/* ==================================================================== */}
+      {/* SUPABASE & VERCEL REALTIME DATABASE & QUERIES MODAL                  */}
+      {/* ==================================================================== */}
+      <SupabaseVercelModal
+        isOpen={isSupabaseGuideModalOpen}
+        onClose={() => setIsSupabaseGuideModalOpen(false)}
+      />
 
     </div>
   );
