@@ -17,6 +17,7 @@ import { MonthlyGrievanceAnalytics } from './MonthlyGrievanceAnalytics';
 import { StateAdminSatelliteMap } from './StateAdminSatelliteMap';
 import { ComplaintLiveSLACounter } from './ComplaintLiveSLACounter';
 import { ComplaintWorkflowTimeline } from './ComplaintWorkflowTimeline';
+import { StatutoryDossierModal } from './StatutoryDossierModal';
 import { WorkflowActionModal } from './WorkflowActionModal';
 import { SupabaseVercelModal } from './SupabaseVercelModal';
 import { formatStepTimestamp } from '../utils/slaTimer';
@@ -860,6 +861,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedComplaintId, setSelectedComplaintId] = useState<string>(() => {
     return complaints[0]?.id || 'CMP-AP-2026-403';
   });
+
+  // State Admin Statutory Dossier Modal (100% Read-Only)
+  const [dossierComplaint, setDossierComplaint] = useState<CitizenComplaint | null>(null);
+  const [isDossierModalOpen, setIsDossierModalOpen] = useState(false);
 
   // Operational Workflow & Real-Time Action State
   const [workflowComplaint, setWorkflowComplaint] = useState<CitizenComplaint | null>(null);
@@ -2523,31 +2528,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="bg-gradient-to-r from-[#f0f7fb] via-white to-sky-50/60 border border-sky-100/90 rounded-3xl p-5 sm:p-6 shadow-2xs relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-sky-200/30 via-blue-100/15 to-transparent rounded-full blur-3xl pointer-events-none" />
                 
-                <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
-                  <div className="max-w-3xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200 text-[#0077B6] text-[11px] font-bold uppercase tracking-wider mb-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span>APWRIMS 24×7 State Grievance Redressal Command</span>
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-black text-[#03045E] tracking-tight flex items-center gap-2">
-                      <span>{uiText.issuesConsoleTitle}</span>
-                    </h2>
-                    <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
-                      {uiText.issuesConsoleDesc}
-                    </p>
-                  </div>
-
-                  {/* Clean Government State Telemetry Seal */}
-                  <div className="hidden sm:flex flex-col items-end text-right shrink-0 bg-white/80 backdrop-blur-xs px-4 py-2.5 rounded-2xl border border-sky-100 shadow-2xs">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Department Status</span>
-                    <span className="text-xs font-black text-[#03045E] font-mono mt-0.5 flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span>26 AP Districts Monitored</span>
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500 mt-0.5">
-                      Active Dockets: {totalCases} | Resolved: {resolvedCount}
-                    </span>
-                  </div>
+                <div className="relative z-10">
+                  <h2 className="text-xl sm:text-2xl font-black text-[#03045E] tracking-tight flex items-center gap-2">
+                    <span>{uiText.issuesConsoleTitle}</span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed max-w-3xl">
+                    {uiText.issuesConsoleDesc}
+                  </p>
                 </div>
 
                 {/* 5 Real-Time Operational Telemetry Cards (Strictly computed from real complaints, Zero mock numbers) */}
@@ -2617,27 +2604,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Filter, Search & View Mode Toolbar */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+              {/* Surveillance Filters with 360° Surveillance Radar & Accountability Matrix placed right beside it */}
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <Filter className="w-4 h-4 text-[#0077B6]" />
                   {uiText.toolbarFilters}
                 </span>
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-sky-50 text-[#0077B6] border border-sky-200">
-                  {filteredComplaints.length} {uiText.toolbarActiveRecords}
-                </span>
-              </div>
-
-              {/* View Mode Toggle & Supabase Guide Button */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSupabaseGuideModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all shadow-2xs cursor-pointer text-xs"
-                  title="Supabase PostgreSQL Schema & Real-time Queries"
-                >
-                  <Database className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{uiText.toolbarSupabaseGuide}</span>
-                </button>
 
                 <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                   <button
@@ -2666,6 +2638,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                 </div>
               </div>
+
+              {(complaintSearch || complaintDistrictFilter !== 'all' || complaintStatusFilter !== 'all' || accountabilityFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComplaintSearch('');
+                    setComplaintDistrictFilter('all');
+                    setComplaintStatusFilter('all');
+                    setAccountabilityFilter('all');
+                  }}
+                  className="text-xs text-sky-700 hover:text-sky-900 font-semibold cursor-pointer underline flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>{uiText.resetFilters}</span>
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 text-xs">
@@ -2833,7 +2821,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         
                         {/* CAMERA 01: CITIZEN COMPLAINANT */}
-                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs">
+                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
@@ -2884,11 +2872,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 title: `Citizen Ground Evidence: ${c.citizenName} (${c.locationLandmark})`,
                                 subtitle: `GPS Coordinates: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • ${c.village}, ${c.district}`
                               })}
-                              className="mt-1.5 rounded-xl overflow-hidden border border-slate-300 relative h-32 bg-slate-900 group cursor-pointer shadow-xs"
+                              className="mt-1 rounded-xl overflow-hidden border border-slate-300 relative h-28 bg-slate-900 group cursor-pointer shadow-xs"
                             >
                               <img src={c.photoUrl} alt="Field proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                               <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
-                                <span className="bg-black/75 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
+                                <span className="bg-black/75 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
                                   <Maximize2 className="w-3 h-3 text-sky-400" />
                                   <span>{uiText.cardViewEvidencePhoto}</span>
                                 </span>
@@ -2897,11 +2885,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           )}
 
                           {/* Real-Time Citizen Filing Date/Time & Live SLA Countdown Counter */}
-                          <ComplaintLiveSLACounter complaint={c} variant="citizenCard" />
+                          <div className="mt-auto">
+                            <ComplaintLiveSLACounter complaint={c} variant="citizenCard" />
+                          </div>
                         </div>
 
                         {/* CAMERA 02: DISTRICT NODAL OFFICER */}
-                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs hover:border-sky-300 transition-colors">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs hover:border-sky-300 transition-colors">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                               <span className="text-[10px] font-black uppercase tracking-wider text-[#0077B6] flex items-center gap-1.5">
@@ -3004,7 +2994,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-slate-100">
+                          <div className="mt-auto pt-2 border-t border-slate-100">
                             <button
                               onClick={() => {
                                 setSelectedComplaintId(c.id);
@@ -3019,7 +3009,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* CAMERA 03: FIELD INSPECTOR */}
-                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs hover:border-purple-300 transition-colors">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs hover:border-purple-300 transition-colors">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                               <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
@@ -3127,33 +3117,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
 
                           {/* Inspector Field Photo */}
-                          {c.inspectionReport?.sitePhotoUrl ? (
-                            <div 
-                              onClick={() => setPhotoPreviewModal({
-                                url: c.inspectionReport!.sitePhotoUrl,
-                                title: `Inspector Ground Report Photo: ${c.inspectionReport?.inspectorName}`,
-                                subtitle: `GPS Verified: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • Severity: ${c.inspectionReport?.wasteLevel}`
-                              })}
-                              className="mt-1.5 rounded-xl overflow-hidden border border-purple-200 relative h-32 bg-slate-900 group cursor-pointer shadow-xs"
-                            >
-                              <img src={c.inspectionReport.sitePhotoUrl} alt="Inspection reality" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                              <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
-                                <span className="bg-purple-900/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
-                                  <Eye className="w-3 h-3 text-purple-300" />
-                                  <span>{uiText.cardInspectorEvidence}</span>
-                                </span>
+                          <div className="mt-auto pt-1">
+                            {c.inspectionReport?.sitePhotoUrl ? (
+                              <div 
+                                onClick={() => setPhotoPreviewModal({
+                                  url: c.inspectionReport!.sitePhotoUrl,
+                                  title: `Inspector Ground Report Photo: ${c.inspectionReport?.inspectorName}`,
+                                  subtitle: `GPS Verified: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • Severity: ${c.inspectionReport?.wasteLevel}`
+                                })}
+                                className="rounded-xl overflow-hidden border border-purple-200 relative h-28 bg-slate-900 group cursor-pointer shadow-xs"
+                              >
+                                <img src={c.inspectionReport.sitePhotoUrl} alt="Inspection reality" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
+                                  <span className="bg-purple-900/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
+                                    <Eye className="w-3 h-3 text-purple-300" />
+                                    <span>{uiText.cardInspectorEvidence}</span>
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                              <span>{uiText.cardAccountabilityLabel}</span>
-                              <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
-                            </div>
-                          )}
+                            ) : (
+                              <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                                <span>{uiText.cardAccountabilityLabel}</span>
+                                <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* CAMERA 04: ACTION WORKER / ENGINEER */}
-                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs hover:border-amber-300 transition-colors">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs hover:border-amber-300 transition-colors">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                               <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
@@ -3278,8 +3270,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </p>
                               </div>
                             )}
+                          </div>
 
-                            {/* Cleaned Work Evidence Photo preview if available */}
+                          {/* Cleaned Work Evidence Photo preview if available */}
+                          <div className="mt-auto pt-1">
                             {c.workExecution?.afterPhotoUrl && (
                               <div
                                 onClick={() => setPhotoPreviewModal({
@@ -3287,22 +3281,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   title: `Remediation Work Proof: ${c.assignedEngineer || 'Execution Team'}`,
                                   subtitle: `Grievance: ${c.id} • ${c.locationLandmark}`
                                 })}
-                                className="mt-1.5 rounded-xl overflow-hidden border border-emerald-300 relative h-32 bg-slate-900 group cursor-pointer shadow-xs"
+                                className="rounded-xl overflow-hidden border border-emerald-300 relative h-28 bg-slate-900 group cursor-pointer shadow-xs"
                               >
                                 <img src={c.workExecution.afterPhotoUrl} alt="Remediation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                 <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
                                   <span className="bg-emerald-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
-                                    <CheckCircle className="w-3 h-3 text-emerald-300" />
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-300" />
                                     <span>Cleaned Proof</span>
                                   </span>
                                 </div>
                               </div>
                             )}
-                          </div>
 
-                          <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                            <span>{uiText.cardAccountabilityLabel}</span>
-                            <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
+                            <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                              <span>{uiText.cardAccountabilityLabel}</span>
+                              <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
+                            </div>
                           </div>
                         </div>
 
@@ -3313,7 +3307,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         complaint={c}
                         onOpenPhotoPreview={(data: { url: string; title: string; subtitle?: string }) => setPhotoPreviewModal(data)}
                       />
-
                     </div>
                   );
                 })
@@ -3386,29 +3379,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
-                                setWorkflowComplaint(c);
-                                const stepToOpen = 
-                                  c.status === 'SUBMITTED' ? 2 :
-                                  c.status === 'INSPECTOR_ASSIGNED' ? 3 :
-                                  c.status === 'INSPECTION_COMPLETED' ? 4 :
-                                  c.status === 'WORKER_IN_PROGRESS' || c.status === 'ACTION_ASSIGNED' ? 5 : 6;
-                                setInitialWorkflowStep(stepToOpen);
-                                setIsWorkflowModalOpen(true);
+                                setDossierComplaint(c);
+                                setIsDossierModalOpen(true);
                               }}
-                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200 transition-colors cursor-pointer inline-flex items-center gap-1"
-                              title="Advance Operational Workflow"
+                              className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-lg text-xs font-bold border border-sky-200 transition-colors cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                              title="राज्य प्रशासनिक निरीक्षण डॉसियर देखें (100% Read-Only Executive Inspection)"
                             >
-                              <Wrench className="w-3 h-3 text-emerald-600" />
-                              <span>Workflow</span>
+                              <Eye className="w-3.5 h-3.5 text-[#0077B6]" />
+                              <span>Inspect</span>
                             </button>
                             <button
                               onClick={() => {
                                 setSelectedComplaintId(c.id);
                                 setIsReminderModalOpen(true);
                               }}
-                              className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-lg text-xs font-bold border border-sky-200 transition-colors cursor-pointer inline-flex items-center gap-1"
+                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-xs font-bold border border-amber-200 transition-colors cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                              title="अधिकारी को आधिकारिक आदेश / चेतावनी मेमो जारी करें"
                             >
-                              <Send className="w-3 h-3" />
+                              <Send className="w-3.5 h-3.5 text-amber-700" />
                               <span>Directive</span>
                             </button>
                           </div>
@@ -4660,6 +4648,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* ==================================================================== */}
+      {/* STATE ADMIN STATUTORY DOCKET INSPECTION DOSSIER (100% READ-ONLY)     */}
+      {/* ==================================================================== */}
+      <StatutoryDossierModal
+        isOpen={isDossierModalOpen}
+        onClose={() => setIsDossierModalOpen(false)}
+        complaint={dossierComplaint}
+        onOpenDirectiveModal={(complaintId) => {
+          setSelectedComplaintId(complaintId);
+          setIsReminderModalOpen(true);
+        }}
+        onOpenPhotoPreview={(data) => setPhotoPreviewModal(data)}
+        language={language}
+      />
 
       {/* ==================================================================== */}
       {/* 6-STAGE OPERATIONAL WORKFLOW DISPATCH & VERIFICATION MODAL           */}

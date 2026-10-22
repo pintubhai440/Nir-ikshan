@@ -186,54 +186,23 @@ export const ComplaintLiveSLACounter: React.FC<Props> = ({ complaint, variant = 
     );
   }
 
-  // VARIANT 3: CAM 01 CITIZEN CARD DETAILED REAL-TIME FILING & SLA COUNTDOWN BOX
+  // VARIANT 3: CAM 01 CITIZEN CARD COMPACT REAL-TIME FILING & SLA COUNTDOWN
   return (
-    <div className="pt-2.5 mt-2 border-t-2 border-slate-200/90 space-y-2.5">
-      {/* Box Header: Public Complaint Registration */}
-      <div className="flex items-center justify-between">
+    <div className="pt-2 mt-2 border-t border-slate-200/90 space-y-1.5">
+      {/* Filing & Statutory SLA Header */}
+      <div className="flex items-center justify-between text-xs">
         <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1">
           <Calendar className="w-3.5 h-3.5 text-[#0077B6]" />
-          {txt.publicComplaintFiled}
+          <span>{txt.publicComplaintFiled}</span>
         </span>
-        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-sky-100/80 text-[#0077B6] border border-sky-200">
-          {txt.statutory72h}
+        <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+          {slaInfo.formattedDate} • {slaInfo.formattedTime}
         </span>
       </div>
 
-      {/* Date & Time Clean Callout */}
-      <div className="grid grid-cols-2 gap-2 bg-white rounded-xl p-2.5 border border-slate-200 shadow-2xs">
-        <div>
-          <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 block">
-            {txt.filingDate}
-          </span>
-          <span className="text-xs font-mono font-bold text-slate-900 block mt-0.5">
-            {slaInfo.formattedDate}
-          </span>
-        </div>
-        <div>
-          <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 block">
-            {txt.timeIst}
-          </span>
-          <span className="text-xs font-mono font-bold text-[#0077B6] block mt-0.5">
-            {slaInfo.formattedTime}
-          </span>
-        </div>
-      </div>
-
-      {/* Live Elapsed Counter (How long since citizen filed) */}
-      <div className="flex items-center justify-between text-[11px] bg-slate-100/90 px-2.5 py-1.5 rounded-lg border border-slate-200 font-mono">
-        <span className="text-slate-500 font-semibold flex items-center gap-1 text-[10px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-          {txt.liveElapsed}
-        </span>
-        <strong className="text-slate-800 text-[11px]">
-          {slaInfo.elapsedFormatted} {txt.ago}
-        </strong>
-      </div>
-
-      {/* Real-Time SLA Countdown Box: State Admin "Kitna Time Bacha Hai" */}
+      {/* SLA Countdown & Health Bar */}
       <div
-        className={`rounded-xl p-2.5 border space-y-1.5 transition-colors shadow-2xs ${
+        className={`rounded-xl p-2 border space-y-1.5 transition-colors shadow-2xs ${
           isResolved
             ? 'bg-teal-50/80 border-teal-200 text-teal-900'
             : slaInfo.isOverdue
@@ -245,8 +214,8 @@ export const ComplaintLiveSLACounter: React.FC<Props> = ({ complaint, variant = 
             : 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
         }`}
       >
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="font-extrabold flex items-center gap-1">
             <Hourglass
               className={`w-3.5 h-3.5 ${
                 isResolved
@@ -258,58 +227,22 @@ export const ComplaintLiveSLACounter: React.FC<Props> = ({ complaint, variant = 
                   : 'text-emerald-600'
               }`}
             />
-            <span>{txt.timeLeftToResolve}</span>
+            <span>{isResolved ? txt.caseResolved : slaInfo.isOverdue ? txt.slaBreached : txt.timeLeftToResolve}</span>
           </span>
-
-          <span
-            className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
-              isResolved
-                ? 'bg-teal-200/80 text-teal-900'
-                : slaInfo.isOverdue
-                ? 'bg-rose-200 text-rose-900 animate-pulse'
-                : slaInfo.urgencyLevel === 'warning'
-                ? 'bg-amber-200 text-amber-900'
-                : 'bg-emerald-200/80 text-emerald-900'
-            }`}
-          >
-            {slaInfo.urgencyLabel}
-          </span>
-        </div>
-
-        {/* Big Live Digital Clock Display */}
-        <div className="flex items-baseline justify-between pt-0.5">
-          <div className="font-mono text-sm sm:text-base font-black tracking-tight flex items-center gap-1.5">
+          <span className="font-mono font-black text-xs">
             {isResolved ? (
-              <span className="text-teal-800 flex items-center gap-1 font-bold">
-                <CheckCircle2 className="w-4 h-4 text-teal-600" />
-                {txt.caseResolved}
-              </span>
+              <span className="text-teal-700 font-bold">✓ On SLA</span>
             ) : slaInfo.isOverdue ? (
-              <span className="text-rose-700 flex items-center gap-1">
-                <AlertTriangle className="w-4 h-4 text-rose-600 animate-bounce" />
-                {slaInfo.overdueFormatted}
-              </span>
+              <span className="text-rose-700 font-extrabold">⚠️ {slaInfo.overdueFormatted}</span>
             ) : (
-              <span
-                className={
-                  slaInfo.urgencyLevel === 'critical'
-                    ? 'text-red-700'
-                    : slaInfo.urgencyLevel === 'warning'
-                    ? 'text-amber-800'
-                    : 'text-emerald-800'
-                }
-              >
+              <span className={slaInfo.urgencyLevel === 'critical' ? 'text-red-700 font-bold' : slaInfo.urgencyLevel === 'warning' ? 'text-amber-800 font-bold' : 'text-emerald-800 font-bold'}>
                 ⏳ {slaInfo.remainingFormatted}
               </span>
             )}
-          </div>
-
-          <span className="text-[10px] font-mono text-slate-500 font-semibold">
-            {slaInfo.percentConsumed}% {txt.used}
           </span>
         </div>
 
-        {/* SLA Consumption Progress Bar */}
+        {/* Progress Bar */}
         <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${
@@ -327,10 +260,9 @@ export const ComplaintLiveSLACounter: React.FC<Props> = ({ complaint, variant = 
           />
         </div>
 
-        {/* Target Deadline */}
-        <div className="text-[9px] text-slate-500 font-mono flex items-center justify-between pt-0.5">
-          <span>{txt.targetDeadline}</span>
-          <span className="font-bold text-slate-700">{slaInfo.deadlineFormatted}</span>
+        <div className="text-[9px] font-mono flex items-center justify-between text-slate-500 pt-0.5">
+          <span>{slaInfo.elapsedFormatted} {txt.ago} ({slaInfo.percentConsumed}% {txt.used})</span>
+          <span className="font-semibold text-slate-700">{txt.targetDeadline} {slaInfo.deadlineFormatted}</span>
         </div>
       </div>
     </div>
