@@ -435,6 +435,7 @@ const STATE_ADMIN_UI_TEXT = {
     cardAge: 'Age',
     cardRegisteredCitizen: 'Registered Citizen',
     cardGps: 'GPS',
+    cardFilingDate: 'Filing Date',
     cardViewEvidencePhoto: 'View Evidence Photo',
     cardCamNodal: 'CAM 02 • Nodal Officer',
     cardApexTriage: 'Apex Triage',
@@ -588,6 +589,7 @@ const STATE_ADMIN_UI_TEXT = {
     cardAge: 'उम्र',
     cardRegisteredCitizen: 'पंजीकृत नागरिक',
     cardGps: 'जीपीएस',
+    cardFilingDate: 'दर्ज करने की तिथि',
     cardViewEvidencePhoto: 'सबूत फोटो देखें',
     cardCamNodal: 'कैमरा 02 • नोडल अधिकारी',
     cardApexTriage: 'त्वरित समीक्षा',
@@ -742,6 +744,7 @@ const STATE_ADMIN_UI_TEXT = {
     cardAge: 'వయస్సు',
     cardRegisteredCitizen: 'నమోదిత పౌరుడు',
     cardGps: 'GPS',
+    cardFilingDate: 'దాఖలు చేసిన తేదీ',
     cardViewEvidencePhoto: 'సాక్ష్యపు ఫోటో చూడండి',
     cardCamNodal: 'కెమెరా 02 • నోడల్ అధికారి',
     cardApexTriage: 'సత్వర సమీక్ష',
@@ -2798,10 +2801,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
 
                       {/* THE 4-STATION SURVEILLANCE PIPELINE (CCTV CAMERA 01 TO 04) */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
                         
                         {/* CAMERA 01: CITIZEN COMPLAINANT */}
-                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs">
+                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
@@ -2864,14 +2867,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           )}
 
-                          {/* Real-Time Citizen Filing Date/Time & Live SLA Countdown Counter */}
-                          <div className="mt-auto">
-                            <ComplaintLiveSLACounter complaint={c} variant="citizenCard" />
+                          <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                            <span>{uiText.cardFilingDate}:</span>
+                            <span className="font-bold text-slate-700">{formatStepTimestamp(c.submittedAt).formatted}</span>
                           </div>
                         </div>
 
                         {/* CAMERA 02: DISTRICT NODAL OFFICER */}
-                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs hover:border-sky-300 transition-colors">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs hover:border-sky-300 transition-colors">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                               <span className="text-[10px] font-black uppercase tracking-wider text-[#0077B6] flex items-center gap-1.5">
@@ -2974,7 +2977,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </div>
 
-                          <div className="mt-auto pt-2 border-t border-slate-100">
+                          <div className="pt-2 border-t border-slate-100">
                             <button
                               onClick={() => {
                                 setSelectedComplaintId(c.id);
@@ -2989,7 +2992,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* CAMERA 03: FIELD INSPECTOR */}
-                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs hover:border-purple-300 transition-colors">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs hover:border-purple-300 transition-colors">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                               <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
@@ -3097,35 +3100,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
 
                           {/* Inspector Field Photo */}
-                          <div className="mt-auto pt-1">
-                            {c.inspectionReport?.sitePhotoUrl ? (
-                              <div 
-                                onClick={() => setPhotoPreviewModal({
-                                  url: c.inspectionReport!.sitePhotoUrl,
-                                  title: `Inspector Ground Report Photo: ${c.inspectionReport?.inspectorName}`,
-                                  subtitle: `GPS Verified: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • Severity: ${c.inspectionReport?.wasteLevel}`
-                                })}
-                                className="rounded-xl overflow-hidden border border-purple-200 relative h-28 bg-slate-900 group cursor-pointer shadow-xs"
-                              >
-                                <img src={c.inspectionReport.sitePhotoUrl} alt="Inspection reality" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
-                                  <span className="bg-purple-900/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
-                                    <Eye className="w-3 h-3 text-purple-300" />
-                                    <span>{uiText.cardInspectorEvidence}</span>
-                                  </span>
-                                </div>
+                          {c.inspectionReport?.sitePhotoUrl ? (
+                            <div 
+                              onClick={() => setPhotoPreviewModal({
+                                url: c.inspectionReport!.sitePhotoUrl,
+                                title: `Inspector Ground Report Photo: ${c.inspectionReport?.inspectorName}`,
+                                subtitle: `GPS Verified: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • Severity: ${c.inspectionReport?.wasteLevel}`
+                              })}
+                              className="mt-1 rounded-xl overflow-hidden border border-purple-200 relative h-28 bg-slate-900 group cursor-pointer shadow-xs"
+                            >
+                              <img src={c.inspectionReport.sitePhotoUrl} alt="Inspection reality" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
+                                <span className="bg-purple-900/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
+                                  <Eye className="w-3 h-3 text-purple-300" />
+                                  <span>{uiText.cardInspectorEvidence}</span>
+                                </span>
                               </div>
-                            ) : (
-                              <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                                <span>{uiText.cardAccountabilityLabel}</span>
-                                <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
-                              </div>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                              <span>{uiText.cardAccountabilityLabel}</span>
+                              <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* CAMERA 04: ACTION WORKER / ENGINEER */}
-                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col h-full shadow-2xs hover:border-amber-300 transition-colors">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs hover:border-amber-300 transition-colors">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                               <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
@@ -3253,30 +3254,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
 
                           {/* Cleaned Work Evidence Photo preview if available */}
-                          <div className="mt-auto pt-1">
-                            {c.workExecution?.afterPhotoUrl && (
-                              <div
-                                onClick={() => setPhotoPreviewModal({
-                                  url: c.workExecution!.afterPhotoUrl!,
-                                  title: `Remediation Work Proof: ${c.assignedEngineer || 'Execution Team'}`,
-                                  subtitle: `Grievance: ${c.id} • ${c.locationLandmark}`
-                                })}
-                                className="rounded-xl overflow-hidden border border-emerald-300 relative h-28 bg-slate-900 group cursor-pointer shadow-xs"
-                              >
-                                <img src={c.workExecution.afterPhotoUrl} alt="Remediation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
-                                  <span className="bg-emerald-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-300" />
-                                    <span>Cleaned Proof</span>
-                                  </span>
-                                </div>
+                          {c.workExecution?.afterPhotoUrl && (
+                            <div
+                              onClick={() => setPhotoPreviewModal({
+                                url: c.workExecution!.afterPhotoUrl!,
+                                title: `Remediation Work Proof: ${c.assignedEngineer || 'Execution Team'}`,
+                                subtitle: `Grievance: ${c.id} • ${c.locationLandmark}`
+                              })}
+                              className="mt-1 rounded-xl overflow-hidden border border-emerald-300 relative h-28 bg-slate-900 group cursor-pointer shadow-xs"
+                            >
+                              <img src={c.workExecution.afterPhotoUrl} alt="Remediation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
+                                <span className="bg-emerald-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-300" />
+                                  <span>Cleaned Proof</span>
+                                </span>
                               </div>
-                            )}
-
-                            <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                              <span>{uiText.cardAccountabilityLabel}</span>
-                              <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
                             </div>
+                          )}
+
+                          <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                            <span>{uiText.cardAccountabilityLabel}</span>
+                            <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
                           </div>
                         </div>
 
