@@ -4224,119 +4224,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {activeTab === 'users_and_roles' && (
         <div className="space-y-5">
-          {/* Executive AP State Command Hero Banner */}
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#021B38] via-[#004B7A] to-[#0077B6] text-white p-6 md:p-7 shadow-2xl border border-sky-400/20">
-            {/* Subtle radial decorative ambient accents */}
-            <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl pointer-events-none" />
-            <div className="absolute right-1/3 -bottom-20 w-88 h-88 rounded-full bg-teal-400/15 blur-3xl pointer-events-none" />
-            
-            <div className="relative z-10 flex flex-wrap items-center justify-between gap-5">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg shrink-0">
-                  <Users className="w-7 h-7 text-sky-200" />
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-sky-400/20 text-sky-100 font-bold border border-sky-300/30 flex items-center gap-1 shadow-2xs">
-                      <ShieldCheck className="w-3.5 h-3.5 text-sky-300" />
-                      {language === 'hi' ? 'आंध्र प्रदेश सरकार • APWRIMS' : language === 'te' ? 'ఆంధ్రప్రదేశ్ ప్రభుత్వం • APWRIMS' : 'Govt of Andhra Pradesh • APWRIMS'}
-                    </span>
-                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-100 font-bold border border-emerald-300/30">
-                      {language === 'hi' ? '26 जिले संप्रभु कैडर' : language === 'te' ? '26 జిల్లాలు కేడర్' : '26 Districts Sovereign Cadre'}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/20">
-                      RBAC Enforced
-                    </span>
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                    {language === 'hi' 
-                      ? 'विभागीय कार्मिक निर्देशिका एवं कैडर रोस्टर' 
-                      : language === 'te' 
-                      ? 'విభాగపు సిబ్బంది డైరెక్టరీ & కేడర్ రోస్టర్' 
-                      : 'Departmental Personnel Directory & Cadre Roster'}
-                  </h2>
-                  <p className="text-xs text-sky-100/90 max-w-2xl leading-relaxed">
-                    {language === 'hi'
-                      ? 'सभी 26 जिलों के शीर्ष जिला नोडल अधिकारी (IAS/SE), प्रमाणित फील्ड गुणवत्ता निरीक्षक, एवं त्वरित मरम्मत दल • सुपाबेस केंद्रीय लेजर से लाइव समन्वित।'
-                      : language === 'te'
-                      ? 'అన్ని 26 జిల్లాల అత్యున్నత జిల్లా నోడల్ అధికారులు (IAS/SE), ధృవీకరించబడిన ఫీల్డ్ క్వాలిటీ ఇన్‌స్పెక్టర్లు & మరమ్మతు బృందాలు • సుపాబేస్ కేంద్రీయ లెడ్జర్‌తో సమకాలీకరించబడింది.'
-                      : 'Apex District Nodal Officers (IAS/SE), Certified Field Quality Inspectors, and Heavy Earthmoving Restoration Crews across all 26 districts • Synchronized with Supabase Central Ledger.'}
-                  </p>
-                </div>
+          {/* Executive Personnel Directory Header (Clean, Modern & Beautiful) */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-50 to-blue-100 text-[#0077B6] border border-sky-200/60 flex items-center justify-center shadow-xs shrink-0">
+                <Users className="w-6 h-6" />
               </div>
-
-              {/* Action Buttons & Cloud Sync */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border backdrop-blur-md shadow-xs ${
-                  isSupabaseConfigured() 
-                    ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40' 
-                    : 'bg-amber-500/20 text-amber-100 border-amber-400/40'
-                }`}>
-                  <div className={`w-2.5 h-2.5 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                  <span>
-                    {isSupabaseConfigured() 
-                      ? (language === 'hi' ? 'सुपाबेस लाइव कनेक्टेड' : language === 'te' ? 'సుపాబేస్ లైవ్ కనెక్ట్ అయింది' : 'Supabase Live Connected') 
-                      : (language === 'hi' ? 'स्थानीय निर्देशिका सक्रिय' : language === 'te' ? 'స్థానిక డైరెక్టరీ యాక్టివ్' : 'Local Directory Active')}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-sky-50 text-[#0077B6] font-bold border border-sky-200/70 flex items-center gap-1 shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#0077B6]" />
+                    {language === 'hi' ? 'आंध्र प्रदेश सरकार • APWRIMS' : language === 'te' ? 'ఆంధ్రప్రదేశ్ ప్రభుత్వం • APWRIMS' : 'Govt of Andhra Pradesh • APWRIMS'}
+                  </span>
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/70">
+                    {language === 'hi' ? '26 जिले संप्रभु कैडर' : language === 'te' ? '26 జిల్లాలు కేడర్' : '26 Districts Sovereign Cadre'}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold">
+                    RBAC Enforced
                   </span>
                 </div>
-
-                <button
-                  onClick={handleSyncWithSupabase}
-                  disabled={isSyncingStaff}
-                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white border border-white/25 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer backdrop-blur-md hover:scale-[1.02]"
-                  title="Sync and push personnel to Supabase cloud database"
-                >
-                  <RefreshCw className={`w-4 h-4 text-sky-200 ${isSyncingStaff ? 'animate-spin' : ''}`} />
-                  <span>
-                    {isSyncingStaff 
-                      ? (language === 'hi' ? 'रोस्टर सिंक हो रहा है...' : language === 'te' ? 'సింక్ అవుతోంది...' : 'Syncing Roster...') 
-                      : (language === 'hi' ? 'सुपाबेस सिंक करें' : language === 'te' ? 'సుపాబేస్ సింక్' : 'Sync Supabase')}
-                  </span>
-                </button>
-
-                {/* Fixed Onboard Personnel Button - Clean single Plus icon without double ++ */}
-                <button
-                  onClick={() => setIsAddUserModalOpen(true)}
-                  className="px-4.5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-emerald-950/25 cursor-pointer transform hover:scale-[1.03] active:scale-[0.98]"
-                >
-                  <Plus className="w-4 h-4 shrink-0 text-white" />
-                  <span>
-                    {language === 'hi' 
-                      ? 'कार्मिक जोड़ें (Onboard Personnel)' 
-                      : language === 'te' 
-                      ? 'సిబ్బందిని చేర్చండి' 
-                      : 'Onboard Personnel'}
-                  </span>
-                </button>
+                <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                  {language === 'hi' 
+                    ? 'विभागीय कार्मिक निर्देशिका एवं कैडर रोस्टर' 
+                    : language === 'te' 
+                    ? 'విభాగపు సిబ్బంది డైరెక్టరీ & కేడర్ రోస్టర్' 
+                    : 'Departmental Personnel Directory & Cadre Roster'}
+                </h2>
+                <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+                  {language === 'hi'
+                    ? 'सभी 26 जिलों के शीर्ष जिला नोडल अधिकारी (IAS/SE), प्रमाणित फील्ड गुणवत्ता निरीक्षक, एवं त्वरित मरम्मत दल • सुपाबेस केंद्रीय लेजर से लाइव समन्वित।'
+                    : language === 'te'
+                    ? 'అన్ని 26 జిల్లాల అత్యున్నత జిల్లా నోడల్ అధికారులు (IAS/SE), ధృవీకరించబడిన ఫీల్డ్ క్వాలిటీ ఇన్‌స్పెక్టర్లు & మరమ్మతు బృందాలు • సుపాబేస్ కేంద్రీయ లెడ్జర్‌తో సమకాలీకరించబడింది.'
+                    : 'Apex District Nodal Officers (IAS/SE), Certified Field Quality Inspectors, and Heavy Earthmoving Restoration Crews across all 26 districts • Synchronized with Supabase Central Ledger.'}
+                </p>
               </div>
             </div>
+
+            {/* Onboard Personnel Button */}
+            <button
+              onClick={() => setIsAddUserModalOpen(true)}
+              className="px-5 py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4 shrink-0 text-white" />
+              <span>
+                {language === 'hi' 
+                  ? 'कार्मिक जोड़ें (Onboard Personnel)' 
+                  : language === 'te' 
+                  ? 'సిబ్బందిని చేర్చండి' 
+                  : 'Onboard Personnel'}
+              </span>
+            </button>
           </div>
 
-          {/* Sync Success Notification Toast */}
-          {staffSyncSuccessToast && (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 flex items-center justify-between text-xs font-semibold shadow-xs animate-in fade-in duration-200">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
-                <span>{staffSyncSuccessToast}</span>
-              </div>
-              <button 
-                onClick={() => setStaffSyncSuccessToast(null)}
-                className="text-emerald-700 hover:text-emerald-900 font-bold p-1 cursor-pointer text-base leading-none"
-              >
-                &times;
-              </button>
-            </div>
-          )}
-
-          {/* 4 Executive KPI Metric Cards with Glassmorphic Accents */}
+          {/* 4 Executive KPI Metric Cards with Modern Accents */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Verified Cadre */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50/40 border border-slate-200/90 hover:border-sky-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-white border border-slate-200/90 hover:border-sky-300 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {language === 'hi' ? 'कुल सत्यापित कैडर' : language === 'te' ? 'మొత్తం ధృవీకరించబడిన కేడర్' : 'Total Verified Cadre'}
                 </span>
-                <div className="w-10 h-10 rounded-xl bg-sky-100 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
                   <Users className="w-5 h-5" />
                 </div>
               </div>
@@ -4359,12 +4307,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Nodal Officers */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50/40 border border-slate-200/90 hover:border-blue-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-white border border-slate-200/90 hover:border-blue-300 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  {language === 'hi' ? 'नोडल अधिकारी (शीर्ष 26 जिले)' : language === 'te' ? 'నోడల్ అధికారులు (అపెక్స్)' : 'Nodal Officers (Apex)'}
+                  {language === 'hi' ? 'नोडल अधिकारी (26 जिले)' : language === 'te' ? 'నోడల్ అధికారులు (అపెక్స్)' : 'Nodal Officers (Apex)'}
                 </span>
-                <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
                   <Briefcase className="w-5 h-5" />
                 </div>
               </div>
@@ -4383,12 +4331,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Field Quality Inspectors */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-purple-50/40 border border-slate-200/90 hover:border-purple-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-white border border-slate-200/90 hover:border-purple-300 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {language === 'hi' ? 'फील्ड गुणवत्ता निरीक्षक' : language === 'te' ? 'ఫీల్డ్ క్వాలిటీ ఇన్‌స్పెక్టర్లు' : 'Field Inspectors'}
                 </span>
-                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
                   <Microscope className="w-5 h-5" />
                 </div>
               </div>
@@ -4407,12 +4355,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Action Workers & Heavy Crews */}
-            <div className="relative overflow-hidden bg-gradient-to-b from-white to-emerald-50/40 border border-slate-200/90 hover:border-emerald-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+            <div className="relative overflow-hidden bg-white border border-slate-200/90 hover:border-emerald-300 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {language === 'hi' ? 'एक्शन वर्कर एवं दल' : language === 'te' ? 'యాక్షన్ వర్కర్లు & బృందాలు' : 'Action Workers'}
                 </span>
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
                   <Truck className="w-5 h-5" />
                 </div>
               </div>
@@ -4428,71 +4376,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {language === 'hi' ? 'जेसीबी 3DX व त्वरित ड्रेजिंग बेड़ा' : 'JCB 3DX & Suction Fleets'}
                 </span>
               </div>
-            </div>
-          </div>
-
-          {/* Quick 26 Districts Interactive Navigation Strip */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-4 shadow-2xs space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
-                <span>
-                  {language === 'hi' ? 'आंध्र प्रदेश के सभी 26 जिले (त्वरित फ़िल्टर)' : language === 'te' ? 'ఆంధ్రప్రదేశ్ 26 జిల్లాలు (శీఘ్ర ఫిల్టర్)' : 'Andhra Pradesh 26 Districts (1-Click Cadre View)'}
-                </span>
-              </span>
-              <span className="text-[11px] font-mono text-slate-400">
-                {staffDistrictFilter === 'all' 
-                  ? (language === 'hi' ? 'सभी 26 जिले चयनित' : 'All 26 Districts Selected')
-                  : `${staffDistrictFilter}: ${staffList.filter(s => s.district === staffDistrictFilter).length} ${language === 'hi' ? 'कार्मिक' : 'Officers'}`}
-              </span>
-            </div>
-
-            {/* Scrollable / Wrapping District Filter Badges */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-              <button
-                type="button"
-                onClick={() => setStaffDistrictFilter('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
-                  staffDistrictFilter === 'all'
-                    ? 'bg-[#0077B6] text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
-              >
-                <span>{language === 'hi' ? 'सभी 26 जिले' : 'All 26'}</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
-                  staffDistrictFilter === 'all' ? 'bg-white/20 text-white' : 'bg-white text-slate-600'
-                }`}>
-                  {staffList.length}
-                </span>
-              </button>
-
-              {ANDHRA_PRADESH_26_DISTRICTS.map((d) => {
-                const count = staffList.filter(s => s.district === d.name).length;
-                const isSelected = staffDistrictFilter === d.name;
-                const displayName = language === 'hi' && DISTRICT_HINDI_NAMES[d.name] 
-                  ? DISTRICT_HINDI_NAMES[d.name] 
-                  : d.name;
-
-                return (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => setStaffDistrictFilter(isSelected ? 'all' : d.name)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                      isSelected
-                        ? 'bg-[#0077B6] text-white shadow-xs'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    <span>{displayName}</span>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-white text-slate-600'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
             </div>
           </div>
 
