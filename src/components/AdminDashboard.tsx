@@ -25,6 +25,13 @@ import { generateWatershedPdfReport } from '../utils/generateWatershedPdf';
 import { RAW_MICRO_WATERSHEDS_DATA } from '../data/watershedData';
 import { useLanguage } from '../context/LanguageContext';
 import { 
+  isSupabaseConfigured, 
+  fetchPersonnelFromSupabase, 
+  savePersonnelToSupabase, 
+  seedDepartmentalRosterToSupabase, 
+  subscribeToPersonnel 
+} from '../lib/supabase';
+import { 
   ShieldCheck, 
   AlertTriangle, 
   Droplets, 
@@ -77,7 +84,19 @@ import {
   CheckCircle,
   Wrench,
   ShieldAlert,
-  Database
+  Database,
+  Truck,
+  Microscope,
+  Briefcase,
+  RefreshCw,
+  BadgeCheck,
+  PhoneCall,
+  MessageSquare,
+  Award,
+  Radio,
+  FileBadge,
+  ChevronRight,
+  Copy
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -430,14 +449,14 @@ const STATE_ADMIN_UI_TEXT = {
     btnAdvanceStage: 'Advance Stage',
     btnSlaDirective: 'SLA Directive',
     btnReassign: 'Reassign',
-    cardCamCitizen: 'CAM 01 • Citizen',
+    cardCamCitizen: 'Citizen',
     cardVerifiedCitizen: 'Verified Citizen',
     cardAge: 'Age',
     cardRegisteredCitizen: 'Registered Citizen',
     cardGps: 'GPS',
     cardFilingDate: 'Filing Date',
     cardViewEvidencePhoto: 'View Evidence Photo',
-    cardCamNodal: 'CAM 02 • Nodal Officer',
+    cardCamNodal: 'Nodal Officer',
     cardApexTriage: 'Apex Triage',
     cardWaterDivision: 'Water Division',
     cardTriageSpeed: 'Triage Speed:',
@@ -450,14 +469,14 @@ const STATE_ADMIN_UI_TEXT = {
     cardInspectorLabel: 'Inspector:',
     cardEngineerLabel: 'Engineer:',
     cardDispatchMemo: 'Dispatch Direct Memo',
-    cardCamInspector: 'CAM 03 • Inspector',
+    cardCamInspector: 'Field Inspector',
     cardInspectedBadge: 'Inspected',
     cardEnrouteBadge: 'En-route',
     cardGpsVerification: 'GPS Verification:',
     cardMatched100: 'Matched (100%)',
     cardWasteSeverity: 'Waste Severity:',
     cardWaterPresence: 'Water Presence:',
-    cardCamWorker: 'CAM 04 • Worker / Engineer',
+    cardCamWorker: 'Worker / Engineer',
     cardWorkInProgress: 'In Progress',
     cardMachineryLabel: 'Machinery:',
     cardManpowerLabel: 'Manpower:',
@@ -492,6 +511,45 @@ const STATE_ADMIN_UI_TEXT = {
     modalReassignTitle: 'Reassign Nodal Officer',
     modalSelectNewNodal: 'Select New Responsible Nodal Officer',
     modalConfirmReassign: 'Confirm Reassignment',
+    // Water Assets & Reservoirs Translations
+    assetsHeading: 'Official APWRIMS 113 Major & Medium Reservoirs',
+    assetsSubheading: 'Real-time storage telemetry, full capacity FRL, and optical NDWI satellite recurrence across Andhra Pradesh',
+    assetsActiveBadge: '113 Reservoirs Active',
+    assetsTotalMonitored: 'Monitored Reservoirs',
+    assetsTotalLiveStorage: 'Live Water Storage',
+    assetsGrossCapacity: 'Gross State Capacity',
+    assetsLiveInflow: 'Cumulative Inflow',
+    assetsLiveOutflow: 'Cumulative Outflow',
+    assetsHighStorageCount: 'High Storage (>75%)',
+    assetsModerateCount: 'Normal Storage (35-75%)',
+    assetsCriticalCount: 'Critical Storage (<35%)',
+    searchReservoirPlaceholder: 'Search reservoir name, river, district or mandal...',
+    basinFilterAll: 'All Basins (113)',
+    basinKrishna: 'Krishna Basin',
+    basinGodavari: 'Godavari Basin',
+    basinPennar: 'Pennar Basin',
+    basinOther: 'Other Coastal & North Basins',
+    fillFilterAll: 'All Fill Levels',
+    fillFilterHigh: '🟢 High (>75%)',
+    fillFilterNormal: '🔵 Normal (35-75%)',
+    fillFilterCritical: '🔴 Low (<35%)',
+    filterAllDistricts: 'District: All 26 Districts',
+    thReservoirAsset: 'Reservoir Asset',
+    thDistrictBasin: 'District & Basin',
+    thGrossCapacity: 'Gross Capacity (TMC)',
+    thCurrentLevel: 'Current Level / FRL',
+    thLiveStorage: 'Live Storage (TMC)',
+    thFillPercentage: 'Fill %',
+    thInflowOutflow: 'Inflow / Outflow',
+    thSatelliteNdwi: 'ISRO Bhuvan NDWI',
+    thViewOnMap: 'View on Map',
+    btnViewOnMap: 'View on Map',
+    btnFocusOnMap: 'Focus & Flashcard',
+    reservoirsFound: 'Reservoirs Monitored',
+    viewAllOnMap: 'Launch GIS Map',
+    cardFRL: 'Full Reservoir Level (FRL)',
+    cardWaterSpread: 'Water Spread Area',
+    cardSatellitePass: 'Satellite Pass',
   },
   hi: {
     heroTag: 'आंध्र प्रदेश राज्य जल कमान • जल-वैज्ञानिक निगरानी',
@@ -584,14 +642,14 @@ const STATE_ADMIN_UI_TEXT = {
     btnAdvanceStage: 'अगला चरण बढ़ाएं',
     btnSlaDirective: 'एसएलए निर्देश',
     btnReassign: 'पुनः आवंटित करें',
-    cardCamCitizen: 'कैमरा 01 • नागरिक',
+    cardCamCitizen: 'नागरिक',
     cardVerifiedCitizen: 'सत्यापित नागरिक',
     cardAge: 'उम्र',
     cardRegisteredCitizen: 'पंजीकृत नागरिक',
     cardGps: 'जीपीएस',
     cardFilingDate: 'दर्ज करने की तिथि',
     cardViewEvidencePhoto: 'सबूत फोटो देखें',
-    cardCamNodal: 'कैमरा 02 • नोडल अधिकारी',
+    cardCamNodal: 'नोडल अधिकारी',
     cardApexTriage: 'त्वरित समीक्षा',
     cardWaterDivision: 'जल प्रभाग',
     cardTriageSpeed: 'निस्तारण गति:',
@@ -604,14 +662,14 @@ const STATE_ADMIN_UI_TEXT = {
     cardInspectorLabel: 'इंस्पेक्टर:',
     cardEngineerLabel: 'इंजीनियर/वर्कर:',
     cardDispatchMemo: 'सीधा मेमो जारी करें',
-    cardCamInspector: 'कैमरा 03 • फील्ड इंस्पेक्टर',
+    cardCamInspector: 'फील्ड इंस्पेक्टर',
     cardInspectedBadge: 'जांच पूर्ण',
     cardEnrouteBadge: 'मौके पर रवाना',
     cardGpsVerification: 'जीपीएस सत्यापन:',
     cardMatched100: 'सत्यापित (100%)',
     cardWasteSeverity: 'कचरा गंभीरता:',
     cardWaterPresence: 'पानी की स्थिति:',
-    cardCamWorker: 'कैमरा 04 • वर्कर / इंजीनियर',
+    cardCamWorker: 'वर्कर / इंजीनियर',
     cardWorkInProgress: 'कार्य प्रगति पर',
     cardMachineryLabel: 'मशीनरी:',
     cardManpowerLabel: 'कार्यबल:',
@@ -646,6 +704,45 @@ const STATE_ADMIN_UI_TEXT = {
     modalReassignTitle: 'नोडल अधिकारी पुनः आवंटित करें',
     modalSelectNewNodal: 'नए उत्तरदायी नोडल अधिकारी का चयन करें',
     modalConfirmReassign: 'पुनः आवंटन की पुष्टि करें',
+    // Water Assets & Reservoirs Translations (Hindi)
+    assetsHeading: 'आधिकारिक एपीव्रिम्स 113 प्रमुख एवं मध्यम जलाशय',
+    assetsSubheading: 'आंध्र प्रदेश भर में रीयल-टाइम भंडारण टेलीमेट्री, पूर्ण क्षमता एफआरएल एवं ऑप्टिकल एनडीडब्ल्यूआई उपग्रह पुनरावृत्ति',
+    assetsActiveBadge: '113 जलाशय सक्रिय',
+    assetsTotalMonitored: 'निगरानीकृत जलाशय',
+    assetsTotalLiveStorage: 'लाइव जल भंडारण',
+    assetsGrossCapacity: 'राज्य की कुल सकल क्षमता',
+    assetsLiveInflow: 'कुल अंतर्वाह (Inflow)',
+    assetsLiveOutflow: 'कुल बहिर्वाह (Outflow)',
+    assetsHighStorageCount: 'उच्च भंडारण (>75%)',
+    assetsModerateCount: 'सामान्य भंडारण (35-75%)',
+    assetsCriticalCount: 'गंभीर / कम भंडारण (<35%)',
+    searchReservoirPlaceholder: 'जलाशय का नाम, नदी, ज़िला या मंडल खोजें...',
+    basinFilterAll: 'सभी बेसिन (113)',
+    basinKrishna: 'कृष्णा बेसिन',
+    basinGodavari: 'गोदावरी बेसिन',
+    basinPennar: 'पेन्नार बेसिन',
+    basinOther: 'अन्य तटीय एवं उत्तर बेसिन',
+    fillFilterAll: 'सभी स्तर',
+    fillFilterHigh: '🟢 उच्च (>75%)',
+    fillFilterNormal: '🔵 सामान्य (35-75%)',
+    fillFilterCritical: '🔴 कम (<35%)',
+    filterAllDistricts: 'ज़िला: सभी 26 ज़िले',
+    thReservoirAsset: 'जलाशय संपदा',
+    thDistrictBasin: 'ज़िला एवं बेसिन',
+    thGrossCapacity: 'सकल क्षमता (TMC)',
+    thCurrentLevel: 'वर्तमान जल स्तर / FRL',
+    thLiveStorage: 'लाइव भंडारण (TMC)',
+    thFillPercentage: 'भंडारण %',
+    thInflowOutflow: 'अंतर्वाह / बहिर्वाह',
+    thSatelliteNdwi: 'इसरो भुवन NDWI',
+    thViewOnMap: 'मानचित्र पर देखें',
+    btnViewOnMap: 'मानचित्र पर देखें',
+    btnFocusOnMap: 'फोकस व फ्लैशकार्ड',
+    reservoirsFound: 'जलाशय उपलब्ध',
+    viewAllOnMap: 'जीआईएस मानचित्र खोलें',
+    cardFRL: 'पूर्ण जलाशय स्तर (FRL)',
+    cardWaterSpread: 'जल फैलाव क्षेत्रफल',
+    cardSatellitePass: 'उपग्रह चक्र',
   },
   te: {
     heroTag: 'ఆంధ్రప్రదేశ్ రాష్ట్ర జల కమాండ్ • హైడ్రోలాజికల్ నిఘా',
@@ -739,14 +836,14 @@ const STATE_ADMIN_UI_TEXT = {
     btnAdvanceStage: 'తదుపరి దశకు తరలించండి',
     btnSlaDirective: 'SLA ఆదేశం',
     btnReassign: 'మళ్ళీ కేటాయించండి',
-    cardCamCitizen: 'కెమెరా 01 • పౌరుడు',
+    cardCamCitizen: 'పౌరుడు',
     cardVerifiedCitizen: 'ధృవీకరించిన పౌరుడు',
     cardAge: 'వయస్సు',
     cardRegisteredCitizen: 'నమోదిత పౌరుడు',
     cardGps: 'GPS',
     cardFilingDate: 'దాఖలు చేసిన తేదీ',
     cardViewEvidencePhoto: 'సాక్ష్యపు ఫోటో చూడండి',
-    cardCamNodal: 'కెమెరా 02 • నోడల్ అధికారి',
+    cardCamNodal: 'నోడల్ అధికారి',
     cardApexTriage: 'సత్వర సమీక్ష',
     cardWaterDivision: 'జల విభాగం',
     cardTriageSpeed: 'స్పందన వేగం:',
@@ -759,14 +856,14 @@ const STATE_ADMIN_UI_TEXT = {
     cardInspectorLabel: 'ఇన్‌స్పెక్టర్:',
     cardEngineerLabel: 'ఇంజనీర్/వర్కర్:',
     cardDispatchMemo: 'ప్రత్యక్ష మెమో పంపండి',
-    cardCamInspector: 'కెమెరా 03 • ఫీల్డ్ ఇన్‌స్పెక్టర్',
+    cardCamInspector: 'ఫీల్డ్ ఇన్‌స్పెక్టర్',
     cardInspectedBadge: 'తనిఖీ పూర్తయింది',
     cardEnrouteBadge: 'మార్గంలో ఉన్నారు',
     cardGpsVerification: 'GPS ధృవీకరణ:',
     cardMatched100: 'సరిపోలింది (100%)',
     cardWasteSeverity: 'వ్యర్థాల తీవ్రత:',
     cardWaterPresence: 'నీటి లభ్యత:',
-    cardCamWorker: 'కెమెరా 04 • వర్కర్ / ఇంజనీర్',
+    cardCamWorker: 'వర్కర్ / ఇంజనీర్',
     cardWorkInProgress: 'పురోగతిలో ఉంది',
     cardMachineryLabel: 'యంత్రాలు:',
     cardManpowerLabel: 'సిబ్బంది:',
@@ -801,6 +898,45 @@ const STATE_ADMIN_UI_TEXT = {
     modalReassignTitle: 'నోడల్ అధికారిని మార్చండి',
     modalSelectNewNodal: 'కొత్త బాధ్యతగల నోడల్ అధికారిని ఎంచుకోండి',
     modalConfirmReassign: 'పునఃకేటాయింపును నిర్ధారించండి',
+    // Water Assets & Reservoirs Translations (Telugu)
+    assetsHeading: 'అధికారిక APWRIMS 113 ప్రధాన & మధ్య తరహా జలాశయాలు',
+    assetsSubheading: 'ఆంధ్రప్రదేశ్ వ్యాప్తంగా ప్రత్యక్ష నిల్వ టెలిమెట్రీ, పూర్తి స్థాయి FRL మరియు ఉపగ్రహ NDWI నివేదిక',
+    assetsActiveBadge: '113 జలాశయాలు క్రియాశీలం',
+    assetsTotalMonitored: 'పర్యవేక్షణలోని జలాశయాలు',
+    assetsTotalLiveStorage: 'ప్రత్యక్ష నీటి నిల్వ',
+    assetsGrossCapacity: 'మొత్తం స్థూల సామర్థ్యం',
+    assetsLiveInflow: 'మొత్తం ఇన్‌ఫ్లో',
+    assetsLiveOutflow: 'మొత్తం అవుట్‌ఫ్లో',
+    assetsHighStorageCount: 'గరిష్ట నిల్వ (>75%)',
+    assetsModerateCount: 'సాధారణ నిల్వ (35-75%)',
+    assetsCriticalCount: 'కీలక / తక్కువ నిల్వ (<35%)',
+    searchReservoirPlaceholder: 'జలాశయం పేరు, నది, జిల్లా లేదా మండలం వెతకండి...',
+    basinFilterAll: 'అన్ని బేసిన్లు (113)',
+    basinKrishna: 'కృష్ణా బేసిన్',
+    basinGodavari: 'గోదావరి బేసిన్',
+    basinPennar: 'పెన్నా బేసిన్',
+    basinOther: 'ఇతర తీర & ఉత్తర బేసిన్లు',
+    fillFilterAll: 'అన్ని స్థాయిలు',
+    fillFilterHigh: '🟢 గరిష్టం (>75%)',
+    fillFilterNormal: '🔵 సాధారణం (35-75%)',
+    fillFilterCritical: '🔴 అల్పం (<35%)',
+    filterAllDistricts: 'జిల్లా: మొత్తం 26 జిల్లాలు',
+    thReservoirAsset: 'జలాశయ సంపద',
+    thDistrictBasin: 'జిల్లా & బేసిన్',
+    thGrossCapacity: 'స్థూల సామర్థ్యం (TMC)',
+    thCurrentLevel: 'ప్రస్తుత మట్టం / FRL',
+    thLiveStorage: 'ప్రత్యక్ష నిల్వ (TMC)',
+    thFillPercentage: 'నిల్వ శాతం %',
+    thInflowOutflow: 'ఇన్‌ఫ్లో / అవుట్‌ఫ్లో',
+    thSatelliteNdwi: 'ఇస్రో భువన్ NDWI',
+    thViewOnMap: 'మ్యాప్‌లో చూడండి',
+    btnViewOnMap: 'మ్యాప్‌లో చూడండి',
+    btnFocusOnMap: 'ఫోకస్ & ఫ్లాష్‌కార్డ్',
+    reservoirsFound: 'జలాశయాలు లభ్యం',
+    viewAllOnMap: 'GIS మ్యాప్‌ను తెరవండి',
+    cardFRL: 'పూర్తి జలాశయ మట్టం (FRL)',
+    cardWaterSpread: 'నీటి విస్తీర్ణం',
+    cardSatellitePass: 'ఉపగ్రహ పాస్',
   }
 };
 
@@ -834,18 +970,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [districtSearch, setDistrictSearch] = useState('');
   const [districtRegionFilter, setDistrictRegionFilter] = useState<'all' | 'North Coastal' | 'Coastal Andhra' | 'Rayalaseema'>('all');
 
-  // Selected Reservoir
+  // Selected Reservoir & Map Focus
   const [selectedReservoir, setSelectedReservoir] = useState<APReservoirRecord | null>(
     () => AP_OFFICIAL_RESERVOIRS[0]
   );
+  const [focusedReservoir, setFocusedReservoir] = useState<APReservoirRecord | null>(null);
   const [reservoirSearch, setReservoirSearch] = useState('');
   const [reservoirDistrictFilter, setReservoirDistrictFilter] = useState<string>('all');
+  const [reservoirBasinFilter, setReservoirBasinFilter] = useState<string>('all');
+  const [reservoirFillFilter, setReservoirFillFilter] = useState<string>('all');
 
-  // Departmental Personnel State
+  // Departmental Personnel State (Synchronized with Supabase Cloud)
   const [staffList, setStaffList] = useState<DepartmentalPersonnel[]>(INITIAL_DEPARTMENTAL_PERSONNEL);
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState<string>('all');
   const [staffDistrictFilter, setStaffDistrictFilter] = useState<string>('all');
+  const [staffStatusFilter, setStaffStatusFilter] = useState<string>('all');
+  const [staffViewMode, setStaffViewMode] = useState<'cards' | 'table'>('cards');
+  const [isSyncingStaff, setIsSyncingStaff] = useState(false);
+  const [staffSyncSuccessToast, setStaffSyncSuccessToast] = useState<string | null>(null);
+  const [selectedStaffDetail, setSelectedStaffDetail] = useState<DepartmentalPersonnel | null>(null);
+
+  // Add Personnel Form State
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -853,6 +999,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newUserRole, setNewUserRole] = useState<'Nodal Officer' | 'Field Inspector' | 'Action Worker'>('Nodal Officer');
   const [newUserDistrict, setNewUserDistrict] = useState('Vizianagaram');
   const [newUserSubBasin, setNewUserSubBasin] = useState('Central Catchment Zone');
+  const [newUserSpecialization, setNewUserSpecialization] = useState('');
+  const [newUserAgency, setNewUserAgency] = useState('');
+
+  // Real-time synchronization of Departmental Personnel from Supabase
+  useEffect(() => {
+    let isMounted = true;
+    const loadPersonnel = async () => {
+      try {
+        const remotePersonnel = await fetchPersonnelFromSupabase();
+        if (isMounted && remotePersonnel && remotePersonnel.length > 0) {
+          setStaffList(remotePersonnel);
+        }
+      } catch (err) {
+        console.warn('[Supabase Roster] Failed to load personnel from Supabase:', err);
+      }
+    };
+
+    loadPersonnel();
+
+    const unsubscribe = subscribeToPersonnel(() => {
+      loadPersonnel();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Complaints Management State & 360° Surveillance Radar
   const [complaintSearch, setComplaintSearch] = useState('');
@@ -990,17 +1164,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   }, [districtSearch, districtRegionFilter]);
 
-  // Filtered Reservoirs
+  // Filtered Reservoirs with basin and fill level filters
   const filteredReservoirs = useMemo(() => {
     return AP_OFFICIAL_RESERVOIRS.filter(r => {
-      const matchesSearch = !reservoirSearch || 
-        r.name.toLowerCase().includes(reservoirSearch.toLowerCase()) ||
-        (r.district || '').toLowerCase().includes(reservoirSearch.toLowerCase()) ||
-        (r.teluguName || '').includes(reservoirSearch);
+      const q = reservoirSearch.trim().toLowerCase();
+      const matchesSearch = !q || 
+        r.name.toLowerCase().includes(q) ||
+        (r.district || '').toLowerCase().includes(q) ||
+        (r.mandal || '').toLowerCase().includes(q) ||
+        (r.basin || '').toLowerCase().includes(q) ||
+        (r.teluguName || '').includes(q);
+        
       const matchesDistrict = reservoirDistrictFilter === 'all' || r.district?.toLowerCase() === reservoirDistrictFilter.toLowerCase();
-      return matchesSearch && matchesDistrict;
+      
+      const matchesBasin = reservoirBasinFilter === 'all' || 
+        (reservoirBasinFilter === 'Krishna' && r.basin === 'Krishna') ||
+        (reservoirBasinFilter === 'GODAVARI' && (r.basin === 'GODAVARI' || (r.basin as string) === 'Godavari')) ||
+        (reservoirBasinFilter === 'Pennar' && r.basin === 'Pennar') ||
+        (reservoirBasinFilter === 'Other' && r.basin !== 'Krishna' && r.basin !== 'GODAVARI' && (r.basin as string) !== 'Godavari' && r.basin !== 'Pennar');
+
+      const matchesFill = reservoirFillFilter === 'all' ||
+        (reservoirFillFilter === 'high' && r.storagePercentage > 75) ||
+        (reservoirFillFilter === 'normal' && r.storagePercentage >= 35 && r.storagePercentage <= 75) ||
+        (reservoirFillFilter === 'critical' && r.storagePercentage < 35);
+
+      return matchesSearch && matchesDistrict && matchesBasin && matchesFill;
     });
-  }, [reservoirSearch, reservoirDistrictFilter]);
+  }, [reservoirSearch, reservoirDistrictFilter, reservoirBasinFilter, reservoirFillFilter]);
+
+  // Comprehensive APWRIMS Reservoir Telemetry Aggregations
+  const apReservoirAggregate = useMemo(() => {
+    const totalDams = AP_OFFICIAL_RESERVOIRS.length;
+    const totalGrossTMC = Number(AP_OFFICIAL_RESERVOIRS.reduce((sum, r) => sum + (r.grossCapacityTMC || 0), 0).toFixed(2));
+    const totalLiveTMC = Number(AP_OFFICIAL_RESERVOIRS.reduce((sum, r) => sum + (r.currentStorageTMC || 0), 0).toFixed(2));
+    const avgFillPct = totalGrossTMC > 0 ? Number(((totalLiveTMC / totalGrossTMC) * 100).toFixed(1)) : 48.8;
+    const totalInflow = AP_OFFICIAL_RESERVOIRS.reduce((sum, r) => sum + (r.inflowCusecs || 0), 0);
+    const totalOutflow = AP_OFFICIAL_RESERVOIRS.reduce((sum, r) => sum + (r.outflowCusecs || 0), 0);
+    const highCount = AP_OFFICIAL_RESERVOIRS.filter(r => r.storagePercentage > 75).length;
+    const normalCount = AP_OFFICIAL_RESERVOIRS.filter(r => r.storagePercentage >= 35 && r.storagePercentage <= 75).length;
+    const criticalCount = AP_OFFICIAL_RESERVOIRS.filter(r => r.storagePercentage < 35).length;
+
+    return {
+      totalDams,
+      totalGrossTMC,
+      totalLiveTMC,
+      avgFillPct,
+      totalInflow,
+      totalOutflow,
+      highCount,
+      normalCount,
+      criticalCount
+    };
+  }, []);
 
   // Handle Dispatch SLA Reminder to Nodal Officer
   const handleDispatchReminder = (e: React.FormEvent) => {
@@ -1061,23 +1276,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     confetti({ particleCount: 50, spread: 55, origin: { y: 0.6 } });
   };
 
-  // Add New Staff
-  const handleAddNewStaff = (e: React.FormEvent) => {
+  // Add New Staff with instant Supabase persistence
+  const handleAddNewStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserName.trim()) return;
 
+    const cleanPhone = newUserPhone.trim();
+    const cleanDigits = cleanPhone.replace(/\D/g, '');
+    const maskedMobile = cleanDigits.length >= 4 
+      ? `+91 ${cleanDigits.slice(0, 2)}••••••${cleanDigits.slice(-2)}` 
+      : '+91 94••••••10';
+
+    const prefix = newUserRole === 'Nodal Officer' ? 'WRA' : newUserRole === 'Field Inspector' ? 'INSP' : 'CREW';
+    const generatedId = `usr-${prefix.toLowerCase()}-${Date.now()}`;
+    const generatedStaffId = `AP-${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const newStaff: DepartmentalPersonnel = {
-      id: `usr-${Date.now()}`,
-      staffId: `AP-${newUserRole === 'Nodal Officer' ? 'WRA' : newUserRole === 'Field Inspector' ? 'INSP' : 'WRK'}-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: generatedId,
+      staffId: generatedStaffId,
       name: newUserName.trim(),
-      email: newUserEmail.trim() || `${newUserName.toLowerCase().replace(/\s+/g, '.') || 'staff'}@water.ap.gov.in`,
+      email: newUserEmail.trim() || `${newUserName.toLowerCase().replace(/[^a-z0-9]/g, '.') || 'officer'}@water.ap.gov.in`,
       role: newUserRole,
       district: newUserDistrict,
       jurisdictionSubBasin: newUserSubBasin || `${newUserDistrict} Catchment Zone`,
-      maskedMobile: newUserPhone ? `+91 ${newUserPhone.slice(0, 2)}••••••${newUserPhone.slice(-2)}` : '+91 98••••••10',
-      phone: newUserPhone || '9848011111',
+      maskedMobile,
+      phone: cleanPhone || '+91 94401 22334',
       status: 'Active',
       lastActive: 'Just now',
+      specializationOrMachinery: newUserSpecialization.trim() || (
+        newUserRole === 'Action Worker' 
+          ? '1x Heavy Excavator & Desilting Gang' 
+          : newUserRole === 'Field Inspector' 
+          ? 'TDS Water Quality Testing & Field Auditing' 
+          : 'District Apex Water Surveillance Command'
+      ),
+      agencyOrUnit: newUserAgency.trim() || (
+        newUserRole === 'Action Worker' 
+          ? `${newUserDistrict} Irrigation Mechanical Division` 
+          : `${newUserDistrict} Collectorate Water Command`
+      ),
+      rating: 4.9,
+      activeTasksCount: 0,
+      sourceTable: 'supabase',
     };
 
     setStaffList(prev => [newStaff, ...prev]);
@@ -1085,7 +1325,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setNewUserName('');
     setNewUserEmail('');
     setNewUserPhone('');
+    setNewUserSpecialization('');
+    setNewUserAgency('');
+
+    // Persist directly to Supabase
+    try {
+      const savedToCloud = await savePersonnelToSupabase(newStaff);
+      if (savedToCloud) {
+        setStaffSyncSuccessToast(`Personnel ${newStaff.name} saved and synchronized with Supabase Cloud!`);
+      } else {
+        setStaffSyncSuccessToast(`Personnel ${newStaff.name} added to directory!`);
+      }
+    } catch {
+      setStaffSyncSuccessToast(`Personnel ${newStaff.name} added to directory!`);
+    }
+    setTimeout(() => setStaffSyncSuccessToast(null), 4000);
     confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+  };
+
+  // Sync / Push Roster to Supabase Cloud
+  const handleSyncWithSupabase = async () => {
+    setIsSyncingStaff(true);
+    try {
+      const res = await seedDepartmentalRosterToSupabase(staffList);
+      const fresh = await fetchPersonnelFromSupabase();
+      if (fresh && fresh.length > 0) {
+        setStaffList(fresh);
+      }
+      setStaffSyncSuccessToast(`Synchronized ${res.count || staffList.length} officers with Supabase Cloud!`);
+    } catch (err) {
+      console.error('Sync failed:', err);
+      setStaffSyncSuccessToast('Supabase sync attempted.');
+    } finally {
+      setIsSyncingStaff(false);
+      setTimeout(() => setStaffSyncSuccessToast(null), 4000);
+    }
+  };
+
+  // Toggle Personnel Active / On Duty / Standby Status
+  const handleToggleStaffStatus = async (staffId: string) => {
+    setStaffList(prev => prev.map(s => {
+      if (s.id === staffId || s.staffId === staffId) {
+        const nextStatus = s.status === 'Active' ? 'On Duty' : s.status === 'On Duty' ? 'Standby' : 'Active';
+        const updated = { ...s, status: nextStatus as any, lastActive: 'Updated just now' };
+        savePersonnelToSupabase(updated);
+        return updated;
+      }
+      return s;
+    }));
   };
 
   // Download PDF Report
@@ -2048,6 +2335,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <StateAdminSatelliteMap
             complaints={complaints}
             selectedDistrict={selectedDistrict?.name || 'all'}
+            focusedReservoir={focusedReservoir}
+            onClearFocusedReservoir={() => setFocusedReservoir(null)}
             onSelectDistrict={(distName) => {
               const found = ANDHRA_PRADESH_26_DISTRICTS.find(d => d.name.toLowerCase() === distName.toLowerCase());
               if (found) setSelectedDistrict(found);
@@ -2216,6 +2505,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <StateAdminSatelliteMap
             complaints={complaints}
             selectedDistrict={selectedDistrict?.name || 'all'}
+            focusedReservoir={focusedReservoir}
+            onClearFocusedReservoir={() => setFocusedReservoir(null)}
             onBackToDistricts={() => setActiveTab('districts')}
             onSelectDistrict={(distName) => {
               const found = ANDHRA_PRADESH_26_DISTRICTS.find(d => d.name.toLowerCase() === distName.toLowerCase());
@@ -2396,109 +2687,307 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {/* TAB 4: ASSETS & TELEMETRY INVENTORY (1,887 AP WATER ASSETS)          */}
       {/* ==================================================================== */}
+      {/* ==================================================================== */}
+      {/* TAB 4: ASSETS & TELEMETRY INVENTORY (113 AP OFFICIAL RESERVOIRS)     */}
+      {/* ==================================================================== */}
       {activeTab === 'assets' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-base text-slate-900">
-                  Official APWRIMS 113 Major &amp; Medium Reservoirs
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Real-time storage telemetry, full capacity FRL, and optical NDWI satellite recurrence
+        <div className="space-y-5">
+          {/* Main Container */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-2xs space-y-6">
+            
+            {/* Top Banner Header */}
+            <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="space-y-1 max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <h3 className="font-extrabold text-lg sm:text-xl text-[#03045E]">
+                    {uiText.assetsHeading}
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                  {uiText.assetsSubheading}
                 </p>
               </div>
-              <span className="text-xs font-mono font-bold text-[#0077B6] bg-sky-50 px-3 py-1 rounded-xl border border-sky-200">
-                {AP_OFFICIAL_RESERVOIRS.length} Reservoirs Active
-              </span>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-xs font-mono font-bold text-[#0077B6] bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200 shadow-2xs">
+                  {uiText.assetsActiveBadge}
+                </span>
+                <button
+                  onClick={() => {
+                    setActiveTab('map');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-3.5 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <MapIcon className="w-3.5 h-3.5 text-[#00B4D8]" />
+                  <span>{uiText.viewAllOnMap}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Filter and Search Bar */}
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <div className="relative flex-1 min-w-[200px]">
+            {/* Top Telemetry KPI Bar (4 Modern Cards) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              
+              {/* Metric 1: Live Water Storage */}
+              <div className="bg-gradient-to-br from-sky-50/80 via-white to-sky-50/30 border border-sky-100 rounded-2xl p-4 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                  <span>{uiText.assetsTotalLiveStorage}</span>
+                  <Droplets className="w-4 h-4 text-[#0077B6]" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-[#03045E] font-mono tabular-nums">
+                    {apReservoirAggregate.totalLiveTMC} <span className="text-xs font-bold text-slate-500 font-sans">TMC</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    {uiText.assetsGrossCapacity}: <span className="font-mono font-bold text-slate-700">{apReservoirAggregate.totalGrossTMC} TMC</span>
+                  </div>
+                </div>
+                <div className="space-y-1 pt-1">
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-[#0077B6] to-[#00B4D8] h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, apReservoirAggregate.avgFillPct)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <span>0 TMC</span>
+                    <span className="font-bold text-[#0077B6]">{apReservoirAggregate.avgFillPct}% State Storage</span>
+                    <span>{apReservoirAggregate.totalGrossTMC} TMC</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Metric 2: Cumulative Flow Rate */}
+              <div className="bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 border border-emerald-100 rounded-2xl p-4 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                  <span>{uiText.thInflowOutflow}</span>
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-xl font-black text-emerald-900 font-mono tabular-nums">
+                    {apReservoirAggregate.totalInflow.toLocaleString()} <span className="text-xs font-bold text-slate-500 font-sans">cfs In</span>
+                  </div>
+                  <div className="text-xs font-mono font-bold text-slate-600 mt-0.5">
+                    {apReservoirAggregate.totalOutflow.toLocaleString()} cfs Outflow
+                  </div>
+                </div>
+                <div className="text-[11px] text-emerald-700 font-medium pt-1 border-t border-emerald-100 flex items-center justify-between">
+                  <span>River Basins Flowing</span>
+                  <span className="font-mono font-bold text-emerald-800">4 Active</span>
+                </div>
+              </div>
+
+              {/* Metric 3: Reservoir Storage Health Tiers */}
+              <div className="bg-gradient-to-br from-slate-50 via-white to-slate-50 border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                  <span>{uiText.thHealthStatus || 'Storage Health'}</span>
+                  <Activity className="w-4 h-4 text-slate-500" />
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 text-center">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-1.5">
+                    <span className="block text-xs font-bold text-emerald-700 font-mono">{apReservoirAggregate.highCount}</span>
+                    <span className="text-[9px] text-emerald-800 block">&gt;75%</span>
+                  </div>
+                  <div className="bg-sky-50 border border-sky-200 rounded-xl p-1.5">
+                    <span className="block text-xs font-bold text-[#0077B6] font-mono">{apReservoirAggregate.normalCount}</span>
+                    <span className="text-[9px] text-sky-800 block">35-75%</span>
+                  </div>
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-1.5">
+                    <span className="block text-xs font-bold text-rose-700 font-mono">{apReservoirAggregate.criticalCount}</span>
+                    <span className="text-[9px] text-rose-800 block">&lt;35%</span>
+                  </div>
+                </div>
+                <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-100 text-center">
+                  <span>{uiText.assetsTotalMonitored}: <strong className="text-slate-800">{apReservoirAggregate.totalDams}</strong></span>
+                </div>
+              </div>
+
+              {/* Metric 4: ISRO Bhuvan NDWI Surveillance */}
+              <div className="bg-gradient-to-br from-purple-50/80 via-white to-purple-50/30 border border-purple-100 rounded-2xl p-4 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                  <span>{uiText.thSatelliteNdwi}</span>
+                  <Satellite className="w-4 h-4 text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-lg font-black text-purple-900">
+                    ISRO Resourcesat-2A
+                  </div>
+                  <div className="text-[11px] text-purple-700 font-medium">
+                    LISS-IV &amp; AWiFS 10-Day NDWI
+                  </div>
+                </div>
+                <div className="text-[11px] text-purple-800 font-medium pt-1 border-t border-purple-100 flex items-center justify-between">
+                  <span>Cloud Cover Pass</span>
+                  <span className="font-mono font-bold text-purple-900">&lt; 3.5%</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Basin Filter Buttons Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: uiText.basinFilterAll },
+                  { id: 'Krishna', label: uiText.basinKrishna },
+                  { id: 'GODAVARI', label: uiText.basinGodavari },
+                  { id: 'Pennar', label: uiText.basinPennar },
+                  { id: 'Other', label: uiText.basinOther },
+                ].map(basin => (
+                  <button
+                    key={basin.id}
+                    onClick={() => setReservoirBasinFilter(basin.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      reservoirBasinFilter === basin.id
+                        ? 'bg-[#0077B6] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                    }`}
+                  >
+                    {basin.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="text-xs text-slate-500 font-medium font-mono">
+                {uiText.reservoirsFound}: <strong className="text-[#0077B6]">{filteredReservoirs.length}</strong> / 113
+              </div>
+            </div>
+
+            {/* Search, Fill Level and District Dropdowns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search reservoir name or river..."
+                  placeholder={uiText.searchReservoirPlaceholder}
                   value={reservoirSearch}
                   onChange={(e) => setReservoirSearch(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
                 />
+                {reservoirSearch && (
+                  <button 
+                    onClick={() => setReservoirSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+
+              <select
+                value={reservoirFillFilter}
+                onChange={(e) => setReservoirFillFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer"
+              >
+                <option value="all">{uiText.fillFilterAll}</option>
+                <option value="high">{uiText.fillFilterHigh}</option>
+                <option value="normal">{uiText.fillFilterNormal}</option>
+                <option value="critical">{uiText.fillFilterCritical}</option>
+              </select>
 
               <select
                 value={reservoirDistrictFilter}
                 onChange={(e) => setReservoirDistrictFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer"
               >
-                <option value="all">District: All Districts</option>
+                <option value="all">{uiText.filterAllDistricts}</option>
                 {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
-                  <option key={d.id} value={d.name}>{d.name}</option>
+                  <option key={d.id} value={d.name}>{d.name} ({d.teluguName})</option>
                 ))}
               </select>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
+            {/* Comprehensive Telemetry Table */}
+            <div className="overflow-x-auto rounded-2xl border border-slate-200/90 shadow-2xs">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                    <th className="py-2.5 px-3">Reservoir Asset</th>
-                    <th className="py-2.5 px-3">District &amp; Basin</th>
-                    <th className="py-2.5 px-3">Gross Capacity (TMC)</th>
-                    <th className="py-2.5 px-3">Current Level</th>
-                    <th className="py-2.5 px-3">Live Storage (TMC)</th>
-                    <th className="py-2.5 px-3">Fill %</th>
-                    <th className="py-2.5 px-3">Inflow / Outflow</th>
-                    <th className="py-2.5 px-3 text-right">View On Map</th>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                    <th className="py-3 px-3.5">{uiText.thReservoirAsset}</th>
+                    <th className="py-3 px-3">{uiText.thDistrictBasin}</th>
+                    <th className="py-3 px-3">{uiText.thGrossCapacity}</th>
+                    <th className="py-3 px-3">{uiText.thCurrentLevel}</th>
+                    <th className="py-3 px-3">{uiText.thLiveStorage}</th>
+                    <th className="py-3 px-3">{uiText.thFillPercentage}</th>
+                    <th className="py-3 px-3">{uiText.thInflowOutflow}</th>
+                    <th className="py-3 px-3">{uiText.thSatelliteNdwi}</th>
+                    <th className="py-3 px-3.5 text-right">{uiText.thViewOnMap}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {filteredReservoirs.map((res) => (
-                    <tr key={res.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-3">
-                        <strong className="text-slate-900 block font-bold">{res.name}</strong>
-                        <span className="text-[10px] text-slate-400 font-telugu">{res.teluguName || res.mandal || 'APWRIMS Asset'}</span>
+                    <tr key={res.id} className="hover:bg-sky-50/40 transition-colors">
+                      <td className="py-3 px-3.5">
+                        <div className="flex items-start gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-sky-100 text-[#0077B6] flex items-center justify-center shrink-0 mt-0.5">
+                            <Droplets className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <strong className="text-slate-900 block font-bold text-xs">{res.name}</strong>
+                            <span className="text-[11px] text-slate-500 font-telugu block">
+                              {res.teluguName || res.mandal || 'APWRIMS Asset'}
+                            </span>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="text-slate-800 font-medium block">{res.district}</span>
-                        <span className="text-[10px] text-slate-400">{res.basin} Basin</span>
+                        <span className="text-slate-800 font-semibold block">{res.district}</span>
+                        <span className="text-[10px] text-slate-400 font-medium">{res.basin} Basin</span>
                       </td>
-                      <td className="py-3 px-3 font-mono font-medium text-slate-700">
+                      <td className="py-3 px-3 font-mono font-medium text-slate-700 tabular-nums">
                         {res.grossCapacityTMC} TMC
                       </td>
-                      <td className="py-3 px-3 font-mono font-medium text-slate-900">
+                      <td className="py-3 px-3 font-mono font-medium text-slate-900 tabular-nums">
                         {res.currentLevelFeet ? `${res.currentLevelFeet} ft` : 'Normal'}
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-[#0077B6] tabular-nums">
+                      <td className="py-3 px-3 font-mono font-black text-[#0077B6] tabular-nums">
                         {res.currentStorageTMC} TMC
                       </td>
                       <td className="py-3 px-3 font-mono tabular-nums">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          res.storagePercentage > 75 ? 'bg-emerald-100 text-emerald-800' :
-                          res.storagePercentage > 35 ? 'bg-sky-100 text-sky-800' : 'bg-rose-100 text-rose-800'
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          res.storagePercentage > 75 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                          res.storagePercentage > 35 ? 'bg-sky-100 text-sky-800 border border-sky-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
                         }`}>
                           {res.storagePercentage}%
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-mono text-[11px] text-slate-600">
-                        {res.inflowCusecs || 0} / {res.outflowCusecs || 0} cfs
+                      <td className="py-3 px-3 font-mono text-[11px] text-slate-600 tabular-nums">
+                        <div><span className="text-emerald-700 font-semibold">↓</span> {res.inflowCusecs || 0} cfs</div>
+                        <div><span className="text-amber-700 font-semibold">↑</span> {res.outflowCusecs || 0} cfs</div>
                       </td>
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-3 px-3 text-[11px]">
+                        <div className="flex items-center gap-1 font-mono text-purple-700 font-semibold">
+                          <Satellite className="w-3 h-3 text-purple-500 shrink-0" />
+                          <span>{res.bhuvanSatellite?.ndwiScore ?? 0.45}</span>
+                        </div>
+                        <span className="text-[9px] text-slate-400 block truncate max-w-[110px]">
+                          {(res.bhuvanSatellite?.waterSpreadAreaHa ?? 12000).toLocaleString()} Ha
+                        </span>
+                      </td>
+                      <td className="py-3 px-3.5 text-right">
                         <button
                           onClick={() => {
                             setSelectedReservoir(res);
-                            setActiveTab('overview');
+                            setFocusedReservoir(res);
+                            setActiveTab('map');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="px-2.5 py-1 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                          className="px-3 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold transition-all shadow-2xs hover:scale-102 cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+                          title={`${uiText.btnViewOnMap}: ${res.name}`}
                         >
-                          Focus
+                          <MapPin className="w-3.5 h-3.5 text-cyan-300" />
+                          <span>{uiText.btnViewOnMap}</span>
                         </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {filteredReservoirs.length === 0 && (
+                <div className="text-center py-10 text-slate-400 text-xs">
+                  {uiText.noMatchingRecordsDesc || 'No reservoirs found matching your search criteria.'}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3734,113 +4223,670 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* TAB 6: USERS AND ROLES (DEPARTMENTAL PERSONNEL & RBAC)              */}
       {/* ==================================================================== */}
       {activeTab === 'users_and_roles' && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                Departmental Personnel Directory
-              </h2>
-              <p className="text-xs text-slate-500">
-                Manage Nodal Officers, Field Inspectors, and Action Crews across all 26 districts of Andhra Pradesh.
-              </p>
-            </div>
+        <div className="space-y-5">
+          {/* Executive AP State Command Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#021B38] via-[#004B7A] to-[#0077B6] text-white p-6 shadow-xl border border-sky-800/40">
+            {/* Subtle radial decorative ambient accents */}
+            <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-sky-400/10 blur-3xl pointer-events-none" />
+            <div className="absolute right-1/3 -bottom-20 w-80 h-80 rounded-full bg-teal-400/10 blur-3xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg shrink-0">
+                  <Users className="w-7 h-7 text-sky-200" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-sky-400/20 text-sky-200 font-bold border border-sky-300/30 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-sky-300" />
+                      Govt of Andhra Pradesh &bull; APWRIMS
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 font-bold border border-emerald-300/30">
+                      RBAC Enforced
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">
+                    Departmental Personnel Directory &amp; Cadre Roster
+                  </h2>
+                  <p className="text-xs text-sky-100/80 max-w-2xl leading-relaxed">
+                    Apex District Nodal Officers (IAS/SE), Certified Field Quality Inspectors, and Heavy Earthmoving Restoration Crews across all 26 districts &bull; Synchronized with Supabase Central Ledger.
+                  </p>
+                </div>
+              </div>
 
-            <button
-              onClick={() => setIsAddUserModalOpen(true)}
-              className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Add Personnel</span>
-            </button>
-          </div>
+              {/* Action Buttons & Cloud Sync */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border backdrop-blur-md ${
+                  isSupabaseConfigured() 
+                    ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30' 
+                    : 'bg-amber-500/20 text-amber-200 border-amber-400/30'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                  <span>{isSupabaseConfigured() ? 'Supabase Live Connected' : 'Local Directory Active'}</span>
+                </div>
 
-          {/* Search & Filter Bar */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 shadow-2xs flex flex-wrap items-center gap-3 text-xs">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search staff by name, staff ID or phone..."
-                value={staffSearchQuery}
-                onChange={(e) => setStaffSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
-              />
-            </div>
+                <button
+                  onClick={handleSyncWithSupabase}
+                  disabled={isSyncingStaff}
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white border border-white/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer backdrop-blur-md"
+                  title="Sync and push personnel to Supabase cloud database"
+                >
+                  <RefreshCw className={`w-4 h-4 text-sky-200 ${isSyncingStaff ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingStaff ? 'Syncing Roster...' : 'Sync Supabase'}</span>
+                </button>
 
-            <select
-              value={staffRoleFilter}
-              onChange={(e) => setStaffRoleFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
-            >
-              <option value="all">Role: All Roles</option>
-              <option value="Nodal Officer">Nodal Officer</option>
-              <option value="Field Inspector">Field Inspector</option>
-              <option value="Action Worker">Action Worker</option>
-            </select>
-
-            <select
-              value={staffDistrictFilter}
-              onChange={(e) => setStaffDistrictFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
-            >
-              <option value="all">District: All</option>
-              {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
-                <option key={d.id} value={d.name}>{d.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Personnel Table */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                    <th className="py-2.5 px-3">Personnel Name</th>
-                    <th className="py-2.5 px-3">Staff ID</th>
-                    <th className="py-2.5 px-3">Assigned Role</th>
-                    <th className="py-2.5 px-3">Jurisdiction</th>
-                    <th className="py-2.5 px-3">Contact</th>
-                    <th className="py-2.5 px-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {staffList.filter(s => {
-                    const matchSearch = !staffSearchQuery || s.name.toLowerCase().includes(staffSearchQuery.toLowerCase()) || s.staffId.toLowerCase().includes(staffSearchQuery.toLowerCase());
-                    const matchRole = staffRoleFilter === 'all' || s.role === staffRoleFilter;
-                    const matchDist = staffDistrictFilter === 'all' || s.district === staffDistrictFilter;
-                    return matchSearch && matchRole && matchDist;
-                  }).map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-3">
-                        <strong className="text-slate-900 block font-bold">{s.name}</strong>
-                        <span className="text-[10px] text-slate-400">{s.email}</span>
-                      </td>
-                      <td className="py-3 px-3 font-mono font-bold text-[#0077B6]">{s.staffId}</td>
-                      <td className="py-3 px-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          s.role === 'Nodal Officer' ? 'bg-sky-100 text-[#0077B6]' :
-                          s.role === 'Field Inspector' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {s.role}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="text-slate-800 font-medium block">{s.district}</span>
-                        <span className="text-[10px] text-slate-400">{s.jurisdictionSubBasin}</span>
-                      </td>
-                      <td className="py-3 px-3 font-mono text-slate-700">{s.phone}</td>
-                      <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                          {s.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <button
+                  onClick={() => setIsAddUserModalOpen(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-emerald-950/20 cursor-pointer transform hover:scale-[1.02]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Onboard Personnel</span>
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Sync Success Notification Toast */}
+          {staffSyncSuccessToast && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-3.5 flex items-center justify-between text-xs font-semibold shadow-xs animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{staffSyncSuccessToast}</span>
+              </div>
+              <button 
+                onClick={() => setStaffSyncSuccessToast(null)}
+                className="text-emerald-700 hover:text-emerald-900 font-bold p-1 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+          )}
+
+          {/* 4 Executive KPI Metric Cards with Glassmorphic Accents */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Verified Cadre */}
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50/30 border border-slate-200/90 hover:border-sky-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Total Verified Cadre
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-sky-100 text-[#0077B6] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Users className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-slate-900 mt-2 tracking-tight">
+                {staffList.length} <span className="text-sm font-bold text-slate-500 font-normal">Officers</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100 text-xs">
+                <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="text-emerald-700 font-bold text-[11px]">
+                  {staffList.filter(s => s.status === 'Active' || s.status === 'On Duty').length} Active on Field
+                </span>
+                <span className="text-slate-400 text-[10px] ml-auto">26 Districts</span>
+              </div>
+            </div>
+
+            {/* Nodal Officers */}
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-blue-50/30 border border-slate-200/90 hover:border-blue-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Nodal Officers (Apex)
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Briefcase className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-[#0077B6] mt-2 tracking-tight">
+                {staffList.filter(s => s.role === 'Nodal Officer').length} <span className="text-sm font-bold text-slate-500 font-normal">Leads</span>
+              </div>
+              <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-slate-100 text-[11px] text-slate-600">
+                <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="truncate">District Collectors &amp; SEs</span>
+              </div>
+            </div>
+
+            {/* Field Quality Inspectors */}
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-purple-50/30 border border-slate-200/90 hover:border-purple-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Field Inspectors
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Microscope className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-purple-700 mt-2 tracking-tight">
+                {staffList.filter(s => s.role === 'Field Inspector').length} <span className="text-sm font-bold text-slate-500 font-normal">Auditors</span>
+              </div>
+              <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-slate-100 text-[11px] text-slate-600">
+                <Droplets className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span className="truncate">TDS Testing &amp; Silt Audits</span>
+              </div>
+            </div>
+
+            {/* Action Workers & Heavy Crews */}
+            <div className="relative overflow-hidden bg-gradient-to-b from-white to-emerald-50/30 border border-slate-200/90 hover:border-emerald-300 p-5 rounded-3xl shadow-xs transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Action Workers
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Truck className="w-4.5 h-4.5" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-emerald-700 mt-2 tracking-tight">
+                {staffList.filter(s => s.role === 'Action Worker').length} <span className="text-sm font-bold text-slate-500 font-normal">Crews</span>
+              </div>
+              <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-slate-100 text-[11px] text-slate-600">
+                <Wrench className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">JCB 3DX &amp; Suction Fleets</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Segmented Cadre Filter Pills & Command Search Toolbar */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-4 shadow-2xs space-y-3">
+            {/* 1-Click Role Segmented Filter Pills */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-2xl flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    staffRoleFilter === 'all'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-slate-500" />
+                  <span>All Cadre</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                    staffRoleFilter === 'all' ? 'bg-slate-100 text-slate-800' : 'bg-slate-200/70 text-slate-600'
+                  }`}>
+                    {staffList.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('Nodal Officer')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    staffRoleFilter === 'Nodal Officer'
+                      ? 'bg-[#0077B6] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-[#0077B6] hover:bg-white/50'
+                  }`}
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  <span>Nodal Officers</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                    staffRoleFilter === 'Nodal Officer' ? 'bg-sky-400/30 text-white' : 'bg-sky-100 text-[#0077B6]'
+                  }`}>
+                    {staffList.filter(s => s.role === 'Nodal Officer').length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('Field Inspector')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    staffRoleFilter === 'Field Inspector'
+                      ? 'bg-purple-700 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-purple-700 hover:bg-white/50'
+                  }`}
+                >
+                  <Microscope className="w-3.5 h-3.5" />
+                  <span>Field Inspectors</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                    staffRoleFilter === 'Field Inspector' ? 'bg-purple-400/30 text-white' : 'bg-purple-100 text-purple-700'
+                  }`}>
+                    {staffList.filter(s => s.role === 'Field Inspector').length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('Action Worker')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    staffRoleFilter === 'Action Worker'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-emerald-700 hover:bg-white/50'
+                  }`}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Action Workers</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                    staffRoleFilter === 'Action Worker' ? 'bg-emerald-400/30 text-white' : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {staffList.filter(s => s.role === 'Action Worker').length}
+                  </span>
+                </button>
+              </div>
+
+              {/* View Mode Toggle: Cards vs Table */}
+              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setStaffViewMode('cards')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    staffViewMode === 'cards' 
+                      ? 'bg-white text-[#0077B6] shadow-xs' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Card Grid View"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStaffViewMode('table')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    staffViewMode === 'table' 
+                      ? 'bg-white text-[#0077B6] shadow-xs' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Administrative Table View"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Table</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Search Input, District Filter, Status Filter */}
+            <div className="flex flex-wrap items-center gap-2.5 text-xs">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search by officer name, staff ID, phone, mandal, sub-basin, machinery..."
+                  value={staffSearchQuery}
+                  onChange={(e) => setStaffSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9.5 pr-8 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all"
+                />
+                {staffSearchQuery && (
+                  <button
+                    onClick={() => setStaffSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* District Filter Dropdown */}
+              <select
+                value={staffDistrictFilter}
+                onChange={(e) => setStaffDistrictFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all"
+              >
+                <option value="all">District: All (26 Districts)</option>
+                {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+              </select>
+
+              {/* Status Filter Dropdown */}
+              <select
+                value={staffStatusFilter}
+                onChange={(e) => setStaffStatusFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-[#0077B6] focus:bg-white transition-all"
+              >
+                <option value="all">Duty: All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="On Duty">On Duty</option>
+                <option value="Standby">Standby</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              {/* Reset Filters button if any are applied */}
+              {(staffSearchQuery || staffRoleFilter !== 'all' || staffDistrictFilter !== 'all' || staffStatusFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStaffSearchQuery('');
+                    setStaffRoleFilter('all');
+                    setStaffDistrictFilter('all');
+                    setStaffStatusFilter('all');
+                  }}
+                  className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3 text-slate-500" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filtered Results Presentation */}
+          {(() => {
+            const filtered = staffList.filter(s => {
+              const q = staffSearchQuery.trim().toLowerCase();
+              const matchSearch = !q || 
+                s.name.toLowerCase().includes(q) || 
+                s.staffId.toLowerCase().includes(q) || 
+                s.phone.includes(q) ||
+                s.district.toLowerCase().includes(q) ||
+                (s.jurisdictionSubBasin && s.jurisdictionSubBasin.toLowerCase().includes(q)) ||
+                (s.specializationOrMachinery && s.specializationOrMachinery.toLowerCase().includes(q)) ||
+                (s.agencyOrUnit && s.agencyOrUnit.toLowerCase().includes(q));
+              const matchRole = staffRoleFilter === 'all' || s.role === staffRoleFilter;
+              const matchDist = staffDistrictFilter === 'all' || s.district === staffDistrictFilter;
+              const matchStatus = staffStatusFilter === 'all' || s.status === staffStatusFilter;
+              return matchSearch && matchRole && matchDist && matchStatus;
+            });
+
+            if (filtered.length === 0) {
+              return (
+                <div className="bg-white border border-slate-200/90 rounded-3xl p-12 text-center space-y-3.5 shadow-2xs">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <Search className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-800">No personnel match your active filters</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    No departmental personnel were found matching your current search query or district selection.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setStaffSearchQuery('');
+                      setStaffRoleFilter('all');
+                      setStaffDistrictFilter('all');
+                      setStaffStatusFilter('all');
+                    }}
+                    className="px-5 py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Reset All Filters
+                  </button>
+                </div>
+              );
+            }
+
+            {/* Cards View Mode */}
+            if (staffViewMode === 'cards') {
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4.5">
+                  {filtered.map((person) => {
+                    const isNodal = person.role === 'Nodal Officer';
+                    const isInspector = person.role === 'Field Inspector';
+                    const isWorker = person.role === 'Action Worker';
+
+                    // Role Theme styling tokens
+                    const roleColor = isNodal
+                      ? {
+                          borderTop: 'from-[#0077B6] via-sky-400 to-[#03045E]',
+                          badgeBg: 'bg-sky-50 text-[#0077B6] border-sky-200',
+                          avatarBg: 'bg-gradient-to-br from-sky-500 to-[#0077B6] text-white',
+                          accentLight: 'bg-sky-50/70 border-sky-100',
+                          iconColor: 'text-[#0077B6]',
+                          titleHover: 'group-hover:text-[#0077B6]'
+                        }
+                      : isInspector
+                      ? {
+                          borderTop: 'from-purple-600 via-indigo-500 to-violet-700',
+                          badgeBg: 'bg-purple-50 text-purple-700 border-purple-200',
+                          avatarBg: 'bg-gradient-to-br from-purple-500 to-indigo-700 text-white',
+                          accentLight: 'bg-purple-50/70 border-purple-100',
+                          iconColor: 'text-purple-600',
+                          titleHover: 'group-hover:text-purple-700'
+                        }
+                      : {
+                          borderTop: 'from-emerald-600 via-teal-400 to-green-700',
+                          badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                          avatarBg: 'bg-gradient-to-br from-emerald-500 to-teal-700 text-white',
+                          accentLight: 'bg-emerald-50/70 border-emerald-100',
+                          iconColor: 'text-emerald-600',
+                          titleHover: 'group-hover:text-emerald-700'
+                        };
+
+                    const statusPill = person.status === 'On Duty'
+                      ? 'bg-sky-50 text-sky-800 border-sky-200'
+                      : person.status === 'Active'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border-amber-200';
+
+                    return (
+                      <div 
+                        key={person.id}
+                        className="group bg-white border border-slate-200/90 hover:border-slate-300 rounded-3xl p-5 shadow-2xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden"
+                      >
+                        {/* Top Accent Ribbon */}
+                        <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${roleColor.borderTop}`} />
+
+                        <div className="space-y-4 pt-1">
+                          {/* Role Badge & Status Toggle */}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${roleColor.badgeBg}`}>
+                              {isNodal && <Briefcase className="w-3 h-3" />}
+                              {isInspector && <Microscope className="w-3 h-3" />}
+                              {isWorker && <Truck className="w-3 h-3" />}
+                              <span>{person.role}</span>
+                            </span>
+
+                            <button
+                              onClick={() => handleToggleStaffStatus(person.id)}
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1 cursor-pointer hover:scale-105 ${statusPill}`}
+                              title="Click to cycle status (Active -> On Duty -> Standby)"
+                            >
+                              <div className={`w-1.5 h-1.5 rounded-full ${person.status === 'Active' ? 'bg-emerald-500' : person.status === 'On Duty' ? 'bg-sky-500' : 'bg-amber-500'}`} />
+                              <span>{person.status}</span>
+                            </button>
+                          </div>
+
+                          {/* Profile Overview Row */}
+                          <div className="flex items-start gap-3.5">
+                            {/* Avatar with Officer Initials and Verified Ring */}
+                            <div className="relative shrink-0">
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm ${roleColor.avatarBg}`}>
+                                {person.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('') || 'AP'}
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center text-emerald-600">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                              </div>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <h3 className={`font-black text-sm text-slate-900 truncate tracking-tight transition-colors ${roleColor.titleHover}`}>
+                                {person.name}
+                              </h3>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span className="font-mono text-[10px] font-bold text-[#0077B6] bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                                  {person.staffId}
+                                </span>
+                                {person.sourceTable === 'supabase' && (
+                                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-0.5">
+                                    <Database className="w-2.5 h-2.5" />
+                                    <span>Cloud</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* District & Catchment Cardlet */}
+                          <div className="space-y-1 bg-slate-50/90 p-3 rounded-2xl text-xs border border-slate-100">
+                            <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+                              <MapPin className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
+                              <span className="truncate">{person.district} District</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 pl-5 line-clamp-1">
+                              {person.jurisdictionSubBasin}
+                            </p>
+                          </div>
+
+                          {/* Operational Capability & Machinery Box */}
+                          <div className="space-y-1.5 text-xs">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                              {isWorker 
+                                ? 'Assigned Machinery & Equipment' 
+                                : isInspector 
+                                ? 'Testing Scope & Laboratory Protocols' 
+                                : 'Administrative Mandate & Governance'}
+                            </span>
+                            <div className={`p-3 rounded-2xl border text-[11px] font-medium leading-relaxed ${roleColor.accentLight}`}>
+                              <div className="flex items-start gap-1.5 text-slate-800">
+                                {isWorker && <Wrench className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />}
+                                {isInspector && <Microscope className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />}
+                                {isNodal && <Building2 className="w-3.5 h-3.5 text-[#0077B6] shrink-0 mt-0.5" />}
+                                <span className="line-clamp-2">
+                                  {person.specializationOrMachinery || person.jurisdictionSubBasin}
+                                </span>
+                              </div>
+                              {person.agencyOrUnit && (
+                                <div className="text-[10px] text-slate-500 font-normal mt-1.5 pt-1.5 border-t border-slate-200/60 flex items-center justify-between">
+                                  <span className="truncate">{person.agencyOrUnit}</span>
+                                  {person.crewStrength && (
+                                    <span className="font-bold shrink-0 text-slate-600">
+                                      &bull; Crew: {person.crewStrength}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Assigned Mandals Tags */}
+                          {person.assignedMandals && person.assignedMandals.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {person.assignedMandals.map((m, idx) => (
+                                <span key={idx} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold border border-slate-200/60">
+                                  {m}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Footer: Quick Actions */}
+                        <div className="pt-3.5 mt-3.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={`tel:${person.phone}`}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-700 font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title={`Call ${person.name} (${person.phone})`}
+                            >
+                              <Phone className="w-3 h-3" />
+                              <span className="hidden sm:inline">Call</span>
+                            </a>
+                            <a
+                              href={`mailto:${person.email}`}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-700 font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title={`Email ${person.name}`}
+                            >
+                              <Mail className="w-3 h-3" />
+                              <span className="hidden sm:inline">Mail</span>
+                            </a>
+                          </div>
+
+                          <button
+                            onClick={() => setSelectedStaffDetail(person)}
+                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-slate-900 to-[#0077B6] hover:from-[#0077B6] hover:to-[#03045E] text-white font-bold text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Dossier</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            {/* High-Density Administrative Table View */}
+            return (
+              <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
+                        <th className="py-3 px-3">Personnel Name &amp; Contact</th>
+                        <th className="py-3 px-3">Staff ID</th>
+                        <th className="py-3 px-3">Assigned Role</th>
+                        <th className="py-3 px-3">District &amp; Jurisdiction</th>
+                        <th className="py-3 px-3">Specialization / Machinery</th>
+                        <th className="py-3 px-3">Duty Status</th>
+                        <th className="py-3 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filtered.map((s) => (
+                        <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 ${
+                                s.role === 'Nodal Officer' ? 'bg-[#0077B6]' :
+                                s.role === 'Field Inspector' ? 'bg-purple-700' : 'bg-emerald-700'
+                              }`}>
+                                {s.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('') || 'AP'}
+                              </div>
+                              <div>
+                                <strong className="text-slate-900 block font-bold text-xs">{s.name}</strong>
+                                <span className="text-[10px] text-slate-400 block font-mono">{s.phone}</span>
+                                <span className="text-[10px] text-slate-400 block">{s.email}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-[#0077B6]">
+                            <span className="bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                              {s.staffId}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              s.role === 'Nodal Officer' ? 'bg-sky-50 text-[#0077B6] border-sky-200' :
+                              s.role === 'Field Inspector' ? 'bg-purple-50 text-purple-800 border-purple-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}>
+                              {s.role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="text-slate-800 font-semibold block">{s.district}</span>
+                            <span className="text-[10px] text-slate-400 line-clamp-1">{s.jurisdictionSubBasin}</span>
+                          </td>
+                          <td className="py-3 px-3 max-w-xs text-[11px] text-slate-600">
+                            {s.specializationOrMachinery || s.jurisdictionSubBasin}
+                          </td>
+                          <td className="py-3 px-3">
+                            <button
+                              onClick={() => handleToggleStaffStatus(s.id)}
+                              className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px] hover:bg-emerald-100 cursor-pointer"
+                              title="Click to toggle status"
+                            >
+                              &bull; {s.status}
+                            </button>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <a
+                                href={`tel:${s.phone}`}
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
+                                title="Call Officer"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                              </a>
+                              <a
+                                href={`mailto:${s.email}`}
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-600 transition-colors"
+                                title="Email Officer"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                              </a>
+                              <button
+                                onClick={() => setSelectedStaffDetail(s)}
+                                className="px-2.5 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0077B6] font-bold text-xs transition-colors cursor-pointer"
+                              >
+                                Dossier
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -4461,11 +5507,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* ==================================================================== */}
-      {/* MODAL 3: Add Departmental Personnel                                 */}
+      {/* MODAL 3: Add Departmental Personnel & Save to Supabase Cloud         */}
       {/* ==================================================================== */}
       {isAddUserModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-sky-50 text-[#0077B6] flex items-center justify-center font-bold">
@@ -4476,7 +5522,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     Add Departmental Personnel
                   </h3>
                   <span className="text-xs text-slate-400">
-                    Provision credentials for water surveillance
+                    Provision credentials &bull; Syncs with Supabase Cloud
                   </span>
                 </div>
               </div>
@@ -4491,12 +5537,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <form onSubmit={handleAddNewStaff} className="space-y-3.5 text-xs">
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  Full Name
+                  Full Name &amp; Official Designation *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Ramesh Kumar"
+                  placeholder="e.g. Sri K. Rama Krishna / Er. T. Venkata Ramana"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
@@ -4506,7 +5552,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                    Role
+                    Assigned Role *
                   </label>
                   <select
                     value={newUserRole}
@@ -4521,7 +5567,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                    District
+                    Assigned District *
                   </label>
                   <select
                     value={newUserDistrict}
@@ -4535,20 +5581,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
+                    Official Mobile Number *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. +91 94401 22334"
+                    value={newUserPhone}
+                    onChange={(e) => setNewUserPhone(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
+                    Official Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="e.g. officer@water.ap.gov.in"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
-                  Official Mobile Number
+                  Jurisdiction Catchment / Sub-Basin Zone
                 </label>
                 <input
-                  type="tel"
-                  placeholder="e.g. 9848012345"
-                  value={newUserPhone}
-                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  type="text"
+                  placeholder="e.g. Champavathi Basin & Tatipudi Command Cell"
+                  value={newUserSubBasin}
+                  onChange={(e) => setNewUserSubBasin(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
+                  {newUserRole === 'Action Worker' 
+                    ? 'Assigned Machinery & Equipment (e.g. 1x JCB 3DX Excavator + 2x Tipper Trucks)' 
+                    : newUserRole === 'Field Inspector' 
+                    ? 'Testing Specialization (e.g. TDS Multi-Parameter Water Testing & Silt Auditing)' 
+                    : 'Governance Specialization & Directive Scope'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={
+                    newUserRole === 'Action Worker'
+                      ? 'e.g. 1x JCB 3DX Heavy Excavator + 2x High-Pressure Sludge Tankers'
+                      : newUserRole === 'Field Inspector'
+                      ? 'e.g. TDS Testing, Siltation Photogrammetry & Industrial Effluent Tracing'
+                      : 'e.g. District Apex Water Surveillance & Emergency Directive Oversight'
+                  }
+                  value={newUserSpecialization}
+                  onChange={(e) => setNewUserSpecialization(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1">
+                  Departmental Division / Contracting Agency
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. AP Minor Irrigation Mechanical Unit #4 / GVMC Eco-Restoration"
+                  value={newUserAgency}
+                  onChange={(e) => setNewUserAgency(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0077B6]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAddUserModalOpen(false)}
@@ -4560,11 +5671,213 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Save Personnel</span>
+                  <Database className="w-4 h-4" />
+                  <span>Save &amp; Sync to Supabase</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL 4: Officer Detail Dossier Modal                                */}
+      {/* ==================================================================== */}
+      {selectedStaffDetail && (
+        <div 
+          onClick={() => setSelectedStaffDetail(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-xs animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-base border ${
+                  selectedStaffDetail.role === 'Nodal Officer' ? 'bg-sky-50 text-[#0077B6] border-sky-200' :
+                  selectedStaffDetail.role === 'Field Inspector' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                  'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}>
+                  {selectedStaffDetail.role === 'Nodal Officer' && <Briefcase className="w-6 h-6" />}
+                  {selectedStaffDetail.role === 'Field Inspector' && <Microscope className="w-6 h-6" />}
+                  {selectedStaffDetail.role === 'Action Worker' && <Truck className="w-6 h-6" />}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-slate-900 text-lg">
+                      {selectedStaffDetail.name}
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      {selectedStaffDetail.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-mono text-xs font-bold text-[#0077B6] bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                      {selectedStaffDetail.staffId}
+                    </span>
+                    <span className="text-xs text-slate-500 font-semibold">
+                      {selectedStaffDetail.role}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setSelectedStaffDetail(null)}
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content Details */}
+            <div className="space-y-4 text-xs">
+              {/* Jurisdiction & Agency */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                    District &amp; Command
+                  </span>
+                  <span className="font-bold text-slate-800 block text-xs">
+                    {selectedStaffDetail.district} District
+                  </span>
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                    {selectedStaffDetail.jurisdictionSubBasin}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                    Department / Agency
+                  </span>
+                  <span className="font-bold text-slate-800 block text-xs">
+                    {selectedStaffDetail.agencyOrUnit || `${selectedStaffDetail.district} Water Resources Unit`}
+                  </span>
+                  {selectedStaffDetail.crewStrength && (
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      Crew Capacity: {selectedStaffDetail.crewStrength} Personnel
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Machinery or Specialization */}
+              <div className="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#0077B6] block">
+                  {selectedStaffDetail.role === 'Action Worker' 
+                    ? 'Assigned Machinery & Earthmoving Equipment' 
+                    : selectedStaffDetail.role === 'Field Inspector'
+                    ? 'Field Testing Capabilities & Laboratory Scope'
+                    : 'Governance & Directive Authority'}
+                </span>
+                <p className="text-xs text-slate-800 font-semibold leading-relaxed">
+                  {selectedStaffDetail.specializationOrMachinery || selectedStaffDetail.jurisdictionSubBasin}
+                </p>
+              </div>
+
+              {/* Assigned Mandals if present */}
+              {selectedStaffDetail.assignedMandals && selectedStaffDetail.assignedMandals.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Assigned Mandals / Circles
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedStaffDetail.assignedMandals.map((m, idx) => (
+                      <span key={idx} className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Direct Contact Channels */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Official Communication Coordinates
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <a
+                    href={`tel:${selectedStaffDetail.phone}`}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0077B6] hover:text-white transition-all border border-slate-200/80 flex items-center gap-2.5 group cursor-pointer"
+                  >
+                    <div className="p-2 rounded-xl bg-sky-100 text-[#0077B6] group-hover:bg-white/20 group-hover:text-white">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 group-hover:text-sky-100 block font-medium">Direct Phone</span>
+                      <strong className="text-xs text-slate-900 group-hover:text-white font-mono">{selectedStaffDetail.phone}</strong>
+                    </div>
+                  </a>
+
+                  <a
+                    href={`mailto:${selectedStaffDetail.email}`}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0077B6] hover:text-white transition-all border border-slate-200/80 flex items-center gap-2.5 group cursor-pointer"
+                  >
+                    <div className="p-2 rounded-xl bg-purple-100 text-purple-700 group-hover:bg-white/20 group-hover:text-white">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] text-slate-400 group-hover:text-sky-100 block font-medium">Govt Email</span>
+                      <strong className="text-xs text-slate-900 group-hover:text-white truncate block">{selectedStaffDetail.email}</strong>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              {/* Assigned Active Complaints from complaints dataset */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Active Assigned Surveillance Cases
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-[#0077B6]">
+                    {complaints.filter(c => 
+                      c.assignedNodalOfficer?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
+                      c.assignedInspector?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
+                      c.assignedEngineer?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
+                      c.district.toLowerCase() === selectedStaffDetail.district.toLowerCase()
+                    ).length} Live Cases
+                  </span>
+                </div>
+
+                <div className="max-h-36 overflow-y-auto space-y-1.5 divide-y divide-slate-100">
+                  {complaints.filter(c => 
+                    c.assignedNodalOfficer?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
+                    c.assignedInspector?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
+                    c.assignedEngineer?.toLowerCase().includes(selectedStaffDetail.name.toLowerCase()) ||
+                    c.district.toLowerCase() === selectedStaffDetail.district.toLowerCase()
+                  ).slice(0, 3).map((comp) => (
+                    <div key={comp.id} className="pt-1.5 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-mono font-bold text-[#0077B6]">{comp.id}</span>
+                        <span className="text-slate-600 block text-[11px] truncate max-w-xs">{comp.shortDescription}</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-700">
+                        {comp.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cloud Sync Source Info */}
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-100 font-mono">
+                <span>Database Source: {selectedStaffDetail.sourceTable === 'supabase' ? 'Supabase Central PostgreSQL' : 'APWRIMS Roster'}</span>
+                <span>Rating: {selectedStaffDetail.rating || 4.9} &starf;</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setSelectedStaffDetail(null)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Close Dossier
+              </button>
+            </div>
           </div>
         </div>
       )}

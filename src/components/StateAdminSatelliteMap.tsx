@@ -47,6 +47,8 @@ interface StateAdminSatelliteMapProps {
   onDispatchReminder?: (complaint: CitizenComplaint) => void;
   onReassignComplaint?: (complaint: CitizenComplaint) => void;
   onBackToDistricts?: () => void;
+  focusedReservoir?: APReservoirRecord | null;
+  onClearFocusedReservoir?: () => void;
 }
 
 // Authoritative Andhra Pradesh State Boundary Polygon
@@ -202,6 +204,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
   onDispatchReminder,
   onReassignComplaint,
   onBackToDistricts,
+  focusedReservoir,
+  onClearFocusedReservoir,
 }) => {
   const { language } = useLanguage();
   const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
@@ -216,6 +220,7 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
   const selectedDistrictLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const riverLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const markersLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const focusedReservoirLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Active Map Filter & Display States
   const [basemapTheme, setBasemapTheme] = useState<'satellite' | 'light_gis' | 'topo'>('satellite');
@@ -494,6 +499,65 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     });
   };
 
+  // Open Detailed Telemetry Flashcard for any specific AP Reservoir (with full Bhuvan telemetry)
+  const openSpecificReservoirFlashcard = (res: APReservoirRecord) => {
+    const currentLevelM = (res.currentLevelFeet * 0.3048).toFixed(1);
+    const frlEstimatedFeet = res.currentLevelFeet + (res.storagePercentage < 90 ? 12 : 3);
+    const frlEstimatedM = (frlEstimatedFeet * 0.3048).toFixed(1);
+    const boundary = findAPDistrictBoundary(res.district || '');
+
+    const titleText = currentLang === 'te' && res.teluguName
+      ? `${res.teluguName} (${res.name})`
+      : currentLang === 'hi'
+      ? `${res.name} जलाशय`
+      : `${res.name} Reservoir`;
+
+    const subtitleText = currentLang === 'te'
+      ? `${res.mandal ? `${res.mandal} మండలం, ` : ''}${res.district} జిల్లా • ${res.basin} బేసిన్`
+      : currentLang === 'hi'
+      ? `${res.mandal ? `${res.mandal} मंडल, ` : ''}${res.district} ज़िला • ${res.basin} बेसिन`
+      : `${res.mandal ? `${res.mandal} Mandal, ` : ''}${res.district} District • ${res.basin} Basin`;
+
+    setActiveFlashcard({
+      type: 'reservoir',
+      id: res.id,
+      title: titleText,
+      subtitle: subtitleText,
+      basin: `${res.basin} Basin`,
+      district: res.district,
+      lat: res.geoCoords.lat,
+      lng: res.geoCoords.lng,
+      categoryBadge: 'APWRIMS & CWC RSMS',
+      networkBadge: currentLang === 'te' ? 'జలాశయ కమాండ్' : currentLang === 'hi' ? 'जलाशय कमान' : 'Reservoir Command',
+      agency: 'Central Water Commission (CWC) & AP Water Resources Dept',
+      districtProfile: boundary ? {
+        districtName: boundary.name,
+        areaSqKm: boundary.areaSqKm,
+        headquarter: boundary.headquarter,
+        region: boundary.region,
+        onResetDistrict: () => applyDistrictSelection('all')
+      } : undefined,
+      primaryMetricLabel: currentLang === 'te' ? 'ప్రత్యక్ష నిల్వ' : currentLang === 'hi' ? 'लाइव जल भंडारण' : 'LIVE STORAGE',
+      primaryMetricValue: `${res.currentStorageTMC} TMC`,
+      primaryMetricSub: `${currentLang === 'te' ? 'స్థూల సామర్థ్యం' : currentLang === 'hi' ? 'सकल क्षमता' : 'Gross Capacity'}: ${res.grossCapacityTMC} TMC (${res.storagePercentage}% Full)`,
+      secondaryMetricLabel: currentLang === 'te' ? 'నీటి మట్టం' : currentLang === 'hi' ? 'वर्तमान जल स्तर' : 'WATER LEVEL',
+      secondaryMetricValue: `${currentLevelM} m (${res.currentLevelFeet} ft)`,
+      secondaryMetricSub: `FRL: ${frlEstimatedM} m (${frlEstimatedFeet} ft)`,
+      baselineLabel: currentLang === 'te' ? 'డిశ్చార్జ్ & ఇన్‌ఫ్లో' : currentLang === 'hi' ? 'डिस्चार्ज एवं अंतर्वाह' : 'Discharge & Inflow Telemetry',
+      baselineValue: `Inflow: ${res.inflowCusecs.toLocaleString()} cfs • Outflow: ${res.outflowCusecs.toLocaleString()} cfs`,
+      statusText: res.alert || (res.storagePercentage > 85 ? 'Spillway Gates Regulated' : res.storagePercentage < 25 ? 'Low Inflow Monitored' : 'Normal Hydrological Operations'),
+      statusColor: res.storagePercentage > 85 ? 'amber' : res.storagePercentage < 25 ? 'rose' : 'emerald',
+      metricExtraRight: `${res.storagePercentage}% Full`,
+      additionalInfo: [
+        { label: currentLang === 'hi' ? 'बाढ़ कुशन' : currentLang === 'te' ? 'వరద కుషన్' : 'Flood Cushion', value: `${res.floodCushionTMC} TMC` },
+        { label: currentLang === 'hi' ? 'इसरो उपग्रह NDWI' : currentLang === 'te' ? 'ఇస్రో ఉపగ్రహ NDWI' : 'ISRO Satellite NDWI', value: `${res.bhuvanSatellite?.ndwiScore ?? 0.45} (${res.bhuvanSatellite?.ndwiClassification ?? 'Deep Water'})` },
+        { label: currentLang === 'hi' ? 'जल फैलाव क्षेत्रफल' : currentLang === 'te' ? 'నీటి విస్తీర్ణం' : 'Water Spread Area', value: `${(res.bhuvanSatellite?.waterSpreadAreaHa ?? 12400).toLocaleString()} Ha` },
+        { label: currentLang === 'hi' ? 'उपग्रह सेंसर व पास' : currentLang === 'te' ? 'ఉపగ్రహ సెన్సార్' : 'Satellite Sensor & Pass', value: `${res.bhuvanSatellite?.satelliteSensor ?? 'Resourcesat-2A'} (${res.bhuvanSatellite?.passDate ?? '2026-10-04'})` },
+        { label: currentLang === 'hi' ? 'मृदा नमी स्थिति' : currentLang === 'te' ? 'నేల తేమ స్థితి' : 'Soil Moisture Status', value: res.bhuvanSatellite?.soilMoistureStatus ?? 'Moderate' }
+      ]
+    });
+  };
+
   // Expose global window helper for direct DOM clicks
   useEffect(() => {
     (window as any).__openAPDistrictHQ = (name: string) => {
@@ -661,6 +725,7 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       // Markers Layer Group
       markersLayerGroupRef.current = L.layerGroup().addTo(map);
       selectedDistrictLayerGroupRef.current = L.layerGroup().addTo(map);
+      focusedReservoirLayerRef.current = L.layerGroup().addTo(map);
 
       mapInstanceRef.current = map;
     }
@@ -761,6 +826,54 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
     };
 
   }, [basemapTheme, apBounds, selectedDistrict]);
+
+  // Handle focusing a specific reservoir (e.g. from Water Assets & Reservoirs "View on Map")
+  useEffect(() => {
+    if (!focusedReservoir) return;
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    map.invalidateSize();
+
+    // 1. Smoothly fly to the reservoir's exact coordinates with zoom 13
+    map.flyTo(
+      [focusedReservoir.geoCoords.lat, focusedReservoir.geoCoords.lng], 
+      13, 
+      { duration: 1.8 }
+    );
+
+    // 2. Highlight its district boundary (spatial context)
+    applyDistrictSelection(focusedReservoir.district, false);
+
+    // 3. Highlight reservoir with animated glowing catchment boundary & radar pulse
+    if (focusedReservoirLayerRef.current) {
+      focusedReservoirLayerRef.current.clearLayers();
+
+      // Outer animated radar pulse ring
+      L.circle([focusedReservoir.geoCoords.lat, focusedReservoir.geoCoords.lng], {
+        radius: 2500,
+        color: '#00F0FF',
+        weight: 3.5,
+        opacity: 0.9,
+        fillColor: '#00B4D8',
+        fillOpacity: 0.25,
+        dashArray: '6, 8'
+      }).addTo(focusedReservoirLayerRef.current);
+
+      // Inner crisp reservoir highlight circle
+      L.circle([focusedReservoir.geoCoords.lat, focusedReservoir.geoCoords.lng], {
+        radius: 900,
+        color: '#FFFFFF',
+        weight: 2.5,
+        opacity: 1,
+        fillColor: '#0077B6',
+        fillOpacity: 0.55
+      }).addTo(focusedReservoirLayerRef.current);
+    }
+
+    // 4. Automatically trigger and open the rich telemetry Flashcard
+    openSpecificReservoirFlashcard(focusedReservoir);
+  }, [focusedReservoir]);
 
   // 2. Render River Flow Vectors & Basins
   useEffect(() => {
@@ -972,41 +1085,31 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const marker = L.marker([res.geoCoords.lat, res.geoCoords.lng], { icon });
 
         marker.on('click', () => {
-          const currentLevelM = (res.currentLevelFeet * 0.3048).toFixed(1);
-          const frlEstimatedM = ((res.currentLevelFeet + (res.storagePercentage < 90 ? 8 : 2)) * 0.3048).toFixed(1);
-          const buffer = (Number(frlEstimatedM) - Number(currentLevelM)).toFixed(2);
-          const boundary = findAPDistrictBoundary(res.district || '');
+          // Highlight reservoir catchment boundary
+          if (focusedReservoirLayerRef.current) {
+            focusedReservoirLayerRef.current.clearLayers();
+            L.circle([res.geoCoords.lat, res.geoCoords.lng], {
+              radius: 2500,
+              color: '#00F0FF',
+              weight: 3.5,
+              opacity: 0.9,
+              fillColor: '#00B4D8',
+              fillOpacity: 0.25,
+              dashArray: '6, 8'
+            }).addTo(focusedReservoirLayerRef.current);
 
-          setActiveFlashcard({
-            type: 'reservoir',
-            title: `${res.name} Reservoir`,
-            subtitle: `${res.mandal || 'Catchment'}, ${res.district} District`,
-            basin: `${res.basin} Basin`,
-            district: res.district,
-            lat: res.geoCoords.lat,
-            lng: res.geoCoords.lng,
-            categoryBadge: 'CWC & APWRIMS RSMS',
-            networkBadge: 'Reservoir Command',
-            agency: 'Central Water Commission (CWC) & AP Water Resources Dept',
-            districtProfile: boundary ? {
-              districtName: boundary.name,
-              areaSqKm: boundary.areaSqKm,
-              headquarter: boundary.headquarter,
-              region: boundary.region,
-              onResetDistrict: () => applyDistrictSelection('all')
-            } : undefined,
-            primaryMetricLabel: 'LIVE STORAGE',
-            primaryMetricValue: `${res.currentStorageTMC} TMC`,
-            primaryMetricSub: `Gross Capacity: ${res.grossCapacityTMC} TMC (${res.storagePercentage}% Full)`,
-            secondaryMetricLabel: 'WATER LEVEL',
-            secondaryMetricValue: `${currentLevelM} m`,
-            secondaryMetricSub: `Current Level: ${res.currentLevelFeet} ft`,
-            baselineLabel: 'Current Outflow Discharge',
-            baselineValue: `${res.outflowCusecs.toLocaleString()} Cusecs (Flood Cushion: ${res.floodCushionTMC} TMC)`,
-            statusText: res.alert || (res.storagePercentage > 85 ? 'Spillway Gates Regulated' : 'Normal Hydrological Operations'),
-            statusColor: res.storagePercentage > 85 ? 'amber' : res.storagePercentage < 25 ? 'rose' : 'emerald',
-            metricExtraRight: `${res.storagePercentage}% Full`
-          });
+            L.circle([res.geoCoords.lat, res.geoCoords.lng], {
+              radius: 900,
+              color: '#FFFFFF',
+              weight: 2.5,
+              opacity: 1,
+              fillColor: '#0077B6',
+              fillOpacity: 0.55
+            }).addTo(focusedReservoirLayerRef.current);
+          }
+
+          applyDistrictSelection(res.district, false);
+          openSpecificReservoirFlashcard(res);
         });
 
         marker.addTo(markersGroup);

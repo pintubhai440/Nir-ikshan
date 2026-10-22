@@ -158,7 +158,7 @@ export const StatutoryDossierModal: React.FC<StatutoryDossierModalProps> = ({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    CAM 01 • Citizen
+                    Citizen
                   </span>
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                     Verified Nagrik
@@ -233,7 +233,7 @@ export const StatutoryDossierModal: React.FC<StatutoryDossierModalProps> = ({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#0077B6] flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#0077B6] animate-pulse"></span>
-                    CAM 02 • Nodal Officer
+                    Nodal Officer
                   </span>
                   <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
                     Apex Triage
@@ -307,7 +307,7 @@ export const StatutoryDossierModal: React.FC<StatutoryDossierModalProps> = ({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-teal-500"></span>
-                    CAM 03 • Field Inspector
+                    Field Inspector
                   </span>
                   <span className="text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                     Ground Truth
@@ -392,7 +392,7 @@ export const StatutoryDossierModal: React.FC<StatutoryDossierModalProps> = ({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    CAM 04 • Action Engineer
+                    Action Engineer
                   </span>
                   <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                     Field Action
