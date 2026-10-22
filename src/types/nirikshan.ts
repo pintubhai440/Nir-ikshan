@@ -107,8 +107,12 @@ export interface CitizenComplaint {
   assignedNodalOfficer: string;
   assignedInspector?: string;
   assignedInspectorPhone?: string;
+  assignedInspectorAt?: string;
   assignedEngineer?: string;
   assignedEngineerPhone?: string;
+  assignedEngineerAt?: string;
+  machineryDeployed?: string;
+  resolvedAt?: string;
   inspectionReport?: InspectorReport;
   workExecution?: EngineerWorkExecution;
 }

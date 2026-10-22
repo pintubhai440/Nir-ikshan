@@ -6,3 +6,13 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Media and attachment files that exceed GitHub API limits
+*.mp4
+*.mov
+*.webm
+*.avi
+*.mkv
+public/assets/aistudio/*.mp4
+public/assets/aistudio/*.pdf
+

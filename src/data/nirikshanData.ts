@@ -1302,8 +1302,11 @@ export const SAMPLE_CITIZEN_COMPLAINTS: CitizenComplaint[] = [
     assignedNodalOfficer: "Er. N. Subba Rao",
     assignedInspector: "Sri K. Rama Krishna",
     assignedInspectorPhone: "+91 94401 22334",
+    assignedInspectorAt: "2026-10-18 14:15:00",
     assignedEngineer: "Er. T. Venkata Ramana",
     assignedEngineerPhone: "+91 94402 33445",
+    assignedEngineerAt: "2026-10-19 14:00:00",
+    machineryDeployed: "1x JCB 3DX Heavy Excavator, 2x Tippers",
     inspectionReport: {
       id: "IR-403",
       inspectorName: "Sri K. Rama Krishna",
@@ -1351,8 +1354,11 @@ export const SAMPLE_CITIZEN_COMPLAINTS: CitizenComplaint[] = [
     assignedNodalOfficer: "Smt. P. Hemalatha",
     assignedInspector: "Sri M. Appala Naidu",
     assignedInspectorPhone: "+91 94403 44556",
+    assignedInspectorAt: "2026-10-18 14:45:00",
     assignedEngineer: "Er. G. Suresh Kumar",
     assignedEngineerPhone: "+91 94404 55667",
+    assignedEngineerAt: "2026-10-19 16:30:00",
+    machineryDeployed: "1x Pontoon Aquatic Weed Harvester & Biomass Shredder",
     inspectionReport: {
       id: "IR-788",
       inspectorName: "Sri M. Appala Naidu",
@@ -1400,6 +1406,7 @@ export const SAMPLE_CITIZEN_COMPLAINTS: CitizenComplaint[] = [
     assignedNodalOfficer: "District Nodal Officer (Vizianagaram)",
     assignedInspector: "Sri V. Jagannadha Rao",
     assignedInspectorPhone: "+91 94405 66778",
+    assignedInspectorAt: "2026-10-21 14:20:00",
     inspectionReport: {
       id: "IR-9760",
       inspectorName: "Sri V. Jagannadha Rao",

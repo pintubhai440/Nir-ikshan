@@ -19,6 +19,7 @@ import { ComplaintLiveSLACounter } from './ComplaintLiveSLACounter';
 import { ComplaintWorkflowTimeline } from './ComplaintWorkflowTimeline';
 import { WorkflowActionModal } from './WorkflowActionModal';
 import { SupabaseVercelModal } from './SupabaseVercelModal';
+import { formatStepTimestamp } from '../utils/slaTimer';
 import { generateWatershedPdfReport } from '../utils/generateWatershedPdf';
 import { RAW_MICRO_WATERSHEDS_DATA } from '../data/watershedData';
 import { useLanguage } from '../context/LanguageContext';
@@ -2762,23 +2763,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   return (
                     <div
                       key={c.id}
-                      className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all space-y-5"
+                      className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all space-y-3.5"
                     >
                       {/* Surveillance Docket Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                        <div className="flex flex-wrap items-center gap-2.5">
-                          {/* Pulsing CCTV Camera Beacon */}
-                          <div className="flex items-center gap-1.5 bg-slate-900 text-white px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold">
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* CCTV Camera Beacon */}
+                          <div className="flex items-center gap-1.5 bg-slate-900 text-white px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold shadow-2xs">
                             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
                             <Camera className="w-3.5 h-3.5 text-emerald-400" />
                             <span>CAM-APEX-{c.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4) || 'FEED'}</span>
                           </div>
 
-                          <span className="font-mono font-bold text-sm text-[#0077B6] bg-sky-50 px-2.5 py-0.5 rounded-lg border border-sky-200">
+                          <span className="font-mono font-bold text-xs sm:text-sm text-[#0077B6] bg-sky-50 px-2.5 py-0.5 rounded-lg border border-sky-200">
                             {c.id}
                           </span>
 
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider ${
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
                             isResolved
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                               : hasWork
@@ -2795,49 +2796,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           )}
                         </div>
 
-                        {/* SLA Accountability Badge & Interventions */}
+                        {/* State Admin Directives & Photo Audit */}
                         <div className="flex flex-wrap items-center gap-2">
                           <ComplaintLiveSLACounter complaint={c} variant="headerBadge" />
 
-                          <button
-                            onClick={() => {
-                              setWorkflowComplaint(c);
-                              const stepToOpen = 
-                                c.status === 'SUBMITTED' ? 2 :
-                                c.status === 'INSPECTOR_ASSIGNED' ? 3 :
-                                c.status === 'INSPECTION_COMPLETED' ? 4 :
-                                c.status === 'WORKER_IN_PROGRESS' || c.status === 'ACTION_ASSIGNED' ? 5 : 6;
-                              setInitialWorkflowStep(stepToOpen);
-                              setIsWorkflowModalOpen(true);
-                            }}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-                            title="प्रक्रिया आगे बढ़ाएं / अधिकारी नियुक्त करें"
-                          >
-                            <Wrench className="w-3.5 h-3.5" />
-                            <span>{uiText.btnAdvanceStage}</span>
-                          </button>
+                          {c.photoUrl && (
+                            <button
+                              onClick={() => setPhotoPreviewModal({
+                                url: c.photoUrl!,
+                                title: `Citizen Ground Evidence: ${c.citizenName} (${c.locationLandmark})`,
+                                subtitle: `GPS: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • ${c.village}, ${c.district}`
+                              })}
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                              title="ग्राउंड फोटो सबूत देखें"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-slate-600" />
+                              <span>{uiText.cardViewEvidencePhoto}</span>
+                            </button>
+                          )}
 
                           <button
                             onClick={() => {
                               setSelectedComplaintId(c.id);
                               setIsReminderModalOpen(true);
                             }}
-                            className="px-3 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                            className="px-3.5 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                            title="नोडल अधिकारी को आधिकारिक आदेश / चेतावनी मेमो जारी करें"
                           >
                             <Send className="w-3.5 h-3.5" />
                             <span>{uiText.btnSlaDirective}</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedComplaintId(c.id);
-                              setSelectedNewNodalOfficer(c.assignedNodalOfficer);
-                              setIsReassignModalOpen(true);
-                            }}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <UserCheck className="w-3.5 h-3.5 text-slate-500" />
-                            <span>{uiText.btnReassign}</span>
                           </button>
                         </div>
                       </div>
@@ -2846,7 +2833,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         
                         {/* CAMERA 01: CITIZEN COMPLAINANT */}
-                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4 space-y-3 relative flex flex-col justify-between">
+                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs">
                           <div>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
@@ -2858,7 +2845,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </div>
 
-                            <div className="mt-2.5 space-y-1">
+                            <div className="mt-2 space-y-0.5">
                               <div className="flex items-center justify-between">
                                 <strong className="text-sm font-black text-slate-900 capitalize">{c.citizenName}</strong>
                                 <span className="text-[11px] text-slate-500 font-mono">{uiText.cardAge} {c.citizenAge || '—'} • {c.citizenGender || 'Citizen'}</span>
@@ -2872,7 +2859,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </a>
                             </div>
 
-                            <div className="mt-2.5 pt-2 border-t border-slate-200/80 text-xs text-slate-600 space-y-1">
+                            <div className="mt-2 pt-2 border-t border-slate-200/80 text-xs text-slate-600 space-y-0.5">
                               <div className="flex items-start gap-1.5">
                                 <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
                                 <span className="line-clamp-2">
@@ -2884,7 +2871,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </div>
                             </div>
 
-                            <div className="mt-2.5 bg-white p-2.5 rounded-xl border border-slate-200 text-xs text-slate-700 italic">
+                            <div className="mt-2 bg-white p-2 rounded-xl border border-slate-200 text-xs text-slate-700 italic">
                               "{c.shortDescription}"
                             </div>
                           </div>
@@ -2897,11 +2884,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 title: `Citizen Ground Evidence: ${c.citizenName} (${c.locationLandmark})`,
                                 subtitle: `GPS Coordinates: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • ${c.village}, ${c.district}`
                               })}
-                              className="mt-2 rounded-xl overflow-hidden border border-slate-300 relative h-28 bg-slate-900 group cursor-pointer"
+                              className="mt-1.5 rounded-xl overflow-hidden border border-slate-300 relative h-32 bg-slate-900 group cursor-pointer shadow-xs"
                             >
-                              <img src={c.photoUrl} alt="Field proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              <img src={c.photoUrl} alt="Field proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                               <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
-                                <span className="bg-black/70 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
+                                <span className="bg-black/75 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
                                   <Maximize2 className="w-3 h-3 text-sky-400" />
                                   <span>{uiText.cardViewEvidencePhoto}</span>
                                 </span>
@@ -2914,19 +2901,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* CAMERA 02: DISTRICT NODAL OFFICER */}
-                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4 space-y-3 relative flex flex-col justify-between">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs hover:border-sky-300 transition-colors">
                           <div>
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                              <span className="text-[10px] font-black uppercase tracking-wider text-[#0077B6] flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-[#0077B6]"></span>
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-[#0077B6] flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-[#0077B6] animate-pulse"></span>
                                 {uiText.cardCamNodal}
                               </span>
-                              <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                              <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
                                 {uiText.cardApexTriage}
                               </span>
                             </div>
 
-                            <div className="mt-2.5 space-y-1">
+                            <div className="mt-2 space-y-0.5">
                               <strong className="text-sm font-black text-slate-900 block truncate">
                                 {c.assignedNodalOfficer || 'District Nodal Officer'}
                               </strong>
@@ -2935,35 +2922,81 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </div>
 
-                            <div className="mt-3 p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
+                            {/* Triage Speed & Statutory SLA Window */}
+                            <div className="mt-2 p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-1.5 text-xs">
                               <div className="flex items-center justify-between">
-                                <span className="text-slate-400 text-[11px]">{uiText.cardTriageSpeed}</span>
-                                <span className="font-mono font-bold text-emerald-600">{uiText.cardDispatchedTime}</span>
+                                <span className="text-slate-500 text-[11px]">{uiText.cardTriageSpeed}</span>
+                                <span className="font-mono font-bold text-emerald-700">
+                                  {c.assignedInspectorAt && c.submittedAt
+                                    ? `Dispatched in ${Math.max(0.5, Number(((new Date(c.assignedInspectorAt.replace(' ', 'T')).getTime() - new Date(c.submittedAt.replace(' ', 'T')).getTime()) / 3600000).toFixed(1)))} hrs`
+                                    : c.status === 'SUBMITTED' ? 'Triage in Progress' : 'Dispatched in 2.4 hrs'}
+                                </span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-slate-400 text-[11px]">{uiText.cardStatutorySla}</span>
+                                <span className="text-slate-500 text-[11px]">{uiText.cardStatutorySla}</span>
                                 <span className="font-mono font-bold text-slate-700">{uiText.card72hWindow}</span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-slate-400 text-[11px]">{uiText.cardAccountabilityLabel}</span>
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                                <span className="text-slate-500 text-[11px]">{uiText.cardAccountabilityLabel}</span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md">
                                   {uiText.cardDiligentCompliant}
                                 </span>
                               </div>
                             </div>
 
-                            <div className="mt-3 text-xs text-slate-600 space-y-1">
+                            {/* Timing stamps: Nodal assigned Inspector & Worker */}
+                            <div className="mt-2 p-2 bg-sky-50/70 rounded-xl border border-sky-100 space-y-1 text-[11px]">
+                              <div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider">
+                                    <Clock className="w-3 h-3 text-[#0077B6]" />
+                                    <span>Inspector Dispatched:</span>
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                    {c.assignedInspectorAt
+                                      ? formatStepTimestamp(c.assignedInspectorAt).formatted
+                                      : 'Pending Nodal Triage'}
+                                  </span>
+                                </div>
+                                {c.assignedInspectorAt && (
+                                  <div className="text-[10px] text-right font-mono text-emerald-700 font-bold">
+                                    ⚡ {formatStepTimestamp(c.assignedInspectorAt, c.submittedAt, 'after citizen filed').diffFromBaseline || 'Prompt dispatch'}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="pt-1 border-t border-sky-200/60">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider">
+                                    <Wrench className="w-3 h-3 text-amber-600" />
+                                    <span>Worker Work Order:</span>
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                    {c.workExecution?.assignedAt || c.assignedEngineerAt
+                                      ? formatStepTimestamp(c.workExecution?.assignedAt || c.assignedEngineerAt).formatted
+                                      : 'Pending Inspection Report'}
+                                  </span>
+                                </div>
+                                {(c.workExecution?.assignedAt || c.assignedEngineerAt) && (
+                                  <div className="text-[10px] text-right font-mono text-amber-700 font-bold">
+                                    ⚡ {formatStepTimestamp(c.workExecution?.assignedAt || c.assignedEngineerAt, c.inspectionReport?.inspectedAt || c.submittedAt, 'after inspection').diffFromBaseline || 'Remediation ordered'}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-2 text-xs text-slate-600 space-y-1">
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{uiText.cardAssignedPipeline}</span>
-                              <div className="bg-slate-100/80 p-2 rounded-lg space-y-1 text-[11px]">
+                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/80 space-y-1 text-[11px]">
                                 <div className="flex items-center justify-between">
                                   <span className="text-slate-500">{uiText.cardInspectorLabel}</span>
-                                  <span className="font-semibold text-slate-800 truncate max-w-[130px]">
+                                  <span className="font-semibold text-slate-900 truncate max-w-[130px]">
                                     {c.assignedInspector || c.inspectionReport?.inspectorName || 'Assigned'}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                   <span className="text-slate-500">{uiText.cardEngineerLabel}</span>
-                                  <span className="font-semibold text-slate-800 truncate max-w-[130px]">
+                                  <span className="font-semibold text-slate-900 truncate max-w-[130px]">
                                     {c.assignedEngineer || c.workExecution?.engineerName || 'Assigned'}
                                   </span>
                                 </div>
@@ -2971,29 +3004,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-slate-200">
+                          <div className="pt-2 border-t border-slate-100">
                             <button
                               onClick={() => {
                                 setSelectedComplaintId(c.id);
                                 setIsReminderModalOpen(true);
                               }}
-                              className="w-full py-1.5 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-xl text-xs font-bold border border-sky-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full py-2 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-xl text-xs font-bold border border-sky-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                             >
-                              <Send className="w-3 h-3" />
+                              <Send className="w-3.5 h-3.5" />
                               <span>{uiText.cardDispatchMemo}</span>
                             </button>
                           </div>
                         </div>
 
                         {/* CAMERA 03: FIELD INSPECTOR */}
-                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4 space-y-3 relative flex flex-col justify-between">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs hover:border-purple-300 transition-colors">
                           <div>
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                              <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-purple-600"></span>
                                 {uiText.cardCamInspector}
                               </span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                                 hasInspection
                                   ? 'bg-purple-100 text-purple-800 border-purple-200'
                                   : 'bg-amber-100 text-amber-800 border-amber-200'
@@ -3002,7 +3035,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </div>
 
-                            <div className="mt-2.5 space-y-1">
+                            <div className="mt-2 space-y-0.5">
                               <strong className="text-sm font-black text-slate-900 block truncate">
                                 {c.assignedInspector || c.inspectionReport?.inspectorName || 'Sri K. Rama Krishna'}
                               </strong>
@@ -3015,36 +3048,78 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </a>
                             </div>
 
-                            {c.inspectionReport ? (
-                              <div className="mt-3 p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
+                            {/* Timing stamps: Inspector checked site & Re-verification */}
+                            <div className="mt-2 p-2 bg-purple-50/70 rounded-xl border border-purple-100 space-y-1 text-[11px]">
+                              <div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-400 text-[11px]">{uiText.cardGpsVerification}</span>
-                                  <span className="font-mono font-bold text-emerald-600 flex items-center gap-1">
-                                    <Check className="w-3 h-3" />
+                                  <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider">
+                                    <Clock className="w-3 h-3 text-purple-700" />
+                                    <span>Site Inspected At:</span>
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                    {c.inspectionReport?.inspectedAt
+                                      ? formatStepTimestamp(c.inspectionReport.inspectedAt).formatted
+                                      : 'En-route to site'}
+                                  </span>
+                                </div>
+                                {c.inspectionReport?.inspectedAt && (
+                                  <div className="text-[10px] text-right font-mono text-emerald-700 font-bold">
+                                    ⚡ {formatStepTimestamp(c.inspectionReport.inspectedAt, c.assignedInspectorAt || c.submittedAt, 'from dispatch (Within 24h SLA)').diffFromBaseline || 'Verified on ground'}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="pt-1 border-t border-purple-200/60">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider">
+                                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                    <span>Re-Verification Sign-off:</span>
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                    {c.inspectionReport?.postWorkVerification?.verifiedAt
+                                      ? formatStepTimestamp(c.inspectionReport.postWorkVerification.verifiedAt).formatted
+                                      : isResolved ? 'Case Closed & Certified' : 'Pending Work Done Proof'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {c.inspectionReport ? (
+                              <div className="mt-2 p-2.5 bg-purple-50/40 rounded-xl border border-purple-100 space-y-1.5 text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-500 text-[11px]">{uiText.cardGpsVerification}</span>
+                                  <span className="font-mono font-bold text-emerald-700 flex items-center gap-1">
+                                    <Check className="w-3 h-3 text-emerald-600" />
                                     <span>{uiText.cardMatched100}</span>
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-400 text-[11px]">{uiText.cardWasteSeverity}</span>
-                                  <span className="font-bold text-rose-600 uppercase text-[11px]">
+                                  <span className="text-slate-500 text-[11px]">{uiText.cardWasteSeverity}</span>
+                                  <span className="font-bold text-rose-700 uppercase text-[11px]">
                                     {c.inspectionReport.wasteLevel || 'Heavy'}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-slate-400 text-[11px]">{uiText.cardWaterPresence}</span>
+                                  <span className="text-slate-500 text-[11px]">{uiText.cardWaterPresence}</span>
                                   <span className="font-semibold text-slate-800">{c.inspectionReport.waterPresence || 'Moderate'}</span>
                                 </div>
-                                <div className="pt-1 border-t border-slate-100 text-[11px] text-slate-600 line-clamp-2">
+                                {c.inspectionReport.tdsReadingPpm && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-slate-500 text-[11px]">Water TDS Reading:</span>
+                                    <span className="font-mono font-bold text-[#0077B6]">{c.inspectionReport.tdsReadingPpm} ppm</span>
+                                  </div>
+                                )}
+                                <div className="pt-1 border-t border-purple-200/60 text-[11px] text-slate-700 line-clamp-2">
                                   <strong>{uiText.labelNotes}</strong> {c.inspectionReport.validationRemarks || c.inspectionReport.sourcePinDescription}
                                 </div>
                               </div>
                             ) : (
-                              <div className="mt-3 p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1.5">
+                              <div className="mt-2 p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
                                 <div className="flex items-center gap-1.5 font-bold text-amber-800">
                                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                                   <span>{uiText.cardEnrouteBadge}</span>
                                 </div>
-                                <p className="text-[11px] text-amber-700">
+                                <p className="text-[11px] text-amber-700 leading-relaxed">
                                   {uiText.cardInspectorEnrouteDesc}
                                 </p>
                               </div>
@@ -3059,18 +3134,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 title: `Inspector Ground Report Photo: ${c.inspectionReport?.inspectorName}`,
                                 subtitle: `GPS Verified: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • Severity: ${c.inspectionReport?.wasteLevel}`
                               })}
-                              className="mt-2 rounded-xl overflow-hidden border border-purple-200 relative h-20 bg-slate-900 group cursor-pointer"
+                              className="mt-1.5 rounded-xl overflow-hidden border border-purple-200 relative h-32 bg-slate-900 group cursor-pointer shadow-xs"
                             >
-                              <img src={c.inspectionReport.sitePhotoUrl} alt="Inspection reality" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              <img src={c.inspectionReport.sitePhotoUrl} alt="Inspection reality" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                               <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
-                                <span className="bg-purple-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                                <span className="bg-purple-900/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
                                   <Eye className="w-3 h-3 text-purple-300" />
                                   <span>{uiText.cardInspectorEvidence}</span>
                                 </span>
                               </div>
                             </div>
                           ) : (
-                            <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                            <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
                               <span>{uiText.cardAccountabilityLabel}</span>
                               <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
                             </div>
@@ -3078,14 +3153,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* CAMERA 04: ACTION WORKER / ENGINEER */}
-                        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4 space-y-3 relative flex flex-col justify-between">
+                        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5 relative flex flex-col justify-between shadow-2xs hover:border-amber-300 transition-colors">
                           <div>
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                                 {uiText.cardCamWorker}
                               </span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                                 isResolved
                                   ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                                   : hasWork
@@ -3096,7 +3171,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </div>
 
-                            <div className="mt-2.5 space-y-1">
+                            <div className="mt-2 space-y-0.5">
                               <strong className="text-sm font-black text-slate-900 block truncate">
                                 {c.assignedEngineer || c.workExecution?.engineerName || 'Er. T. Venkata Ramana'}
                               </strong>
@@ -3109,55 +3184,123 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </a>
                             </div>
 
+                            {/* Timing stamps: Work assigned, started & proof uploaded */}
+                            <div className="mt-2 p-2 bg-amber-50/70 rounded-xl border border-amber-100 space-y-1 text-[11px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider">
+                                  <Wrench className="w-3 h-3 text-amber-700" />
+                                  <span>Work Assigned At:</span>
+                                </span>
+                                <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                  {c.workExecution?.assignedAt || c.assignedEngineerAt
+                                    ? formatStepTimestamp(c.workExecution?.assignedAt || c.assignedEngineerAt).formatted
+                                    : 'Awaiting Order'}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1 border-t border-amber-200/60">
+                                <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider">
+                                  <Clock className="w-3 h-3 text-amber-700" />
+                                  <span>Cleanup Started:</span>
+                                </span>
+                                <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                  {c.workExecution?.startedAt
+                                    ? formatStepTimestamp(c.workExecution.startedAt).formatted
+                                    : (c.workExecution?.assignedAt || hasWork) ? 'Machinery Dispatched' : 'Pending'}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1 border-t border-amber-200/60">
+                                <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px] uppercase tracking-wider">
+                                  <Camera className="w-3 h-3 text-indigo-600" />
+                                  <span>Proof Uploaded At:</span>
+                                </span>
+                                <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                  {c.workExecution?.completedAt
+                                    ? formatStepTimestamp(c.workExecution.completedAt).formatted
+                                    : hasWork ? 'In Progress on Field' : 'Pending'}
+                                </span>
+                              </div>
+                              {c.workExecution?.completedAt && (
+                                <div className="text-[10px] text-right font-mono text-emerald-700 font-bold">
+                                  ⚡ {formatStepTimestamp(c.workExecution.completedAt, c.workExecution.assignedAt, 'execution duration').diffFromBaseline || 'Cleared & Verified'}
+                                </div>
+                              )}
+                            </div>
+
                             {hasWork ? (
-                              <div className="mt-3 p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
+                              <div className="mt-2 p-2.5 bg-amber-50/40 rounded-xl border border-amber-100 space-y-1.5 text-xs">
                                 <div>
                                   <div className="flex items-center justify-between text-[11px] mb-1">
                                     <span className="font-bold text-slate-600">{uiText.cardProgressLabel}</span>
-                                    <span className="font-mono font-bold text-amber-600">
-                                      {isResolved ? uiText.card100Completed : uiText.card65Cleaned}
+                                    <span className="font-mono font-bold text-amber-700">
+                                      {isResolved ? uiText.card100Completed : c.status === 'VERIFICATION_PENDING' ? '90% (Proof Uploaded)' : uiText.card65Cleaned}
                                     </span>
                                   </div>
-                                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                  <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
                                     <div 
                                       className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                                      style={{ width: isResolved ? '100%' : '65%' }}
+                                      style={{ width: isResolved ? '100%' : c.status === 'VERIFICATION_PENDING' ? '90%' : '65%' }}
                                     />
                                   </div>
                                 </div>
 
-                                <div className="space-y-1 pt-1 text-[11px]">
-                                  <div className="flex items-center justify-between text-slate-500">
+                                <div className="space-y-0.5 pt-1 text-[11px]">
+                                  <div className="flex items-center justify-between text-slate-600">
                                     <span>{uiText.cardMachineryLabel}</span>
-                                    <span className="font-semibold text-slate-800 font-mono">1x JCB 3DX, 2x Tippers</span>
+                                    <span className="font-semibold text-slate-900 font-mono truncate max-w-[140px]">
+                                      {c.machineryDeployed || '1x JCB 3DX, 2x Tippers'}
+                                    </span>
                                   </div>
-                                  <div className="flex items-center justify-between text-slate-500">
+                                  <div className="flex items-center justify-between text-slate-600">
                                     <span>{uiText.cardManpowerLabel}</span>
-                                    <span className="font-semibold text-slate-800 font-mono">6 {uiText.cardWorkersDeployed}</span>
+                                    <span className="font-semibold text-slate-900 font-mono">6 {uiText.cardWorkersDeployed}</span>
                                   </div>
-                                  <div className="flex items-center justify-between text-slate-500">
+                                  <div className="flex items-center justify-between text-slate-600">
                                     <span>{uiText.cardWasteClearedLabel}</span>
-                                    <span className="font-semibold text-emerald-600 font-mono">{uiText.card31TonsHauled}</span>
+                                    <span className="font-semibold text-emerald-700 font-mono">
+                                      {c.workExecution?.workSummary?.match(/(\d+(\.\d+)?)\s*(tons?|metric tons?)/i)?.[0] || uiText.card31TonsHauled}
+                                    </span>
                                   </div>
                                 </div>
 
                                 {c.workExecution?.workSummary && (
-                                  <div className="pt-1.5 border-t border-slate-100 text-[11px] text-slate-600 line-clamp-2">
+                                  <div className="pt-1 border-t border-amber-200/60 text-[11px] text-slate-700 line-clamp-2">
                                     <strong>{uiText.labelReport}</strong> {c.workExecution.workSummary}
                                   </div>
                                 )}
                               </div>
                             ) : (
-                              <div className="mt-3 p-3 bg-slate-100 rounded-xl text-xs text-slate-600 space-y-1">
-                                <span className="font-bold text-slate-700 block">{uiText.cardWorkOrderDispatched}</span>
-                                <p className="text-[11px] text-slate-500">
+                              <div className="mt-2 p-2.5 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1 border border-slate-200/80">
+                                <span className="font-bold text-slate-800 block">{uiText.cardWorkOrderDispatched}</span>
+                                <p className="text-[11px] text-slate-500 leading-relaxed">
                                   {uiText.cardWorkOrderStagedDesc}
                                 </p>
                               </div>
                             )}
+
+                            {/* Cleaned Work Evidence Photo preview if available */}
+                            {c.workExecution?.afterPhotoUrl && (
+                              <div
+                                onClick={() => setPhotoPreviewModal({
+                                  url: c.workExecution!.afterPhotoUrl!,
+                                  title: `Remediation Work Proof: ${c.assignedEngineer || 'Execution Team'}`,
+                                  subtitle: `Grievance: ${c.id} • ${c.locationLandmark}`
+                                })}
+                                className="mt-1.5 rounded-xl overflow-hidden border border-emerald-300 relative h-32 bg-slate-900 group cursor-pointer shadow-xs"
+                              >
+                                <img src={c.workExecution.afterPhotoUrl} alt="Remediation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
+                                  <span className="bg-emerald-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                                    <CheckCircle className="w-3 h-3 text-emerald-300" />
+                                    <span>Cleaned Proof</span>
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                          <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono flex items-center justify-between">
                             <span>{uiText.cardAccountabilityLabel}</span>
                             <span className="font-bold text-emerald-600">{uiText.cardDiligentCompliant}</span>
                           </div>
@@ -3168,12 +3311,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {/* 6-STAGE OPERATIONAL LIFECYCLE PROGRESS TRACKER */}
                       <ComplaintWorkflowTimeline
                         complaint={c}
-                        onOpenWorkflowAction={(step) => {
-                          setWorkflowComplaint(c);
-                          setInitialWorkflowStep(step || 2);
-                          setIsWorkflowModalOpen(true);
-                        }}
-                        onOpenPhotoPreview={(data) => setPhotoPreviewModal(data)}
+                        onOpenPhotoPreview={(data: { url: string; title: string; subtitle?: string }) => setPhotoPreviewModal(data)}
                       />
 
                     </div>
@@ -4531,7 +4669,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         isOpen={isWorkflowModalOpen}
         initialStep={initialWorkflowStep}
         onClose={() => setIsWorkflowModalOpen(false)}
-        onUpdateComplaint={(updated) => {
+        onUpdateComplaint={(updated: CitizenComplaint) => {
           onUpdateComplaint?.(updated);
           setWorkflowComplaint(updated);
         }}

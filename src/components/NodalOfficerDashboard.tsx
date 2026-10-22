@@ -283,6 +283,14 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   </div>
                 )}
 
+                {/* 4b. If VERIFICATION_PENDING */}
+                {c.status === 'VERIFICATION_PENDING' && (
+                  <div className="w-full py-2 bg-indigo-50 text-indigo-900 text-xs font-semibold rounded-lg text-center border border-indigo-200 flex items-center justify-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>वर्कर ने सबूत अपलोड किया • इंस्पेक्टर का भौतिक सत्यापन प्रतीक्षारत</span>
+                  </div>
+                )}
+
                 {/* 5. If RESOLVED */}
                 {c.status === 'RESOLVED' && (
                   <div className="w-full py-2 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg text-center border border-emerald-200 flex items-center justify-center gap-1">
