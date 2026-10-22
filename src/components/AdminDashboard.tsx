@@ -2756,18 +2756,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {/* Surveillance Docket Header */}
                       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          {/* CCTV Camera Beacon */}
-                          <div className="flex items-center gap-1.5 bg-slate-900 text-white px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold shadow-2xs">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-                            <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>CAM-APEX-{c.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4) || 'FEED'}</span>
-                          </div>
+                          {/* 1st Position: 72h SLA Live Countdown */}
+                          <ComplaintLiveSLACounter complaint={c} variant="headerBadge" />
 
-                          <span className="font-mono font-bold text-xs sm:text-sm text-[#0077B6] bg-sky-50 px-2.5 py-0.5 rounded-lg border border-sky-200">
+                          {/* Docket ID */}
+                          <span className="font-mono font-bold text-xs sm:text-sm text-[#0077B6] bg-sky-50 px-2.5 py-1 rounded-xl border border-sky-200">
                             {c.id}
                           </span>
 
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                          {/* Status Badge */}
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl uppercase tracking-wider ${
                             isResolved
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                               : hasWork
@@ -2777,38 +2775,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {c.status.replace(/_/g, ' ')}
                           </span>
 
+                          {/* Waste Type Badge */}
                           {c.wasteType && (
-                            <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                            <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
                               {c.wasteType}
                             </span>
                           )}
-                        </div>
 
-                        {/* State Admin Directives & Photo Audit */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <ComplaintLiveSLACounter complaint={c} variant="headerBadge" />
-
-                          {c.photoUrl && (
-                            <button
-                              onClick={() => setPhotoPreviewModal({
-                                url: c.photoUrl!,
-                                title: `Citizen Ground Evidence: ${c.citizenName} (${c.locationLandmark})`,
-                                subtitle: `GPS: ${c.coordinates?.lat?.toFixed(4)}, ${c.coordinates?.lng?.toFixed(4)} • ${c.village}, ${c.district}`
-                              })}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                              title="ग्राउंड फोटो सबूत देखें"
-                            >
-                              <Camera className="w-3.5 h-3.5 text-slate-600" />
-                              <span>{uiText.cardViewEvidencePhoto}</span>
-                            </button>
-                          )}
-
+                          {/* SLA Directive Button placed right beside Waste Type */}
                           <button
                             onClick={() => {
                               setSelectedComplaintId(c.id);
                               setIsReminderModalOpen(true);
                             }}
-                            className="px-3.5 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                            className="px-3.5 py-1 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer ml-1"
                             title="नोडल अधिकारी को आधिकारिक आदेश / चेतावनी मेमो जारी करें"
                           >
                             <Send className="w-3.5 h-3.5" />
