@@ -32,7 +32,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     roleAdmin: 'State Admin',
     roleAdminDesc: 'AP State Audit & Highlighting',
     roleNodal: 'Nodal Officer',
-    roleNodalDesc: 'District In-Charge (3 Circles)',
+    roleNodalDesc: 'District In-Charge (26 Districts)',
     roleInspector: 'Field Inspector',
     roleInspectorDesc: 'TDS Machine, Waste Log & Photos',
     roleEngineer: 'Action Worker',
@@ -162,15 +162,15 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     breadcrumbPortalHome: 'Portal Home',
     breadcrumbCitizen: 'Normal User (Citizen Surveillance Portal)',
     breadcrumbAdmin: 'State Administrator (AP Apex Command)',
-    breadcrumbNodalVzm: 'Nodal Officer (Vizianagaram Circle)',
-    breadcrumbNodalPvm: 'Nodal Officer (Parvathipuram Manyam Circle)',
-    breadcrumbNodalVskp: 'Nodal Officer (Visakhapatnam Circle)',
+    breadcrumbNodalVzm: 'Nodal Officer (Vizianagaram District)',
+    breadcrumbNodalPvm: 'Nodal Officer (Parvathipuram Manyam District)',
+    breadcrumbNodalVskp: 'Nodal Officer (Visakhapatnam District)',
     breadcrumbInspector: 'Field Inspector (On-Site Verification - No Map)',
     breadcrumbEngineer: 'Action Worker (Field Engineering - Full Map)',
 
     // Footer
     footerTitle: 'Nir-ikshan — National & Andhra Pradesh Water Surveillance',
-    footerSubtitle: 'All India Water Grid • Vizianagaram & Parvathipuram Manyam Circles • Water Resources Dept.',
+    footerSubtitle: 'All India Water Grid • Andhra Pradesh 26 Districts • Water Resources Dept.',
     footerPortalsList: 'National Grid Portals: Overview • Normal User • State Admin • Vizianagaram Nodal • Parvathipuram Nodal • Field Inspector • Action Worker',
     footerStaffCredentials: 'Staff Credentials: admin@nir.com / 1234',
 

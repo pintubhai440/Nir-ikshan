@@ -22,6 +22,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { ANDHRA_PRADESH_26_DISTRICTS } from '../data/andhraDistrictsData';
+import { findAPDistrictBoundary } from '../data/andhraDistrictBoundariesGeo';
 
 export interface TelemetryFlashcardData {
   type: 'groundwater' | 'reservoir' | 'gauge' | 'rainfall' | 'district' | 'complaint' | 'bhuvan_wbis';
@@ -142,11 +144,36 @@ export const HydrologicalTelemetryFlashcard: React.FC<Props> = ({ data, onClose 
   const defaultAgency = data.agency || (
     data.type === 'groundwater' ? 'Central Ground Water Board (CGWB) & State GW Dept' :
     data.type === 'reservoir' ? 'Central Water Commission (CWC) & APWRIMS' :
-    data.type === 'gauge' ? 'CWC Southern Region & Andhra Pradesh WRD' :
+    data.type === 'gauge' ? 'Central Water Commission (CWC) & APWRIMS' :
     data.type === 'rainfall' ? 'India Meteorological Department (IMD) & APWRIMS' :
     data.type === 'complaint' ? 'Public Grievance Redressal System (PGRS)' :
     'Government of Andhra Pradesh Water Resources Dept'
   );
+
+  // Authoritative fallback for District Profile if not explicitly provided
+  const effectiveDistrictProfile = data.districtProfile || (() => {
+    const distName = data.district || 'Y.S.R. Kadapa';
+    const boundary = findAPDistrictBoundary(distName);
+    const distRecord = ANDHRA_PRADESH_26_DISTRICTS.find(
+      (d) => d.name.toLowerCase().includes(distName.toLowerCase()) || distName.toLowerCase().includes(d.name.toLowerCase())
+    );
+    if (boundary || distRecord) {
+      return {
+        districtName: boundary?.name || distRecord?.name || distName,
+        areaSqKm: boundary?.areaSqKm || 11228,
+        headquarter: boundary?.headquarter || distRecord?.headquarter || distName,
+        region: boundary?.region || distRecord?.region || 'Rayalaseema',
+        onResetDistrict: undefined
+      };
+    }
+    return {
+      districtName: distName,
+      areaSqKm: 11228,
+      headquarter: distName,
+      region: 'Rayalaseema',
+      onResetDistrict: undefined
+    };
+  })();
 
   const weather = data.weather || {
     rainMmPerHour: 0.1,
@@ -311,13 +338,7 @@ export const HydrologicalTelemetryFlashcard: React.FC<Props> = ({ data, onClose 
               {data.title}
             </h3>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 font-medium">
-              <span>{data.district}, {data.state || 'Andhra Pradesh'}</span>
-              {data.basin && (
-                <>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-slate-700 font-semibold">{data.basin}</span>
-                </>
-              )}
+              <span>{data.subtitle || `${data.district}, ${data.state || 'Andhra Pradesh'}${data.basin ? ` • ${data.basin}` : ''}`}</span>
               <span className="text-slate-300">•</span>
               <span className="font-mono text-[11px] font-semibold text-[#0077B6] flex items-center gap-0.5">
                 <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
@@ -326,13 +347,13 @@ export const HydrologicalTelemetryFlashcard: React.FC<Props> = ({ data, onClose 
             </div>
           </div>
 
-          {/* Integrated District Profile (Clean, Balanced Typography) */}
-          {data.districtProfile && (
+          {/* Integrated District Profile (Exact match to image_17faae6e.png) */}
+          {effectiveDistrictProfile && (
             <div className="bg-sky-50/70 border border-sky-200/80 rounded-2xl p-3 space-y-2 text-left shadow-2xs">
               <div className="flex items-center justify-between gap-2 border-b border-sky-100 pb-1.5">
                 <span className="font-bold text-[#03045E] flex items-center gap-1.5 text-xs">
                   <Building className="w-3.5 h-3.5 text-[#0077B6]" />
-                  <span>{data.districtProfile.districtName} District Profile</span>
+                  <span>{effectiveDistrictProfile.districtName} District Profile</span>
                 </span>
                 <span className="font-mono text-[10px] font-semibold text-[#0077B6] bg-white px-2 py-0.5 rounded-full border border-sky-200">
                   Cadastral Grid
@@ -342,15 +363,15 @@ export const HydrologicalTelemetryFlashcard: React.FC<Props> = ({ data, onClose 
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-2 rounded-xl bg-white border border-sky-100 shadow-2xs">
                   <span className="text-[9px] text-slate-400 block font-semibold uppercase tracking-wider">Area</span>
-                  <span className="font-bold text-[#03045E] font-mono text-xs">{data.districtProfile.areaSqKm.toLocaleString()} km²</span>
+                  <span className="font-bold text-[#03045E] font-mono text-xs">{effectiveDistrictProfile.areaSqKm.toLocaleString()} km²</span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-sky-100 shadow-2xs">
                   <span className="text-[9px] text-slate-400 block font-semibold uppercase tracking-wider">Headquarters</span>
-                  <span className="font-semibold text-slate-800 text-xs truncate block">{data.districtProfile.headquarter}</span>
+                  <span className="font-semibold text-slate-800 text-xs truncate block">{effectiveDistrictProfile.headquarter}</span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-sky-100 shadow-2xs">
                   <span className="text-[9px] text-slate-400 block font-semibold uppercase tracking-wider">Region</span>
-                  <span className="font-semibold text-[#0077B6] text-xs truncate block">{data.districtProfile.region}</span>
+                  <span className="font-semibold text-[#0077B6] text-xs truncate block">{effectiveDistrictProfile.region}</span>
                 </div>
               </div>
 
@@ -359,10 +380,10 @@ export const HydrologicalTelemetryFlashcard: React.FC<Props> = ({ data, onClose 
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span>Selected District Boundary</span>
                 </span>
-                {data.districtProfile.onResetDistrict && (
+                {effectiveDistrictProfile.onResetDistrict && (
                   <button
                     type="button"
-                    onClick={data.districtProfile.onResetDistrict}
+                    onClick={effectiveDistrictProfile.onResetDistrict}
                     className="text-[#0077B6] hover:text-[#03045E] hover:underline font-bold transition-colors cursor-pointer"
                   >
                     Show All Districts

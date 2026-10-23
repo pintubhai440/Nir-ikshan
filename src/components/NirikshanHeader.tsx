@@ -1,4 +1,4 @@
-import { Droplets, LogIn, ArrowLeft } from 'lucide-react';
+import { Droplets, LogIn, ArrowLeft, Paperclip } from 'lucide-react';
 import { UserRoleType } from '../types/nirikshan';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -10,6 +10,7 @@ interface NirikshanHeaderProps {
   onOpenLoginModal: () => void;
   onOpenDrawer: () => void;
   onOpenSupabaseModal?: () => void;
+  onOpenSubmissionDossier?: () => void;
 }
 
 export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
@@ -19,6 +20,7 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
   currentUser,
   onOpenLoginModal,
   onOpenDrawer,
+  onOpenSubmissionDossier,
 }) => {
   const { language, setLanguage, t } = useLanguage();
 
@@ -48,7 +50,7 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right Section: Language Toggle & Login / Hamburger Button (Images 3 & 4) */}
+        {/* Right Section: Language Toggle & Login / Hamburger Button */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           
           {/* Language Selector (Pure English | Pure Hindi | Pure Telugu) */}
@@ -92,6 +94,19 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
           </div>
 
 
+
+          {/* Supporting Materials (System Architecture, Workflow & Screenshots) Button */}
+          {onOpenSubmissionDossier && (
+            <button
+              onClick={onOpenSubmissionDossier}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-3 py-2 rounded-xl text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border border-amber-400/30"
+              title="System Architecture, Workflow Diagram & Prototype Screenshots"
+            >
+              <Paperclip className="w-3.5 h-3.5 text-amber-100" />
+              <span className="hidden sm:inline">Supporting Materials</span>
+              <span className="sm:hidden">Dossier</span>
+            </button>
+          )}
 
           {/* Login & Actions Area */}
           {!isLoggedIn ? (

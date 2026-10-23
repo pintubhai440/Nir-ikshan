@@ -15,7 +15,8 @@ import {
   ChevronDown,
   CheckCircle2,
   Lock,
-  LogIn
+  LogIn,
+  Paperclip
 } from 'lucide-react';
 
 interface NirikshanSlideDrawerProps {
@@ -32,6 +33,7 @@ interface NirikshanSlideDrawerProps {
   isLoggedIn?: boolean;
   onOpenLogin?: () => void;
   onOpenSupabaseModal?: () => void;
+  onOpenSubmissionDossier?: () => void;
 }
 
 export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
@@ -46,6 +48,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
   isLoggedIn = false,
   onOpenLogin,
   onOpenSupabaseModal,
+  onOpenSubmissionDossier,
 }) => {
   const { language, t } = useLanguage();
   const [isNodalExpanded, setIsNodalExpanded] = useState(true);
@@ -318,121 +321,43 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                 </span>
               </button>
 
-              {/* 2. Nodal Officer (Direct launch or toggle circles) */}
-              <div className={`rounded-xl border transition-all overflow-hidden ${
-                isNodalActive
-                  ? 'border-[#0077B6] bg-blue-50/40 shadow-2xs'
-                  : 'border-slate-200 bg-white shadow-2xs'
-              }`}>
-                {/* Header row */}
-                <div 
-                  className="p-2.5 px-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
-                >
-                  <div 
-                    onClick={() => handleDistrictSelect('Vizianagaram')}
-                    className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      isNodalActive ? 'bg-[#0077B6] text-white' : 'bg-blue-50 text-[#0077B6]'
-                    }`}>
-                      <Building2 className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <h5 className="text-xs sm:text-[13px] font-bold leading-tight text-slate-900 truncate">
-                          {t('roleNodal', 'Nodal Officer')}
-                        </h5>
-                        {!isLoggedIn && (
-                          <span title="Govt. Login Required" className="inline-flex">
-                            <Lock className="w-3 h-3 text-amber-600 shrink-0" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                        {t('roleNodalDesc', 'District In-Charge (3 Circles)')}
-                      </p>
-                    </div>
+              {/* 2. Nodal Officer (District In-Charge) */}
+              <button
+                onClick={() => handleRoleClick('nodal')}
+                className={`w-full text-left p-2.5 px-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                  currentRole === 'nodal' || currentRole.startsWith('nodal_')
+                    ? 'bg-[#0077B6] text-white border-[#0077B6] shadow-xs'
+                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-2xs'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    currentRole === 'nodal' || currentRole.startsWith('nodal_') ? 'bg-white/20 text-white' : 'bg-blue-50 text-[#0077B6]'
+                  }`}>
+                    <Building2 className="w-4 h-4" />
                   </div>
-
-                  <div 
-                    onClick={() => setIsNodalExpanded(!isNodalExpanded)}
-                    className="flex items-center gap-1.5 shrink-0 cursor-pointer p-1 rounded-md hover:bg-slate-200/60 transition-colors"
-                    title="Toggle District Circles"
-                  >
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-100/80 text-[#0077B6] font-bold">
-                      {t('tagDistrict', 'DISTRICT')}
-                    </span>
-                    {isNodalExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
-                    )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h5 className="text-xs sm:text-[13px] font-bold leading-tight truncate">
+                        {t('roleNodal', 'Nodal Officer')}
+                      </h5>
+                      {!isLoggedIn && (
+                        <span title="Govt. Login Required" className="inline-flex">
+                          <Lock className="w-3 h-3 text-amber-600 shrink-0" />
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-[11px] mt-0.5 truncate ${currentRole === 'nodal' || currentRole.startsWith('nodal_') ? 'text-blue-100' : 'text-slate-500'}`}>
+                      {t('roleNodalDesc', 'District In-Charge (26 Circles)')}
+                    </p>
                   </div>
                 </div>
-
-                {/* District Options */}
-                {isNodalExpanded && (
-                  <div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-slate-100 bg-slate-50/70">
-                    <p className="text-[10px] text-slate-500 font-medium px-1">
-                      {t('tagStrictIsolation', 'Select your assigned district (strict data isolation):')}
-                    </p>
-
-                    {/* Option 1: Parvathipuram Manyam */}
-                    <button
-                      onClick={() => handleDistrictSelect('Parvathipuram Manyam')}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                        currentRole === 'nodal_parvathipuram'
-                          ? 'bg-blue-50 text-[#0077B6] border-2 border-[#0077B6] font-bold shadow-2xs'
-                          : 'bg-white hover:bg-slate-100/80 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        <span>Parvathipuram Manyam</span>
-                      </div>
-                      {currentRole === 'nodal_parvathipuram' && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
-                      )}
-                    </button>
-
-                    {/* Option 2: Vizianagaram Circle */}
-                    <button
-                      onClick={() => handleDistrictSelect('Vizianagaram')}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                        currentRole === 'nodal_vizianagaram'
-                          ? 'bg-blue-50 text-[#0077B6] border-2 border-[#0077B6] font-bold shadow-2xs'
-                          : 'bg-white hover:bg-slate-100/80 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                        <span>Vizianagaram Circle</span>
-                      </div>
-                      {currentRole === 'nodal_vizianagaram' && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
-                      )}
-                    </button>
-
-                    {/* Option 3: Visakhapatnam Circle */}
-                    <button
-                      onClick={() => handleDistrictSelect('Visakhapatnam')}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                        currentRole === 'nodal_visakhapatnam'
-                          ? 'bg-blue-50 text-[#0077B6] border-2 border-[#0077B6] font-bold shadow-2xs'
-                          : 'bg-white hover:bg-slate-100/80 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <span>Visakhapatnam Circle</span>
-                      </div>
-                      {currentRole === 'nodal_visakhapatnam' && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
+                <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shrink-0 ${
+                  currentRole === 'nodal' || currentRole.startsWith('nodal_') ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {t('tagDistrict', 'DISTRICT')}
+                </span>
+              </button>
 
               {/* 3. Field Inspector */}
               <button
@@ -509,6 +434,34 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                   {t('tagFullMap', 'FULL MAP')}
                 </span>
               </button>
+
+              {/* Supporting Materials (Architecture, Workflow, Screenshots) */}
+              {onOpenSubmissionDossier && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenSubmissionDossier();
+                  }}
+                  className="w-full text-left p-2.5 px-3 rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 transition-all cursor-pointer flex items-center justify-between shadow-2xs mt-3"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Paperclip className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="text-xs sm:text-[13px] font-extrabold text-amber-900 leading-tight truncate">
+                        Supporting Materials Dossier
+                      </h5>
+                      <p className="text-[11px] text-amber-700 mt-0.5 truncate">
+                        Architecture, Workflow & Screenshot Guide
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded font-black bg-amber-200/80 text-amber-900 shrink-0">
+                    SUBMISSION
+                  </span>
+                </button>
+              )}
             </div>
 
           </div>

@@ -31,6 +31,7 @@ import { LodgeComplaintModal } from './components/LodgeComplaintModal';
 import { OfficerDirectoryModal } from './components/OfficerDirectoryModal';
 import { AuthModal } from './components/AuthModal';
 import { SupabaseSyncModal } from './components/SupabaseSyncModal';
+import { SubmissionDossierModal } from './components/SubmissionDossierModal';
 import { 
   isSupabaseConfigured, 
   fetchComplaintsFromSupabase, 
@@ -45,6 +46,7 @@ export default function App() {
   // Default to overview landing page (national map and executive command, not user data)
   const [currentRole, setCurrentRole] = useState<UserRoleType>('overview');
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isSubmissionDossierOpen, setIsSubmissionDossierOpen] = useState(false);
 
   // Load persisted state or initial seed data
   const [waterBodies, setWaterBodies] = useState<WaterBody[]>(() => {
@@ -106,13 +108,14 @@ export default function App() {
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'hi' | 'te'>('en');
-  const [selectedNodalDistrict, setSelectedNodalDistrict] = useState<string>('Vizianagaram');
+  const [selectedNodalDistrict, setSelectedNodalDistrict] = useState<string>('');
 
   // Auth states for the protected roles
   const [authenticatedRoles, setAuthenticatedRoles] = useState<Record<UserRoleType, boolean>>({
     overview: true,
     user: true,
     admin: true,
+    nodal: true,
     nodal_vizianagaram: true,
     nodal_parvathipuram: true,
     nodal_visakhapatnam: true,
@@ -200,9 +203,13 @@ export default function App() {
   // Role selection logic with auth gate
   const handleSelectRole = (role: UserRoleType) => {
     // If not logged in and choosing any protected dashboard, prompt OTP login modal
-    if (role !== 'overview' && role !== 'user' && !isLoggedIn) {
+    // Note: overview, user, and nodal selection grid are directly accessible without login
+    if (role !== 'overview' && role !== 'user' && role !== 'nodal' && !isLoggedIn) {
       setIsOtpModalOpen(true);
       return;
+    }
+    if (role === 'nodal') {
+      setSelectedNodalDistrict('');
     }
     setCurrentRole(role);
   };
@@ -494,6 +501,7 @@ export default function App() {
         onOpenLoginModal={() => setIsOtpModalOpen(true)}
         onOpenDrawer={() => setIsDrawerOpen(true)}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+        onOpenSubmissionDossier={() => setIsSubmissionDossierOpen(true)}
       />
 
       {/* Main Dashboard Body Container */}
@@ -523,11 +531,12 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => setIsDrawerOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              onClick={() => setCurrentRole('overview')}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+              title="Back to Portal Home"
             >
-              <Menu className="w-3.5 h-3.5 text-[#00B4D8]" />
-              <span>{t('switchPortal')}</span>
+              <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
+              <span>Back</span>
             </button>
           </div>
         )}
@@ -570,36 +579,23 @@ export default function App() {
           />
         )}
 
-        {/* 4. NODAL OFFICER - VIZIANAGARAM */}
-        {currentRole === 'nodal_vizianagaram' && (
+        {/* 4. NODAL OFFICER - ALL 26 DISTRICTS OF ANDHRA PRADESH */}
+        {(currentRole === 'nodal' ||
+          currentRole === 'nodal_vizianagaram' ||
+          currentRole === 'nodal_parvathipuram' ||
+          currentRole === 'nodal_visakhapatnam') && (
           <NodalOfficerDashboard
-            district="Vizianagaram"
-            complaints={complaints}
-            waterBodies={waterBodies}
-            officers={officers}
-            onAssignInspector={handleAssignInspector}
-            onAssignEngineer={handleAssignEngineer}
-            onUpdateComplaint={handleUpdateComplaint}
-          />
-        )}
-
-        {/* 5. NODAL OFFICER - PARVATHIPURAM MANYAM */}
-        {currentRole === 'nodal_parvathipuram' && (
-          <NodalOfficerDashboard
-            district="Parvathipuram Manyam"
-            complaints={complaints}
-            waterBodies={waterBodies}
-            officers={officers}
-            onAssignInspector={handleAssignInspector}
-            onAssignEngineer={handleAssignEngineer}
-            onUpdateComplaint={handleUpdateComplaint}
-          />
-        )}
-
-        {/* 6. NODAL OFFICER - VISAKHAPATNAM */}
-        {currentRole === 'nodal_visakhapatnam' && (
-          <NodalOfficerDashboard
-            district="Visakhapatnam"
+            district={
+              currentRole === 'nodal_vizianagaram'
+                ? 'Vizianagaram'
+                : currentRole === 'nodal_parvathipuram'
+                ? 'Parvathipuram Manyam'
+                : currentRole === 'nodal_visakhapatnam'
+                ? 'Visakhapatnam'
+                : selectedNodalDistrict || undefined
+            }
+            initialSelectingDistrict={currentRole === 'nodal'}
+            onSelectDistrict={(d) => setSelectedNodalDistrict(d)}
             complaints={complaints}
             waterBodies={waterBodies}
             officers={officers}
@@ -704,6 +700,7 @@ export default function App() {
         onSelectNodalDistrict={setSelectedNodalDistrict}
         isLoggedIn={isLoggedIn}
         onOpenLogin={() => setIsOtpModalOpen(true)}
+        onOpenSubmissionDossier={() => setIsSubmissionDossierOpen(true)}
       />
 
       {/* Citizen Mobile OTP Login Modal (Image 3 -> Login Page Flow) */}
@@ -732,6 +729,16 @@ export default function App() {
               if (data && data.length > 0) setComplaints(data);
             });
           }
+        }}
+      />
+
+      {/* Hackathon Supporting Materials Dossier Modal (System Architecture, Workflow, Screenshots Guide) */}
+      <SubmissionDossierModal
+        isOpen={isSubmissionDossierOpen}
+        onClose={() => setIsSubmissionDossierOpen(false)}
+        onNavigateToScreen={(role) => {
+          handleSelectRole(role);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
     </div>
