@@ -46,79 +46,98 @@ export const MonthlyGrievanceAnalytics: React.FC<MonthlyGrievanceAnalyticsProps>
     return complaints.filter(c => c.district.toLowerCase() === dist.name.toLowerCase());
   }, [complaints, selectedDistrictId]);
 
-  // Compute live complaint status metrics for AP
+  // Compute live complaint status metrics for AP (Strictly Zero Fake Data)
   const totalCount = districtComplaints.length;
   const resolvedCount = districtComplaints.filter(c => c.status === 'RESOLVED').length;
   const inProgressCount = districtComplaints.filter(c => 
-    c.status === 'WORKER_IN_PROGRESS' || c.status === 'ACTION_ASSIGNED'
+    c.status === 'WORKER_IN_PROGRESS' || c.status === 'ACTION_ASSIGNED' || c.status === 'VERIFICATION_PENDING'
   ).length;
   const inspectionCount = districtComplaints.filter(c => 
     c.status === 'INSPECTOR_ASSIGNED' || c.status === 'INSPECTION_COMPLETED'
   ).length;
   const pendingCount = districtComplaints.filter(c => c.status === 'SUBMITTED').length;
-  const overdueCount = Math.max(1, Math.round(districtComplaints.length * 0.12)); // Standard 48h SLA breach calculation
+  
+  // Real overdue count (>48h from submission timestamp)
+  const now = Date.now();
+  const overdueCount = districtComplaints.filter(c => {
+    if (c.status === 'RESOLVED') return false;
+    const sub = new Date(c.submittedAt).getTime();
+    return !isNaN(sub) && now - sub > 48 * 3600 * 1000;
+  }).length;
 
   // Monthly trends adjusted for selected district if filtered
   const activeTrends = useMemo(() => {
     if (!selectedDistrictId || selectedDistrictId === 'all') {
       return MONTHLY_GRIEVANCE_TRENDS;
     }
+    // If district has zero complaints, do not show artificial mock bars!
+    if (districtComplaints.length === 0) {
+      return MONTHLY_GRIEVANCE_TRENDS.map(pt => ({
+        ...pt,
+        complaintsReceived: 0,
+        complaintsResolved: 0,
+        pendingActive: 0,
+        verifiedClosuresPace: 0,
+      }));
+    }
     // Scale proportionally to district activity
-    const factor = 1 / 26;
+    const factor = districtComplaints.length / Math.max(1, complaints.length);
     return MONTHLY_GRIEVANCE_TRENDS.map(pt => ({
       ...pt,
-      complaintsReceived: Math.max(2, Math.round(pt.complaintsReceived * factor)),
-      complaintsResolved: Math.max(1, Math.round(pt.complaintsResolved * factor)),
-      pendingActive: Math.max(1, Math.round(pt.pendingActive * factor)),
-      verifiedClosuresPace: Math.max(1, Math.round(pt.verifiedClosuresPace * factor)),
+      complaintsReceived: Math.round(pt.complaintsReceived * factor),
+      complaintsResolved: Math.round(pt.complaintsResolved * factor),
+      pendingActive: Math.round(pt.pendingActive * factor),
+      verifiedClosuresPace: Math.round(pt.verifiedClosuresPace * factor),
     }));
-  }, [selectedDistrictId]);
+  }, [selectedDistrictId, districtComplaints.length, complaints.length]);
 
   // Calculate maximum value for bar chart scaling
   const maxBarValue = useMemo(() => {
-    return Math.max(...activeTrends.map(t => Math.max(t.complaintsReceived, t.complaintsResolved, t.pendingActive))) * 1.15;
+    const maxVal = Math.max(1, ...activeTrends.map(t => Math.max(t.complaintsReceived, t.complaintsResolved, t.pendingActive)));
+    return maxVal * 1.15;
   }, [activeTrends]);
 
-  // Donut chart status segments
+  // Donut chart status segments (Strictly Zero Fake Data: never inject fake 1s!)
   const pieSegments = useMemo(() => {
-    const rawTotal = (resolvedCount + inProgressCount + inspectionCount + pendingCount) || 1;
+    const rawTotal = resolvedCount + inProgressCount + inspectionCount + pendingCount;
     return [
       {
         id: 'resolved',
-        label: 'Resolved Huye (Closed)',
-        count: resolvedCount || 1,
+        label: 'Resolved & Closed',
+        count: resolvedCount,
         color: '#10B981', // Emerald
         bgColor: 'bg-emerald-500',
         textColor: 'text-emerald-700',
+        percentage: rawTotal > 0 ? Math.round((resolvedCount / rawTotal) * 100) : 0,
       },
       {
         id: 'in_progress',
-        label: 'Action In Progress (Kaam Chalu)',
-        count: inProgressCount || 1,
+        label: 'Action In Progress (Crew Active)',
+        count: inProgressCount,
         color: '#0077B6', // Ocean Blue
         bgColor: 'bg-[#0077B6]',
         textColor: 'text-[#0077B6]',
+        percentage: rawTotal > 0 ? Math.round((inProgressCount / rawTotal) * 100) : 0,
       },
       {
         id: 'inspection',
-        label: 'Under Inspection (Jaanch Jari)',
-        count: inspectionCount || 1,
+        label: 'Under Physical Inspection (CAM 03)',
+        count: inspectionCount,
         color: '#F59E0B', // Amber
         bgColor: 'bg-amber-500',
         textColor: 'text-amber-700',
+        percentage: rawTotal > 0 ? Math.round((inspectionCount / rawTotal) * 100) : 0,
       },
       {
         id: 'pending',
-        label: 'Pending Triage (Aaye Huye)',
-        count: pendingCount || 1,
+        label: 'Pending Nodal Triage (CAM 02)',
+        count: pendingCount,
         color: '#EF4444', // Red/Rose
         bgColor: 'bg-rose-500',
         textColor: 'text-rose-700',
+        percentage: rawTotal > 0 ? Math.round((pendingCount / rawTotal) * 100) : 0,
       },
-    ].map(seg => ({
-      ...seg,
-      percentage: Math.round((seg.count / rawTotal) * 100),
-    }));
+    ];
   }, [resolvedCount, inProgressCount, inspectionCount, pendingCount]);
 
   // SVG Donut calculation
@@ -164,10 +183,10 @@ export const MonthlyGrievanceAnalytics: React.FC<MonthlyGrievanceAnalyticsProps>
           </div>
           <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
             <span>Monthly Grievance &amp; Resolution Analytics</span>
-            <span className="text-xs font-normal text-slate-500">(Graph &amp; Pie Chart)</span>
+            <span className="text-xs font-normal text-slate-500">(Inflow Trend &amp; Stage Breakdown)</span>
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Kitne complaint aaye, kitne resolved huye, aur kitne pending me hai — Track monthly performance across Andhra Pradesh.
+            Total incoming grievances, verified closures, in-flight remediation, and statutory SLA compliance across Andhra Pradesh.
           </p>
         </div>
 
@@ -244,13 +263,13 @@ export const MonthlyGrievanceAnalytics: React.FC<MonthlyGrievanceAnalyticsProps>
 
       {/* 2. Key High-Level KPI Summary Tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* KPI 1: Complaints Aaye (Total Received) */}
+        {/* KPI 1: Complaints Received */}
         <div className="p-3.5 rounded-2xl bg-blue-50/40 border border-blue-200/80 space-y-1">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0077B6]">Complaints Aaye</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0077B6]">Complaints Lodged</span>
             <span className="w-2 h-2 rounded-full bg-[#0077B6]"></span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-slate-900">
+          <div className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
             {totalCount.toLocaleString()}
           </div>
           <span className="text-[10px] text-slate-500 block font-medium">
@@ -258,31 +277,31 @@ export const MonthlyGrievanceAnalytics: React.FC<MonthlyGrievanceAnalyticsProps>
           </span>
         </div>
 
-        {/* KPI 2: Complaints Resolved Huye */}
+        {/* KPI 2: Complaints Resolved */}
         <div className="p-3.5 rounded-2xl bg-emerald-50/40 border border-emerald-200/80 space-y-1">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Resolved Huye</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Resolved &amp; Closed</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-700">
+          <div className="text-xl sm:text-2xl font-black text-emerald-700 font-mono">
             {resolvedCount.toLocaleString()}
           </div>
           <span className="text-[10px] font-bold text-emerald-600 block">
-            {Math.round((resolvedCount / (totalCount || 1)) * 100)}% resolution clearance
+            {totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0}% resolution clearance
           </span>
         </div>
 
-        {/* KPI 3: Pending Me Hai */}
+        {/* KPI 3: Active Workflow */}
         <div className="p-3.5 rounded-2xl bg-amber-50/40 border border-amber-200/80 space-y-1">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Pending Me Hai</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Active Workflow</span>
             <Clock className="w-3.5 h-3.5 text-amber-600" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-700">
+          <div className="text-xl sm:text-2xl font-black text-amber-700 font-mono">
             {(inProgressCount + inspectionCount + pendingCount).toLocaleString()}
           </div>
           <span className="text-[10px] text-slate-500 block font-medium">
-            Active in-flight workflow
+            In-flight field operations
           </span>
         </div>
 
@@ -292,11 +311,11 @@ export const MonthlyGrievanceAnalytics: React.FC<MonthlyGrievanceAnalyticsProps>
             <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">SLA Overdue (&gt;48h)</span>
             <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-600">
+          <div className="text-xl sm:text-2xl font-black text-rose-600 font-mono">
             {overdueCount}
           </div>
           <span className="text-[10px] font-bold text-rose-700 block">
-            Directive required
+            {overdueCount > 0 ? 'Directive required' : 'Zero overdue breaches'}
           </span>
         </div>
       </div>

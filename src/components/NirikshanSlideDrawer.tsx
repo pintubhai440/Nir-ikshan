@@ -318,7 +318,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                 </span>
               </button>
 
-              {/* 2. Nodal Officer (Collapsible with 3 Circles) */}
+              {/* 2. Nodal Officer (Direct launch or toggle circles) */}
               <div className={`rounded-xl border transition-all overflow-hidden ${
                 isNodalActive
                   ? 'border-[#0077B6] bg-blue-50/40 shadow-2xs'
@@ -326,10 +326,12 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
               }`}>
                 {/* Header row */}
                 <div 
-                  onClick={() => setIsNodalExpanded(!isNodalExpanded)}
-                  className="p-2.5 px-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+                  className="p-2.5 px-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div 
+                    onClick={() => handleDistrictSelect('Vizianagaram')}
+                    className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
+                  >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       isNodalActive ? 'bg-[#0077B6] text-white' : 'bg-blue-50 text-[#0077B6]'
                     }`}>
@@ -352,14 +354,18 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div 
+                    onClick={() => setIsNodalExpanded(!isNodalExpanded)}
+                    className="flex items-center gap-1.5 shrink-0 cursor-pointer p-1 rounded-md hover:bg-slate-200/60 transition-colors"
+                    title="Toggle District Circles"
+                  >
                     <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-100/80 text-[#0077B6] font-bold">
                       {t('tagDistrict', 'DISTRICT')}
                     </span>
                     {isNodalExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
                     ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
                     )}
                   </div>
                 </div>

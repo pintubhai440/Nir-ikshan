@@ -25,6 +25,7 @@ import { generateWatershedPdfReport } from '../utils/generateWatershedPdf';
 import { RAW_MICRO_WATERSHEDS_DATA } from '../data/watershedData';
 import { HydrologicalSlaManager } from './HydrologicalSlaManager';
 import { OfficialDossiersAndReports } from './OfficialDossiersAndReports';
+import { CryptographicAuditAndSecurity } from './CryptographicAuditAndSecurity';
 import { useLanguage } from '../context/LanguageContext';
 import { 
   isSupabaseConfigured, 
@@ -5521,98 +5522,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* TAB 10: AUDIT LOG (CRYPTO-VERIFIED IMMUTABLE LEDGER - IMAGE f209fa3d) */}
       {/* ==================================================================== */}
       {activeTab === 'audit_log' && (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-[#0077B6]" />
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                  Cryptographic System Audit Log &amp; Regulatory Ledger
-                </h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
-                  SHA-256 Chained
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Non-repudiable state transitions, officer assignment records, SLA threshold revisions, and administrative directives.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleExportAuditCsv}
-                className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export Ledger CSV</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Immutable Audit Log Table */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Immutable System Ledger</h3>
-                <p className="text-xs text-slate-400">Chronological cryptographic entries for administrative accountability</p>
-              </div>
-              <span className="font-mono text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 text-xs">
-                {auditLogs.length} Records Verified
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                    <th className="py-2.5 px-3">Timestamp (IST)</th>
-                    <th className="py-2.5 px-3">Initiated By</th>
-                    <th className="py-2.5 px-3">Action</th>
-                    <th className="py-2.5 px-3">Record ID</th>
-                    <th className="py-2.5 px-3">State Transition</th>
-                    <th className="py-2.5 px-3 text-right">Integrity</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {auditLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-3">
-                        <span className="font-mono font-bold text-slate-800 block">{log.timestamp}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{log.blockNumber}</span>
-                      </td>
-
-                      <td className="py-3 px-3">
-                        <span className="font-bold text-slate-900 block leading-tight">{log.initiatedBy.name}</span>
-                        <span className="text-[10px] text-slate-400">{log.initiatedBy.role}</span>
-                      </td>
-
-                      <td className="py-3 px-3">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-[#0077B6]">
-                          ● {log.action}
-                        </span>
-                      </td>
-
-                      <td className="py-3 px-3 font-mono font-bold text-slate-800">{log.recordId}</td>
-
-                      <td className="py-3 px-3 font-mono text-[11px]">
-                        <span className="text-slate-500">{log.stateTransition.from}</span>
-                        <span className="text-slate-400 mx-2">→</span>
-                        <span className="font-bold text-emerald-600">{log.stateTransition.to}</span>
-                      </td>
-
-                      <td className="py-3 px-3 text-right">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" />
-                          VERIFIED
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <CryptographicAuditAndSecurity
+          complaints={complaints}
+          onUpdateComplaint={onUpdateComplaint}
+          language={language}
+        />
       )}
 
       {/* ==================================================================== */}

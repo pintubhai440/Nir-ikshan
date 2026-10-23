@@ -579,6 +579,7 @@ export default function App() {
             officers={officers}
             onAssignInspector={handleAssignInspector}
             onAssignEngineer={handleAssignEngineer}
+            onUpdateComplaint={handleUpdateComplaint}
           />
         )}
 
@@ -591,6 +592,7 @@ export default function App() {
             officers={officers}
             onAssignInspector={handleAssignInspector}
             onAssignEngineer={handleAssignEngineer}
+            onUpdateComplaint={handleUpdateComplaint}
           />
         )}
 
@@ -603,6 +605,7 @@ export default function App() {
             officers={officers}
             onAssignInspector={handleAssignInspector}
             onAssignEngineer={handleAssignEngineer}
+            onUpdateComplaint={handleUpdateComplaint}
           />
         )}
 

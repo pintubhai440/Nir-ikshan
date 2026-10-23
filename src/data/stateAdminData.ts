@@ -49,6 +49,7 @@ export interface SystemAuditRecord {
     name: string;
     role: string;
     initials: string;
+    staffId?: string;
   };
   action: string;
   recordId: string;
