@@ -58,7 +58,9 @@ import {
   AlertOctagon,
   ArrowRight,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ArrowUpDown,
+  Gauge
 } from 'lucide-react';
 
 interface DistrictNodalSatelliteMapProps {
@@ -106,6 +108,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
   const [complaintStatusFilter, setComplaintStatusFilter] = useState<'all' | 'SUBMITTED' | 'INSPECTOR_ASSIGNED' | 'WORKER_IN_PROGRESS' | 'RESOLVED'>('all');
   const [cursorCoords, setCursorCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(true);
+  const [legendPosition, setLegendPosition] = useState<'bottom-right' | 'top-right'>('bottom-right');
 
   // Telemetry Flashcard & Evidence Modal State
   const [activeFlashcard, setActiveFlashcard] = useState<TelemetryFlashcardData | null>(null);
@@ -209,6 +212,12 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
       return rfDist.includes(norm) || norm.includes(rfDist);
     });
   }, [district, districtBoundary]);
+
+  // Telemetry counts for legend badges
+  const grievanceSubmittedCount = useMemo(() => districtComplaints.filter((c) => c.status === 'SUBMITTED').length, [districtComplaints]);
+  const grievanceInspectorCount = useMemo(() => districtComplaints.filter((c) => c.status === 'INSPECTOR_ASSIGNED').length, [districtComplaints]);
+  const grievanceActionCount = useMemo(() => districtComplaints.filter((c) => c.status === 'WORKER_IN_PROGRESS').length, [districtComplaints]);
+  const grievanceResolvedCount = useMemo(() => districtComplaints.filter((c) => c.status === 'RESOLVED').length, [districtComplaints]);
 
   // Helper: Open Complaint Flashcard
   const openComplaintFlashcard = (complaint: CitizenComplaint) => {
@@ -541,12 +550,18 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
       minZoom: 7,
       maxZoom: 18,
       zoomControl: false,
+      attributionControl: false,
     });
 
     mapInstanceRef.current = map;
 
-    // Add Zoom Control at topright (keeping bottom-right clean for Telemetry Legend)
+    // Add Zoom Control at topright
     L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Place attribution at bottomleft to keep bottom-right completely clear
+    L.control.attribution({ position: 'bottomleft', prefix: false })
+      .addAttribution('ISRO Bhuvan & Esri Satellite')
+      .addTo(map);
 
     // Track cursor coordinates
     map.on('mousemove', (e) => {
@@ -695,7 +710,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     markersLayerRef.current.clearLayers();
 
     // -----------------------------------------------------------------------
-    // 1. CITIZEN COMPLAINTS (Strictly Isolated to this District)
+    // 1. CITIZEN COMPLAINTS (Strictly Isolated to this District with Rich SVG Badges)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'complaints') {
       districtComplaints.forEach((comp) => {
@@ -718,24 +733,55 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
         const isAction = comp.status === 'WORKER_IN_PROGRESS';
         const isResolved = comp.status === 'RESOLVED';
 
-        const dotColor = isResolved
-          ? 'bg-emerald-500 ring-emerald-300'
-          : isAction
-          ? 'bg-amber-500 ring-amber-300'
-          : isInspector
-          ? 'bg-blue-600 ring-blue-300'
-          : 'bg-rose-600 ring-rose-300';
+        let badgeGradient = 'from-rose-600 to-red-500 shadow-rose-500/30';
+        let svgIcon = `
+          <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        `;
+        let ringPing = '<div class="absolute w-7 h-7 rounded-full bg-rose-500 opacity-40 animate-ping pointer-events-none"></div>';
+
+        if (isInspector) {
+          badgeGradient = 'from-blue-600 to-sky-500 shadow-blue-500/30';
+          svgIcon = `
+            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          `;
+          ringPing = '<div class="absolute w-6.5 h-6.5 rounded-full bg-blue-500 opacity-30 animate-pulse pointer-events-none"></div>';
+        } else if (isAction) {
+          badgeGradient = 'from-amber-600 to-amber-400 shadow-amber-500/30';
+          svgIcon = `
+            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+          `;
+          ringPing = '<div class="absolute w-7 h-7 rounded-full bg-amber-500 opacity-35 animate-ping pointer-events-none"></div>';
+        } else if (isResolved) {
+          badgeGradient = 'from-emerald-600 to-teal-500 shadow-emerald-500/30';
+          svgIcon = `
+            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          `;
+          ringPing = '';
+        }
 
         const complaintIcon = L.divIcon({
-          className: 'clean-map-dot-marker',
+          className: 'clean-map-badge-marker',
           html: `
-            <div class="relative cursor-pointer flex items-center justify-center group" title="Citizen Grievance (${comp.id}): Click to view details">
-              <div class="w-3.5 h-3.5 rounded-full ${dotColor} border-2 border-white shadow-lg ring-2 transition-transform duration-200 group-hover:scale-150"></div>
-              ${!isResolved ? `<div class="absolute w-5 h-5 rounded-full ${dotColor} opacity-50 animate-ping pointer-events-none"></div>` : ''}
+            <div class="relative cursor-pointer flex items-center justify-center group" title="Citizen Grievance (${comp.id}) - ${comp.wasteType || 'Complaint'}: Click to inspect">
+              ${ringPing}
+              <div class="relative w-6 h-6 rounded-lg bg-gradient-to-tr ${badgeGradient} border-2 border-white shadow-md flex items-center justify-center transition-transform duration-200 group-hover:scale-130 group-hover:shadow-lg">
+                ${svgIcon}
+              </div>
             </div>
           `,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
         });
 
         const marker = L.marker([lat, lng], { icon: complaintIcon });
@@ -747,24 +793,34 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 2. DISTRICT RESERVOIRS & DAMS (Clean Glowing Dots)
+    // 2. DISTRICT RESERVOIRS & DAMS (High-Visibility Cyan Dam Badge)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'reservoirs') {
       districtReservoirs.forEach((res) => {
         const isHigh = res.storagePercentage > 85;
         const isLow = res.storagePercentage < 25;
-        const dotColor = isHigh ? 'bg-amber-500 ring-amber-300' : isLow ? 'bg-rose-500 ring-rose-300' : 'bg-cyan-400 ring-cyan-200';
+        const resGradient = isHigh 
+          ? 'from-amber-600 to-amber-400 shadow-amber-500/30' 
+          : isLow 
+          ? 'from-rose-600 to-red-400 shadow-rose-500/30' 
+          : 'from-[#0077B6] to-[#00B4D8] shadow-cyan-500/30';
 
         const resIcon = L.divIcon({
-          className: 'clean-map-dot-marker',
+          className: 'clean-map-badge-marker',
           html: `
             <div class="relative cursor-pointer flex items-center justify-center group" title="${res.name} Reservoir (${res.storagePercentage}% Full): Click to inspect">
-              <div class="w-3.5 h-3.5 rounded-full ${dotColor} border-2 border-white shadow-lg ring-2 transition-transform duration-200 group-hover:scale-150"></div>
-              <div class="absolute w-5 h-5 rounded-full ${dotColor} opacity-40 animate-ping pointer-events-none"></div>
+              <div class="absolute w-7.5 h-7.5 rounded-lg bg-cyan-400 opacity-30 animate-ping pointer-events-none"></div>
+              <div class="relative w-6 h-6 rounded-lg bg-gradient-to-tr ${resGradient} border-2 border-white shadow-md flex items-center justify-center transition-transform duration-200 group-hover:scale-130 group-hover:shadow-cyan-400/50">
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12h20"/>
+                  <path d="M2 6c3 0 4 2 7 2s4-2 7-2 4 2 6 2"/>
+                  <path d="M2 18c3 0 4-2 7-2s4 2 7 2 4-2 6-2"/>
+                </svg>
+              </div>
             </div>
           `,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
         });
 
         const marker = L.marker([res.geoCoords.lat, res.geoCoords.lng], { icon: resIcon });
@@ -776,23 +832,32 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 3. DISTRICT RIVER GAUGE STATIONS (Clean Deep Azure Dots)
+    // 3. DISTRICT RIVER GAUGE STATIONS (Deep Azure River Target Badge)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'rivers') {
       districtRiverGauges.forEach((st) => {
         const isCritical = st.status === 'red';
         const isWarning = st.status === 'yellow';
-        const dotColor = isCritical ? 'bg-rose-600 ring-rose-300' : isWarning ? 'bg-amber-500 ring-amber-300' : 'bg-[#0077b6] ring-blue-300';
+        const riverGradient = isCritical 
+          ? 'from-rose-600 to-red-500 shadow-rose-500/30' 
+          : isWarning 
+          ? 'from-amber-600 to-amber-500 shadow-amber-500/30' 
+          : 'from-[#03045E] to-[#0077B6] shadow-blue-500/30';
 
         const riverIcon = L.divIcon({
-          className: 'clean-map-dot-marker',
+          className: 'clean-map-badge-marker',
           html: `
-            <div class="relative cursor-pointer flex items-center justify-center group" title="${st.name} River Station: Click to inspect telemetry">
-              <div class="w-3 h-3 rounded-full ${dotColor} border-2 border-white shadow-md ring-1 transition-transform duration-200 group-hover:scale-150"></div>
+            <div class="relative cursor-pointer flex items-center justify-center group" title="${st.name} River Gauge Station: Click to inspect telemetry">
+              <div class="relative w-5.5 h-5.5 rounded-lg bg-gradient-to-tr ${riverGradient} border-2 border-white shadow-md flex items-center justify-center transition-transform duration-200 group-hover:scale-130">
+                <svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M3 12h3m12 0h3M12 3v3m0 12v3"/>
+                </svg>
+              </div>
             </div>
           `,
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
         });
 
         const marker = L.marker([st.lat, st.lng], { icon: riverIcon });
@@ -802,23 +867,31 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 4. DISTRICT GROUNDWATER PIEZOMETERS (Clean Emerald/Amber Dots)
+    // 4. DISTRICT GROUNDWATER PIEZOMETERS (Mint/Teal Borehole Depth Badge)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'groundwater') {
       districtGroundwaterWells.forEach((gw) => {
         const isCritical = gw.status === 'red' || gw.dtwlMbgl > 35;
         const isSemi = gw.status === 'yellow' || (gw.dtwlMbgl > 20 && gw.dtwlMbgl <= 35);
-        const dotColor = isCritical ? 'bg-rose-500 ring-rose-200' : isSemi ? 'bg-amber-500 ring-amber-200' : 'bg-emerald-500 ring-emerald-200';
+        const gwGradient = isCritical 
+          ? 'from-rose-600 to-red-500 shadow-rose-500/30' 
+          : isSemi 
+          ? 'from-amber-600 to-amber-500 shadow-amber-500/30' 
+          : 'from-emerald-700 to-teal-500 shadow-emerald-500/30';
 
         const gwIcon = L.divIcon({
-          className: 'clean-map-dot-marker',
+          className: 'clean-map-badge-marker',
           html: `
-            <div class="relative cursor-pointer flex items-center justify-center group" title="${gw.village} DWLR (${gw.dtwlMbgl} mbgl): Click to inspect telemetry">
-              <div class="w-2.5 h-2.5 rounded-full ${dotColor} border border-white shadow-xs ring-1 transition-transform duration-200 group-hover:scale-150"></div>
+            <div class="relative cursor-pointer flex items-center justify-center group" title="${gw.village} DWLR Piezometer (${gw.dtwlMbgl} mbgl): Click to inspect telemetry">
+              <div class="relative w-5 h-5 rounded-lg bg-gradient-to-tr ${gwGradient} border-1.5 border-white shadow-xs flex items-center justify-center transition-transform duration-200 group-hover:scale-130">
+                <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v20M17 17l-5 5-5-5"/>
+                </svg>
+              </div>
             </div>
           `,
-          iconSize: [12, 12],
-          iconAnchor: [6, 6],
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
         });
 
         const marker = L.marker([gw.lat, gw.lng], { icon: gwIcon });
@@ -828,19 +901,23 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 5. DISTRICT MANDAL RAINFALL STATIONS (Clean Sky-Blue Dots)
+    // 5. DISTRICT MANDAL RAINFALL STATIONS (Sky-Blue Cloud Rain Badge)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'rainfall') {
       districtRainfallStations.forEach((rf) => {
         const rainIcon = L.divIcon({
-          className: 'clean-map-dot-marker',
+          className: 'clean-map-badge-marker',
           html: `
             <div class="relative cursor-pointer flex items-center justify-center group" title="${rf.mandal} Rainfall (${rf.actualMm}mm): Click to inspect telemetry">
-              <div class="w-2.5 h-2.5 rounded-full bg-sky-300 border border-white shadow-xs ring-1 ring-sky-200 transition-transform duration-200 group-hover:scale-150"></div>
+              <div class="relative w-5 h-5 rounded-lg bg-gradient-to-tr from-sky-600 to-sky-400 border-1.5 border-white shadow-xs flex items-center justify-center transition-transform duration-200 group-hover:scale-130">
+                <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M8 19v2m8-2v2m-4-1v2"/>
+                </svg>
+              </div>
             </div>
           `,
-          iconSize: [12, 12],
-          iconAnchor: [6, 6],
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
         });
 
         const marker = L.marker([rf.lat, rf.lng], { icon: rainIcon });
@@ -1028,12 +1105,12 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
       {/* ============================================================== */}
       {/* SATELLITE MAP CONTAINER                                         */}
       {/* ============================================================== */}
-      <div className="relative w-full h-[620px] rounded-3xl overflow-hidden border border-slate-300 shadow-md bg-slate-900">
+      <div className="relative z-0 isolate w-full h-[560px] md:h-[590px] rounded-3xl overflow-hidden border border-slate-300 shadow-md bg-slate-900">
         <div ref={mapContainerRef} className="w-full h-full" />
 
         {/* Live Cursor Coordinate Readout */}
         {cursorCoords && (
-          <div className="absolute bottom-3 left-3 bg-slate-900/85 backdrop-blur-md text-slate-200 border border-slate-700/80 px-3 py-1 rounded-xl text-[11px] font-mono shadow-md z-[1000] flex items-center gap-2 pointer-events-none">
+          <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-md text-slate-200 border border-slate-700/80 px-3.5 py-1.5 rounded-xl text-[11px] font-mono shadow-md z-20 flex items-center gap-2 pointer-events-none">
             <Compass className="w-3.5 h-3.5 text-cyan-400" />
             <span>GPS: {cursorCoords.lat}°N, {cursorCoords.lng}°E</span>
             <span className="text-slate-500">|</span>
@@ -1041,65 +1118,248 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
           </div>
         )}
 
-        {/* Floating Legend Overlay - Positioned at bottom right per user request (image_7a6537f1.png) */}
-        <div className="absolute bottom-3 right-3 bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 p-3 rounded-2xl shadow-2xl z-[1000] text-xs space-y-2 pointer-events-auto max-w-[220px]">
-          <div className="flex items-center justify-between gap-2 border-b border-slate-700/80 pb-1.5">
-            <div className="font-black text-[11px] uppercase tracking-wider text-sky-300 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>Telemetry Legend</span>
-            </div>
+        {/* ============================================================== */}
+        {/* EXECUTIVE TELEMETRY HUD LEGEND (Non-Clipping, 2-Column, Rich Badges) */}
+        {/* ============================================================== */}
+        {!isLegendOpen ? (
+          /* Minimized State: Sleek Floating Pill Badge */
+          <div className={`absolute ${legendPosition === 'top-right' ? 'top-4 right-4' : 'bottom-4 right-4'} z-20 transition-all duration-200 pointer-events-auto`}>
             <button
               type="button"
-              onClick={() => setIsLegendOpen(!isLegendOpen)}
-              className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer transition-colors"
-              title={isLegendOpen ? 'Collapse Legend' : 'Expand Legend'}
-              aria-label={isLegendOpen ? 'Collapse Legend' : 'Expand Legend'}
+              onClick={() => setIsLegendOpen(true)}
+              className="bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 px-3.5 py-2 rounded-2xl shadow-2xl flex items-center gap-2 hover:bg-slate-800 transition-colors cursor-pointer group"
+              title="Expand Telemetry Legend"
             >
-              {isLegendOpen ? (
-                <ChevronDown className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronUp className="w-3.5 h-3.5" />
-              )}
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="font-extrabold text-xs text-sky-300 tracking-wide">Telemetry Legend</span>
+              <span className="text-[10px] font-mono bg-sky-950/90 text-sky-300 border border-sky-800/60 px-1.5 py-0.5 rounded-full font-bold">
+                8 Layers
+              </span>
+              <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-transform" />
             </button>
           </div>
+        ) : (
+          /* Expanded State: 2-Column High-Tech Telemetry HUD Card */
+          <div className={`absolute ${legendPosition === 'top-right' ? 'top-4 right-4' : 'bottom-4 right-4'} z-20 bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 p-3.5 rounded-2xl shadow-2xl space-y-2.5 pointer-events-auto max-w-[340px] sm:max-w-[440px] w-full max-h-[min(340px,calc(100%-2rem))] overflow-y-auto scrollbar-thin transition-all duration-200`}>
+            {/* Header: Title, Live Status, Position Switcher, Minimize */}
+            <div className="flex items-center justify-between gap-2 border-b border-slate-700/80 pb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sky-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="font-black text-[11px] uppercase tracking-wider text-sky-200 leading-none">
+                      Telemetry Legend
+                    </h4>
+                    <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-1.5 py-0.2 rounded font-bold">
+                      LIVE
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-medium">ISRO & APWRIMS Real-Time Data</span>
+                </div>
+              </div>
 
-          {isLegendOpen && (
-            <div className="space-y-1.5 text-[11px] pt-0.5 animate-in fade-in duration-150">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-rose-500 border border-white shrink-0 shadow-xs"></span>
-                <span className="text-slate-200 font-medium">Grievance (Submitted)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-blue-500 border border-white shrink-0 shadow-xs"></span>
-                <span className="text-slate-200 font-medium">Inspector Assigned</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-amber-500 border border-white shrink-0 shadow-xs"></span>
-                <span className="text-slate-200 font-medium">Action in Progress</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 border border-white shrink-0 shadow-xs"></span>
-                <span className="text-slate-200 font-medium">Verified Resolved</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 border border-white shadow-xs shrink-0"></span>
-                <span className="text-slate-200 font-medium">AP Reservoir Dam</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#0077b6] border border-white shadow-xs shrink-0"></span>
-                <span className="text-slate-200 font-medium">River Gauge Station</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 border border-white shadow-xs shrink-0"></span>
-                <span className="text-slate-200 font-medium">DWLR Piezometer</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky-300 border border-white shadow-xs shrink-0"></span>
-                <span className="text-slate-200 font-medium">Rainfall Station</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setLegendPosition(legendPosition === 'bottom-right' ? 'top-right' : 'bottom-right')}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/90 transition-colors cursor-pointer"
+                  title={legendPosition === 'bottom-right' ? 'Move to Top-Right' : 'Move to Bottom-Right'}
+                  aria-label="Toggle Legend Position"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsLegendOpen(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/90 transition-colors cursor-pointer"
+                  title="Collapse Legend"
+                  aria-label="Collapse Legend"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* 2-Column Grid of Beautiful High-Fidelity Symbols */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3.5 gap-y-2 text-[11px]">
+              {/* Column 1: Citizen Grievance Lifecycle */}
+              <div className="space-y-1.5">
+                <div className="text-[9px] font-black uppercase tracking-wider text-slate-400/90 border-b border-slate-800 pb-0.5 mb-1 flex items-center justify-between">
+                  <span>Grievance Status</span>
+                  <span className="font-mono text-[9px] text-slate-400">({districtComplaints.length})</span>
+                </div>
+
+                {/* Submitted */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('complaints')}
+                  title="Filter to Complaints"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-rose-600 to-red-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">Submitted</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-950/80 text-rose-300 border border-rose-800/60 shrink-0">
+                    {grievanceSubmittedCount}
+                  </span>
+                </div>
+
+                {/* Inspector Assigned */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('complaints')}
+                  title="Filter to Complaints"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-blue-600 to-sky-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">Inspector On-Site</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-950/80 text-sky-300 border border-blue-800/60 shrink-0">
+                    {grievanceInspectorCount}
+                  </span>
+                </div>
+
+                {/* Action In Progress */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('complaints')}
+                  title="Filter to Complaints"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-amber-600 to-amber-400 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">Action in Progress</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 shrink-0">
+                    {grievanceActionCount}
+                  </span>
+                </div>
+
+                {/* Verified Resolved */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('complaints')}
+                  title="Filter to Complaints"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">Resolved</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 shrink-0">
+                    {grievanceResolvedCount}
+                  </span>
+                </div>
+              </div>
+
+              {/* Column 2: Hydrological Telemetry Stations */}
+              <div className="space-y-1.5">
+                <div className="text-[9px] font-black uppercase tracking-wider text-slate-400/90 border-b border-slate-800 pb-0.5 mb-1 flex items-center justify-between">
+                  <span>Hydro Stations</span>
+                  <span className="font-mono text-[9px] text-slate-400">APWRIMS</span>
+                </div>
+
+                {/* AP Reservoir Dam */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('reservoirs')}
+                  title="Filter to Reservoirs"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-[#0077B6] to-[#00B4D8] border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12h20"/>
+                        <path d="M2 6c3 0 4 2 7 2s4-2 7-2 4 2 6 2"/>
+                        <path d="M2 18c3 0 4-2 7-2s4 2 7 2 4-2 6-2"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">Reservoir Dam</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 shrink-0">
+                    {districtReservoirs.length}
+                  </span>
+                </div>
+
+                {/* River Gauge Station */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('rivers')}
+                  title="Filter to River Gauges"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-[#03045E] to-[#0077B6] border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M3 12h3m12 0h3M12 3v3m0 12v3"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">River Gauge</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-950/80 text-sky-300 border border-blue-800/60 shrink-0">
+                    {districtRiverGauges.length}
+                  </span>
+                </div>
+
+                {/* DWLR Piezometer */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('groundwater')}
+                  title="Filter to Groundwater Wells"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-emerald-700 to-teal-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2v20M17 17l-5 5-5-5"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">DWLR Well</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-teal-950/80 text-teal-300 border border-teal-800/60 shrink-0">
+                    {districtGroundwaterWells.length}
+                  </span>
+                </div>
+
+                {/* Rainfall Station */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('rainfall')}
+                  title="Filter to Rainfall Stations"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-sky-600 to-sky-400 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M8 19v2m8-2v2m-4-1v2"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">Rain Station</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-sky-950/80 text-sky-300 border border-sky-800/60 shrink-0">
+                    {districtRainfallStations.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sub-Map Executive Telemetry Note */}

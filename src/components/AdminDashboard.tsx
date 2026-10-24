@@ -99,10 +99,12 @@ import {
   Radio,
   FileBadge,
   ChevronRight,
-  Copy
+  Copy,
+  Globe
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { JurisdictionCard } from './JurisdictionCard';
+import { JumpToDropdown } from './JumpToDropdown';
 
 interface AdminDashboardProps {
   waterBodies: WaterBody[];
@@ -113,6 +115,7 @@ interface AdminDashboardProps {
   onOpenDrawer?: () => void;
   onUpdateComplaint?: (updated: CitizenComplaint) => void;
   onOpenSupabaseModal?: () => void;
+  onBackToHome?: () => void;
 }
 
 // 11 Official State Admin Options (1:1 with user specification in image_f209fa3d.png)
@@ -1134,6 +1137,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenDrawer,
   onUpdateComplaint,
   onOpenSupabaseModal,
+  onBackToHome,
 }) => {
   const { t, language } = useLanguage();
   const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
@@ -2297,7 +2301,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="space-y-6 w-full text-slate-800">
-      
+      {/* Top Breadcrumb & Navigation Bar - ALWAYS AT THE VERY TOP */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          {activePage === 'hub' ? (
+            <button
+              onClick={() => onBackToHome ? onBackToHome() : null}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+              title="Back to Portal Home"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
+              <span>Back</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab('hub')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+              title={uiText.backToHub}
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
+              <span>Back</span>
+            </button>
+          )}
+
+          <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1"></div>
+
+          <button
+            onClick={() => onBackToHome ? onBackToHome() : null}
+            className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>{t('breadcrumbPortalHome')}</span>
+          </button>
+
+          <span className="text-slate-300">/</span>
+
+          {activePage === 'hub' ? (
+            <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>State Admin</span>
+            </span>
+          ) : (
+            <>
+              <button
+                onClick={() => setActiveTab('hub')}
+                className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>State Admin</span>
+              </button>
+
+              <span className="text-slate-300">/</span>
+
+              <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>{ADMIN_FLASHCARDS.find(fc => fc.id === activePage)?.title || 'ISRO Bhuvan Satellite Map'}</span>
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Right: Custom Beautiful Jump to Dropdown */}
+        <JumpToDropdown
+          currentValue={activePage}
+          options={ADMIN_FLASHCARDS.map(fc => ({
+            id: fc.id,
+            title: fc.title,
+            badge: fc.badge,
+            icon: fc.icon,
+            iconBg: fc.iconBg,
+          }))}
+          onSelect={(id) => setActiveTab(id as AdminActiveTab | 'hub')}
+          hubOptionLabel={uiText.allModulesLabel}
+          hubOptionId="hub"
+          hubIcon={Building2}
+        />
+      </div>
+
       {/* ==================================================================== */}
       {/* 1. HERO HEADER: STATE WATER SURVEILLANCE & EXECUTIVE OVERSIGHT       */}
       {/* (SHOWN ONLY ON HUB VIEW SO SUB-PAGES ARE CLEAN AND SPACIOUS)         */}
@@ -2599,48 +2679,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {activePage !== 'hub' && (
         <div className="space-y-5 animate-in fade-in duration-150">
-          {/* Top Navigation Bar: Back to Hub + Module Header + Language Switcher + Jump-to Dropdown */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button
-                onClick={() => setActiveTab('hub')}
-                className="px-4 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-xs hover:scale-102 active:scale-98"
-                title={uiText.backToHub}
-              >
-                <ArrowLeft className="w-4 h-4 text-[#00B4D8]" />
-                <span>{uiText.backToHub}</span>
-              </button>
-
-              {activePage === 'map' && (
-                <button
-                  onClick={() => setActiveTab('districts')}
-                  className="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs"
-                  title={currentLang === 'te' ? '26 జిల్లాల పట్టిక' : currentLang === 'hi' ? '26 जिलों की तालिका' : '26 Districts Table'}
-                >
-                  <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>{currentLang === 'te' ? '26 జిల్లాల పట్టిక' : currentLang === 'hi' ? '26 जिला तालिका' : '26 Districts Table'}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Right: Module Switcher Dropdown */}
-            <div className="flex items-center gap-2">
-              <label className="text-[11px] font-bold text-slate-500 hidden md:inline">{uiText.jumpToLabel}</label>
-              <select
-                value={activePage}
-                onChange={(e) => setActiveTab(e.target.value as AdminActiveTab | 'hub')}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 cursor-pointer shadow-2xs hover:bg-slate-100"
-              >
-                <option value="hub">📋 {uiText.allModulesLabel}</option>
-                {ADMIN_FLASHCARDS.map(fc => (
-                  <option key={fc.id} value={fc.id}>{fc.title}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-
-
       {/* ==================================================================== */}
       {/* TAB 1: EXECUTIVE AP SATELLITE COMMAND GRID (CLEAN, NON-SCROLLABLE)   */}
       {/* ==================================================================== */}

@@ -1,4 +1,4 @@
-import { Droplets, LogIn, ArrowLeft, Paperclip } from 'lucide-react';
+import { Droplets, LogIn, ArrowLeft } from 'lucide-react';
 import { UserRoleType } from '../types/nirikshan';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -95,18 +95,6 @@ export const NirikshanHeader: React.FC<NirikshanHeaderProps> = ({
 
 
 
-          {/* Supporting Materials (System Architecture, Workflow & Screenshots) Button */}
-          {onOpenSubmissionDossier && (
-            <button
-              onClick={onOpenSubmissionDossier}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-3 py-2 rounded-xl text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border border-amber-400/30"
-              title="System Architecture, Workflow Diagram & Prototype Screenshots"
-            >
-              <Paperclip className="w-3.5 h-3.5 text-amber-100" />
-              <span className="hidden sm:inline">Supporting Materials</span>
-              <span className="sm:hidden">Dossier</span>
-            </button>
-          )}
 
           {/* Login & Actions Area */}
           {!isLoggedIn ? (

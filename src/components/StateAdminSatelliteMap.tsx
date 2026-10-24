@@ -957,10 +957,10 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
       const markerHtml = `
         <div class="relative group cursor-pointer">
-          <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-[#00B4D8] ring-4 ring-[#0077B6]/50 scale-125' : 'bg-[#03045E]/90'} text-white border-2 border-white shadow-lg flex items-center justify-center font-black text-[10px] transform hover:scale-125 transition-transform">
+          <div class="w-5 h-5 rounded-full ${isSelected ? 'bg-[#00B4D8] ring-2 ring-[#0077B6] scale-110' : 'bg-[#03045E]/90'} text-white border border-white shadow-sm flex items-center justify-center font-bold text-[9px] transform hover:scale-125 transition-transform">
             ${distComplaints.length > 0 ? distComplaints.length : 'AP'}
           </div>
-          <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 text-[#03045E] text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs border border-slate-200 pointer-events-none">
+          <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 text-[#03045E] text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs border border-slate-200 pointer-events-none hidden group-hover:block z-30">
             ${dist.name}
           </div>
         </div>
@@ -969,8 +969,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       const customIcon = L.divIcon({
         html: markerHtml,
         className: 'ap-district-marker',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
       });
 
       const marker = L.marker([dist.centerCoords.lat, dist.centerCoords.lng], { icon: customIcon });
@@ -1017,14 +1017,15 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
         const markerHtml = `
           <div class="relative cursor-pointer group">
-            <span class="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${badgeBg} opacity-80"></span>
-              <span class="relative inline-flex rounded-full h-3.5 w-3.5 ${badgeBg}"></span>
+            <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${badgeBg} opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 ${badgeBg}"></span>
             </span>
-            <div class="w-8 h-8 rounded-2xl ${badgeBg} border-2 border-white shadow-xl flex items-center justify-center text-white transform hover:scale-130 transition-transform">
-              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 10h2v4h-2zm0 6h2v2h-2z"/>
-              </svg>
+            <div class="w-3.5 h-3.5 rounded-full ${badgeBg} border border-white shadow-sm flex items-center justify-center text-white transform hover:scale-150 transition-transform">
+              <div class="w-1 h-1 bg-white rounded-full"></div>
+            </div>
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/90 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none hidden group-hover:block z-30">
+              ${complaint.id}
             </div>
           </div>
         `;
@@ -1032,8 +1033,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const icon = L.divIcon({
           html: markerHtml,
           className: 'ap-complaint-marker',
-          iconSize: [32, 32],
-          iconAnchor: [16, 16]
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
         });
 
         const marker = L.marker([lat, lng], { 
@@ -1064,13 +1065,11 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
         const markerHtml = `
           <div class="relative cursor-pointer group">
-            <div class="w-7 h-7 rounded-full ${colorClass} border-2 shadow-lg flex items-center justify-center text-white transform hover:scale-130 transition-transform">
-              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
-              </svg>
+            <div class="w-3.5 h-3.5 rounded-full ${colorClass} border border-white shadow-sm flex items-center justify-center text-white transform hover:scale-150 transition-transform">
+              <div class="w-1 h-1 bg-white rounded-full"></div>
             </div>
-            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/90 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none">
-              ${res.currentStorageTMC} TMC
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/90 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none hidden group-hover:block z-30">
+              ${res.name}: ${res.currentStorageTMC} TMC
             </div>
           </div>
         `;
@@ -1078,8 +1077,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const icon = L.divIcon({
           html: markerHtml,
           className: 'ap-res-marker',
-          iconSize: [28, 28],
-          iconAnchor: [14, 14]
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
         });
 
         const marker = L.marker([res.geoCoords.lat, res.geoCoords.lng], { icon });
@@ -1131,8 +1130,9 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
         const markerHtml = `
           <div class="relative cursor-pointer group">
-            <div class="w-6 h-6 rounded-full ${pinBg} border-2 border-white shadow-md flex items-center justify-center text-white transform hover:scale-130 transition-transform">
-              <span class="text-[9px] font-bold">W</span>
+            <div class="w-2.5 h-2.5 rounded-full ${pinBg} border border-white shadow-xs transform hover:scale-200 transition-transform"></div>
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/90 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none hidden group-hover:block z-30">
+              ${well.village}: ${well.dtwlMbgl.toFixed(1)}m bgl
             </div>
           </div>
         `;
@@ -1140,8 +1140,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const icon = L.divIcon({
           html: markerHtml,
           className: 'ap-gw-marker',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
         });
 
         const marker = L.marker([well.lat, well.lng], { icon });
@@ -1199,8 +1199,9 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
         const markerHtml = `
           <div class="relative cursor-pointer group">
-            <div class="w-6 h-6 rounded-md bg-cyan-600 border-2 border-white shadow-md flex items-center justify-center text-white transform hover:scale-130 transition-transform">
-              <span class="text-[9px] font-bold">G</span>
+            <div class="w-2.5 h-2.5 rounded-xs bg-cyan-500 border border-white shadow-xs transform hover:scale-200 transition-transform"></div>
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/90 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none hidden group-hover:block z-30">
+              ${gauge.name}
             </div>
           </div>
         `;
@@ -1208,8 +1209,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const icon = L.divIcon({
           html: markerHtml,
           className: 'ap-gauge-marker',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
         });
 
         const marker = L.marker([gauge.lat, gauge.lng], { icon });
@@ -1267,8 +1268,9 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
         const markerHtml = `
           <div class="relative cursor-pointer group">
-            <div class="w-6 h-6 rounded-full ${colorClass} border-2 border-white shadow-md flex items-center justify-center text-white transform hover:scale-130 transition-transform">
-              <span class="text-[9px] font-bold">🌧️</span>
+            <div class="w-2 h-2 rounded-full ${colorClass} border border-white shadow-xs transform hover:scale-200 transition-transform"></div>
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/90 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none hidden group-hover:block z-30">
+              ${rf.mandal}: ${rf.actualMm.toFixed(1)}mm
             </div>
           </div>
         `;
@@ -1276,8 +1278,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
         const icon = L.divIcon({
           html: markerHtml,
           className: 'ap-rf-marker',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          iconSize: [8, 8],
+          iconAnchor: [4, 4]
         });
 
         const marker = L.marker([rf.lat, rf.lng], { icon });
@@ -1498,7 +1500,7 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       </div>
 
       {/* Main Map Box with Applied Brightness & Contrast Calibration */}
-      <div className="relative w-full h-[580px] sm:h-[640px] bg-slate-900 overflow-hidden">
+      <div className="relative z-0 isolate w-full h-[580px] sm:h-[640px] bg-slate-900 overflow-hidden">
         <div 
           ref={mapContainerRef} 
           className="w-full h-full z-0 transition-all duration-300" 

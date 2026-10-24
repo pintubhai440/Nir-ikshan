@@ -91,7 +91,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
     currentRole === 'nodal_visakhapatnam';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="fixed inset-0 z-[99999] overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Blurred Backdrop */}
       <div 
         onClick={onClose}

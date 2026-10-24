@@ -78,11 +78,14 @@ import {
   Eye,
   EyeOff,
   LogIn,
-  Satellite
+  Satellite,
+  Waves,
+  Globe
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import jsPDF from 'jspdf';
 import { saveComplaintToSupabase } from '../lib/supabase';
+import { JumpToDropdown } from './JumpToDropdown';
 
 export type NodalActiveTab = 
   | 'hub' 
@@ -106,6 +109,7 @@ interface NodalOfficerDashboardProps {
   onAssignInspector: (complaintId: string, inspectorName: string, inspectorPhone: string) => void;
   onAssignEngineer: (complaintId: string, engineerName: string, engineerPhone: string, deadline: string) => void;
   onUpdateComplaint?: (updated: CitizenComplaint) => void;
+  onBackToHome?: () => void;
 }
 
 export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
@@ -118,6 +122,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
   onAssignInspector,
   onAssignEngineer,
   onUpdateComplaint,
+  onBackToHome,
 }) => {
   // District state: default to 26 district selection view unless already authenticated
   const [currentDistrict, setCurrentDistrict] = useState<string>(initialDistrict || 'Vizianagaram');
@@ -606,6 +611,37 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
   if (isSelectingDistrict) {
     return (
       <div className="space-y-6">
+        {/* Top Breadcrumb & Navigation Bar */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs flex-wrap">
+            <button
+              onClick={() => onBackToHome ? onBackToHome() : null}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+              title="Back to Portal Home"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
+              <span>Back</span>
+            </button>
+
+            <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1"></div>
+
+            <button
+              onClick={() => onBackToHome ? onBackToHome() : null}
+              className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Portal Home</span>
+            </button>
+
+            <span className="text-slate-300">/</span>
+
+            <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Nodal Officer (26 Districts Command)</span>
+            </span>
+          </div>
+        </div>
+
         {/* Top Header Banner for 26 District Nodal Officers */}
         <div className="bg-gradient-to-r from-[#03045e] via-[#0077b6] to-sky-950 text-white rounded-3xl p-6 sm:p-8 shadow-lg border border-blue-900/40 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
@@ -637,12 +673,12 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl text-center min-w-[110px]">
                 <span className="text-[10px] font-mono uppercase font-bold text-sky-200 block">Districts</span>
                 <span className="text-2xl font-black text-amber-300">26</span>
-                <span className="text-[9px] text-sky-100 block">Nodal Districts</span>
+                <span className="text-[9px] text-sky-100 block">Nodal Circles</span>
               </div>
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl text-center min-w-[110px]">
-                <span className="text-[10px] font-mono uppercase font-bold text-sky-200 block">Live Inflow</span>
-                <span className="text-2xl font-black text-emerald-300">{complaints.length}</span>
-                <span className="text-[9px] text-sky-100 block">Supabase Synced</span>
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl text-center min-w-[125px]">
+                <span className="text-[10px] font-mono uppercase font-bold text-sky-200 block">Data Privacy</span>
+                <span className="text-2xl font-black text-emerald-300">100%</span>
+                <span className="text-[9px] text-sky-100 block">Strict Isolation</span>
               </div>
             </div>
           </div>
@@ -817,37 +853,42 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Live District Isolated Telemetry Bar */}
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div className="p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
-                      <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Inflow</span>
-                      <strong className={`font-mono text-xs font-black ${districtComplaintsCount > 0 ? 'text-amber-600' : 'text-slate-700'}`}>
-                        {districtComplaintsCount} Live
-                      </strong>
+                  {/* Confidential Data Isolation & Statutory Security Panel */}
+                  <div className="bg-gradient-to-br from-slate-50 via-sky-50/20 to-blue-50/40 p-3 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-blue-100/70 border border-blue-200/60 flex items-center justify-center shrink-0 text-[#0077b6]">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                            District Data Privacy
+                          </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-slate-700 truncate">
+                          Secured Under APWR Act § 10
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
-                      <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Water Assets</span>
-                      <strong className="text-slate-900 font-mono text-xs font-black">{dist.totalWaterBodiesCount}</strong>
-                    </div>
-                    <div className="p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
-                      <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Storage</span>
-                      <strong className="text-[#0077b6] font-mono text-xs font-black">{dist.wrisTelemetry.storagePercentage}%</strong>
-                    </div>
+                    <span className="text-[9px] font-mono font-bold text-[#0077b6] bg-white px-2 py-0.5 rounded-md border border-blue-200/80 shrink-0 shadow-2xs">
+                      Confidential
+                    </span>
                   </div>
                 </div>
 
                 {/* Bottom Action Footer */}
-                <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs">
-                  <span className="text-[10px] font-mono font-bold text-slate-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    <span>SLA: 72h Statutory</span>
-                  </span>
+                <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium text-[11px]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Auth Required to Access Data</span>
+                  </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleInitiateDistrictLogin(dist);
                     }}
-                    className="font-extrabold text-xs bg-gradient-to-r from-[#0077b6] to-[#023e8a] hover:from-[#023e8a] hover:to-[#03045e] text-white px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer group-hover:scale-102"
+                    className="font-extrabold text-xs bg-gradient-to-r from-[#0077b6] to-[#023e8a] hover:from-[#023e8a] hover:to-[#03045e] text-white px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer group-hover:scale-102"
                   >
                     <Lock className="w-3 h-3 text-amber-300" />
                     <span>Enter Hub</span>
@@ -1004,81 +1045,99 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
   // =========================================================================
   return (
     <div className="space-y-6">
-      {/* Top Breadcrumb & Switcher Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      {/* Top Breadcrumb & Navigation Bar */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          {/* Back button: one level back */}
+          {activeTab === 'hub' ? (
+            <button
+              onClick={() => {
+                setIsSelectingDistrict(true);
+                setAuthenticatedDistrict(null);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+              title="Back to 26 Districts Command"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
+              <span>Back</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab('hub')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+              title="Back to District Command Hub"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
+              <span>Back</span>
+            </button>
+          )}
+
+          <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1"></div>
+
+          {/* Breadcrumb Hierarchy */}
+          <button
+            onClick={() => onBackToHome ? onBackToHome() : null}
+            className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Portal Home</span>
+          </button>
+
+          <span className="text-slate-300">/</span>
+
           <button
             onClick={() => {
               setIsSelectingDistrict(true);
               setAuthenticatedDistrict(null);
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0077b6] font-bold text-xs transition-colors cursor-pointer border border-blue-200 shadow-2xs"
+            className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>← Switch District (All 26 Districts)</span>
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Nodal Officer</span>
           </button>
 
-          <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
+          <span className="text-slate-300">/</span>
 
-          <div className="text-xs flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-slate-400">Authenticated District: </span>
-            <strong className="text-slate-900 font-extrabold capitalize bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
-              {currentDistrict} District
-            </strong>
-            <span className="text-slate-500 hidden md:inline text-[11px]">
-              • In-Charge: {currentDistrictData.officerInCharge.name}
+          {activeTab === 'hub' ? (
+            <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>{currentDistrict} District Hub</span>
             </span>
-          </div>
-        </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setActiveTab('hub')}
+                className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <MapPin className="w-3.5 h-3.5 text-[#0077b6]" />
+                <span>{currentDistrict} District</span>
+              </button>
 
-        <div className="flex items-center gap-2.5">
-          {activeTab !== 'hub' && (
-            <button
-              onClick={() => setActiveTab('hub')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
-            >
-              <span>Command Hub (9 Portals)</span>
-            </button>
+              <span className="text-slate-300">/</span>
+
+              <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>{NODAL_FLASHCARDS.find(fc => fc.id === activeTab)?.title || 'Active Module'}</span>
+              </span>
+            </>
           )}
-
-          {/* Quick Module Jumper */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700">
-            <span className="text-slate-400 font-semibold">Jump to:</span>
-            <select
-              value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as NodalActiveTab)}
-              className="bg-transparent font-bold text-[#0077b6] outline-none cursor-pointer"
-            >
-              <option value="hub">Executive Hub (All 9 Modules)</option>
-              <option value="map">Map (Cadastral GIS)</option>
-              <option value="inspections">Inspection Schedule</option>
-              <option value="complaints">Complaints (Triage Queue)</option>
-              <option value="issues_and_tasks">Issues and Tasks (Kanban)</option>
-              <option value="assets">Assets (Water Bodies Catalog)</option>
-              <option value="team">My Team (Field Personnel)</option>
-              <option value="monthly_review">Monthly Review (Assurance)</option>
-              <option value="reports">Reports (Gazette & Dossiers)</option>
-              <option value="settings">Settings (Operational SLAs)</option>
-            </select>
-          </div>
-
-          {/* District Switcher */}
-          <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-xl px-2.5 py-1.5 text-xs text-blue-900 font-bold">
-            <MapPin className="w-3.5 h-3.5 text-[#0077b6]" />
-            <select
-              value={currentDistrict}
-              onChange={(e) => setCurrentDistrict(e.target.value)}
-              className="bg-transparent font-bold text-[#0077b6] outline-none cursor-pointer"
-            >
-              {ANDHRA_PRADESH_26_DISTRICTS.map((d) => (
-                <option key={d.name} value={d.name}>
-                  {d.name} District
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
+
+        {/* Right Section: Custom Beautiful Jump to Dropdown (Strict District Isolation - No cross-district switcher) */}
+        <JumpToDropdown
+          currentValue={activeTab}
+          options={NODAL_FLASHCARDS.map((fc) => ({
+            id: fc.id,
+            title: fc.title,
+            badge: fc.badge,
+            icon: fc.icon,
+            iconBg: fc.iconBg,
+          }))}
+          onSelect={(id) => setActiveTab(id as NodalActiveTab)}
+          hubOptionLabel="Executive Hub (All 9 Modules)"
+          hubOptionId="hub"
+          hubIcon={Building2}
+        />
       </div>
 
       {/* ============================================================== */}
@@ -1160,6 +1219,94 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 <Download className="w-3.5 h-3.5 text-emerald-300" />
                 <span>Export Certified Gazette (PDF)</span>
               </button>
+            </div>
+          </div>
+
+          {/* ============================================================== */}
+          {/* DISTRICT ISOLATED HYDROLOGICAL TELEMETRY (Inflow, Assets, Storage) */}
+          {/* ============================================================== */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h3 className="font-extrabold text-sm text-[#03045E]">
+                  {currentDistrict} District Live Telemetry & Hydrological Baseline
+                </h3>
+                <span className="text-[10px] font-mono font-bold bg-blue-50 text-[#0077b6] px-2 py-0.5 rounded-full border border-blue-200">
+                  Strict District Scope
+                </span>
+              </div>
+              <span className="text-[11px] font-medium text-slate-500">
+                APWRIMS & Central Water Commission (CWC) Real-Time Data
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+              {/* 1. Grievance Inflow */}
+              <div 
+                onClick={() => setActiveTab('complaints')}
+                className="bg-gradient-to-br from-amber-50/60 to-white p-4 rounded-2xl border border-amber-200/80 hover:border-amber-400 transition-all cursor-pointer group shadow-2xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 font-mono">
+                    Live Inflow
+                  </span>
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-slate-900 font-mono">{totalInflow}</span>
+                  <span className="text-xs font-bold text-amber-600">Live Grievances</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
+                  {pendingInspectionCount} Pending Inspection • {inActionCount} In Remediation
+                </p>
+              </div>
+
+              {/* 2. Water Assets */}
+              <div 
+                onClick={() => setActiveTab('assets')}
+                className="bg-gradient-to-br from-sky-50/60 to-white p-4 rounded-2xl border border-sky-200/80 hover:border-sky-400 transition-all cursor-pointer group shadow-2xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#0077b6] font-mono">
+                    Water Assets
+                  </span>
+                  <div className="w-7 h-7 rounded-lg bg-sky-100 flex items-center justify-center text-[#0077b6] group-hover:scale-110 transition-transform">
+                    <Droplets className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-slate-900 font-mono">{currentDistrictData.totalWaterBodiesCount}</span>
+                  <span className="text-xs font-bold text-sky-700">District Assets</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
+                  Reservoirs, Barrages, Infiltration Tanks & Piezometers
+                </p>
+              </div>
+
+              {/* 3. Storage */}
+              <div 
+                onClick={() => setActiveTab('map')}
+                className="bg-gradient-to-br from-blue-50/60 to-white p-4 rounded-2xl border border-blue-200/80 hover:border-blue-400 transition-all cursor-pointer group shadow-2xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 font-mono">
+                    Reservoir Storage
+                  </span>
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                    <Waves className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-[#0077b6] font-mono">{currentDistrictData.wrisTelemetry.storagePercentage}%</span>
+                  <span className="text-xs font-bold text-emerald-600">Capacity Full</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
+                  Live: {currentDistrictData.wrisTelemetry.liveStorageTMC} TMC • {currentDistrictData.wrisTelemetry.currentStorageMCM} MCM / {currentDistrictData.wrisTelemetry.capacityMCM} MCM
+                </p>
+              </div>
             </div>
           </div>
 

@@ -506,8 +506,8 @@ export default function App() {
 
       {/* Main Dashboard Body Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-6">
-        {/* Sleek Breadcrumb Bar when viewing any restricted govt sub-dashboard (hidden on State Admin & Portal Home) */}
-        {currentRole !== 'overview' && currentRole !== 'user' && currentRole !== 'admin' && (
+        {/* Sleek Breadcrumb Bar when viewing any restricted govt sub-dashboard (hidden on State Admin, Portal Home & Nodal) */}
+        {currentRole !== 'overview' && currentRole !== 'user' && currentRole !== 'admin' && currentRole !== 'nodal' && !currentRole.startsWith('nodal_') && (
           <div className="bg-white border border-slate-200 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2 text-xs flex-wrap">
               <button 
@@ -521,11 +521,7 @@ export default function App() {
               <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>
-                  {currentRole === 'nodal_vizianagaram' ? t('breadcrumbNodalVzm') :
-                   currentRole === 'nodal_parvathipuram' ? t('breadcrumbNodalPvm') :
-                   currentRole === 'nodal_visakhapatnam' ? t('breadcrumbNodalVskp') :
-                   currentRole === 'inspector' ? t('breadcrumbInspector') :
-                   t('breadcrumbEngineer')}
+                  {currentRole === 'inspector' ? t('breadcrumbInspector') : t('breadcrumbEngineer')}
                 </span>
               </span>
             </div>
@@ -576,6 +572,7 @@ export default function App() {
             onOpenDrawer={() => setIsDrawerOpen(true)}
             onUpdateComplaint={handleUpdateComplaint}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+            onBackToHome={() => setCurrentRole('overview')}
           />
         )}
 
@@ -602,6 +599,7 @@ export default function App() {
             onAssignInspector={handleAssignInspector}
             onAssignEngineer={handleAssignEngineer}
             onUpdateComplaint={handleUpdateComplaint}
+            onBackToHome={() => setCurrentRole('overview')}
           />
         )}
 
