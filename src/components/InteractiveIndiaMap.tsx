@@ -822,11 +822,24 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
   const [cursorCoords, setCursorCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [copiedGps, setCopiedGps] = useState<boolean>(false);
 
-  // Flashcard State: Persistent station card (closes ONLY on [X] click)
+  // Flashcard State: Persistent station card (closes on [X] click, map click, or Escape)
   const [flashStation, setFlashStation] = useState<HydrologicalStation | null>(null);
 
-  // Flash Complaint State (closes ONLY on [X] click)
+  // Flash Complaint State (closes on [X] click, map click, or Escape)
   const [flashComplaint, setFlashComplaint] = useState<CitizenComplaint | null>(null);
+
+  // Escape key handler to close any active card
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setFlashStation(null);
+        setFlashComplaint(null);
+        setIsFilterModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // 100% Real Live Catchment Telemetry State (Open-Meteo High-Resolution Grid)
   const [realTimeTelemetry, setRealTimeTelemetry] = useState<RealTimeCatchmentTelemetry | null>(null);
@@ -1464,7 +1477,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       center: [21.5, 79.0], // All-India Geographic Center
       zoom: 5,
       minZoom: 4.0, // Flexible zoom out across India
-      maxZoom: 18,
+      maxZoom: 19,
       maxBounds: INDIA_BOUNDS,
       maxBoundsViscosity: 0.35, // Smooth boundary behavior without rigid lock
       zoomControl: true,
@@ -1473,6 +1486,12 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     });
 
     mapInstanceRef.current = map;
+
+    // Close flashcard when clicking anywhere on the map background
+    map.on('click', () => {
+      setFlashStation(null);
+      setFlashComplaint(null);
+    });
 
     // Real-Time GPS Cursor Readout: Updates lat/lng live as mouse moves over map!
     map.on('mousemove', (e: L.LeafletMouseEvent) => {
@@ -1494,6 +1513,16 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         zoom: map.getZoom(),
       });
     });
+
+    // Invalidate size on container layout changes so tiles never render partially
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(mapContainerRef.current);
+
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
 
     // Layer groups for markers, rivers & state boundary highlight
     markersLayerGroupRef.current = L.layerGroup().addTo(map);
@@ -1519,6 +1548,8 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
     });
 
     return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
       stateBorderLayerGroupRef.current = null;
@@ -1549,11 +1580,12 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         }
       ).addTo(map);
     } else if (basemapTheme === 'satellite') {
-      // High-Resolution Satellite Basemap
+      // High-Resolution Satellite Basemap with Over-zooming support (never blanks out)
       tileLayerRef.current = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         {
-          maxZoom: 18,
+          maxZoom: 19,
+          maxNativeZoom: 18,
           attribution: '&copy; ISRO NRSC Bhuvan & Esri World Imagery',
         }
       ).addTo(map);
@@ -1562,7 +1594,8 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       hybridLabelLayerRef.current = L.tileLayer(
         'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
         {
-          maxZoom: 18,
+          maxZoom: 19,
+          maxNativeZoom: 18,
           opacity: 0.95,
         }
       ).addTo(map);
@@ -1645,11 +1678,11 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
         fillOpacity: station.status === 'grey' ? 0.85 : 0.95,
       });
 
-      // Click Event: Open Flashcard (STAYS OPEN until user explicitly closes it) + Smooth Animated Zoom
+      // Click Event: Open Flashcard + Smooth Animated Zoom
       marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
         setFlashStation(station);
-        map.flyTo([station.lat, station.lng], Math.max(map.getZoom() + 2, 8), {
+        map.flyTo([station.lat, station.lng], Math.min(Math.max(map.getZoom() + 2, 8), 18), {
           animate: true,
           duration: 1.2,
         });
@@ -2014,13 +2047,17 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           }}
         />
 
-        {/* COMPLAINT DETAIL FLASHCARD (Opens on complaint pin click, CLOSES ONLY on [X] click) */}
+        {/* COMPLAINT DETAIL FLASHCARD (Opens on complaint pin click, CLOSES on [X] click, map click, or Escape) */}
         {flashComplaint && (
           <div 
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40 max-w-sm sm:max-w-md w-[calc(100%-24px)] sm:w-auto bg-white/95 border border-slate-200/90 backdrop-blur-xl shadow-2xl rounded-3xl p-4 sm:p-5 text-slate-900 space-y-3.5 pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto"
           >
             {/* Flashcard Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5 sticky -top-4 -mt-1 bg-white/95 backdrop-blur-md pt-1.5 z-20">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
@@ -2068,11 +2105,16 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                 </div>
               </div>
 
-              {/* Close Button: Closes ONLY on [X] click */}
+              {/* Close Button: High-visibility, prominent close button */}
               <button
-                onClick={() => setFlashComplaint(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer transition-colors"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFlashComplaint(null);
+                }}
+                className="p-2 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 cursor-pointer transition-all shadow-xs shrink-0 flex items-center justify-center active:scale-90"
                 title="Close Flashcard"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2170,13 +2212,17 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
           </div>
         )}
 
-        {/* PERSISTENT FLASHCARD (Opens on click/inspect, CLOSES ONLY on [X] click) */}
+        {/* PERSISTENT FLASHCARD (Opens on click/inspect, CLOSES on [X] click, map click, or Escape) */}
         {flashStation && (
           <div 
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40 max-w-sm sm:max-w-md w-[calc(100%-24px)] sm:w-auto bg-white/95 border border-slate-200/90 backdrop-blur-xl shadow-2xl rounded-3xl p-4 sm:p-5 text-slate-900 space-y-3.5 pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto"
           >
             {/* Flashcard Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5 sticky -top-4 -mt-1 bg-white/95 backdrop-blur-md pt-1.5 z-20">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0047ab] font-bold text-[10px] border border-blue-200">
                   <span>{getCategoryIcon(flashStation.category)}</span>
@@ -2200,13 +2246,18 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
                 </div>
               </div>
 
-              {/* Close Button: Strictly closes on [X] click as requested by user */}
+              {/* Close Button: Large hit area, high visibility, closes instantly */}
               <button
-                onClick={() => setFlashStation(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer transition-colors"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFlashStation(null);
+                }}
+                className="p-2 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 cursor-pointer transition-all shadow-xs shrink-0 flex items-center justify-center active:scale-90"
                 title={language === 'hi' ? 'कार्ड बंद करें' : 'Close Flashcard'}
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-slate-700 hover:text-rose-600" />
               </button>
             </div>
 
@@ -3092,67 +3143,28 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
               )}
             </div>
 
-            {/* 2. Basemap Theme (Theme that matches the website - NOT pitch black!) */}
+            {/* 2. Basemap Theme */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
               <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
                 {language === 'hi' ? '2. मानचित्र बेसमेप थीम' : '2. Map Basemap Theme'}
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                {/* 1. Satellite (ISRO Bhuvan Satellite - Default as requested) */}
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                {/* 1. Satellite (ISRO Bhuvan Satellite - Active) */}
                 <button
                   type="button"
                   onClick={() => setTempBasemapTheme('satellite')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    tempBasemapTheme === 'satellite'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
+                  className="p-3 rounded-2xl border text-left font-bold transition-all flex flex-col justify-between gap-1.5 bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <Satellite className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{language === 'hi' ? 'इसरो भुवन उपग्रह (डिफ़ॉल्ट)' : 'ISRO Bhuvan Satellite (Default)'}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Satellite className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{language === 'hi' ? 'इसरो भुवन उपग्रह (डिफ़ॉल्ट सक्रिय)' : 'ISRO Bhuvan Satellite (Default Active)'}</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">Active</span>
                   </div>
                   <span className="text-[10px] text-slate-500 font-normal">
                     {language === 'hi' ? 'उच्च-रिज़ॉल्यूशन उपग्रह इमेजरी एवं सीमाएं' : 'High-resolution ISRO satellite imagery & boundaries'}
-                  </span>
-                </button>
-
-                {/* 2. Nir-ikshan Portal Theme (Light GIS) */}
-                <button
-                  type="button"
-                  onClick={() => setTempBasemapTheme('light_gis')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    tempBasemapTheme === 'light_gis'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{language === 'hi' ? 'नीर-ईक्षण पोर्टल थीम (लाइट)' : 'Nir-ikshan Portal Theme (Light)'}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">
-                    {language === 'hi' ? 'वेबसाइट डिजाइन के अनुसार स्वच्छ कार्टोग्राफी' : 'Clean GIS cartography matching portal style'}
-                  </span>
-                </button>
-
-                {/* 3. Topographic */}
-                <button
-                  type="button"
-                  onClick={() => setTempBasemapTheme('topo')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    tempBasemapTheme === 'topo'
-                      ? 'bg-blue-50 border-blue-600 text-[#0047ab] shadow-xs ring-2 ring-blue-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{language === 'hi' ? 'टोपोग्राफिक रिलीफ' : 'Topographic Relief'}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">
-                    {language === 'hi' ? 'पर्वतीय एवं जलग्रहण ढलान' : 'Terrain relief & catchment elevation'}
                   </span>
                 </button>
               </div>

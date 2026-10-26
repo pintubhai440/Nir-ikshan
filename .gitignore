@@ -1,3 +1,4 @@
+# Dependencies & build outputs
 node_modules/
 build/
 dist/
@@ -7,12 +8,17 @@ coverage/
 .env*
 !.env.example
 
-# Media and attachment files that exceed GitHub API limits
+# AI Studio Chat Uploads & Temporary Media (Prevents syncing chat attachments to GitHub)
+public/assets/aistudio/
+public/frame_*.png
 *.mp4
 *.mov
 *.webm
 *.avi
 *.mkv
-public/assets/aistudio/*.mp4
-public/assets/aistudio/*.pdf
-
+*.pdf
+nodal_*.png
+temp_*.png
+user_*.jpg
+vid*.jpg
+.aistudio/

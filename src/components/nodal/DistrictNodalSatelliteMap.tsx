@@ -606,7 +606,8 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
       tileLayerRef.current = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         {
-          maxZoom: 18,
+          maxZoom: 19,
+          maxNativeZoom: 18,
           attribution: 'Esri World Imagery & ISRO Bhuvan'
         }
       ).addTo(map);
@@ -614,7 +615,8 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
       labelLayerRef.current = L.tileLayer(
         'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
         {
-          maxZoom: 18,
+          maxZoom: 19,
+          maxNativeZoom: 18,
           opacity: 0.95
         }
       ).addTo(map);
@@ -734,37 +736,46 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
         const isResolved = comp.status === 'RESOLVED';
 
         let badgeGradient = 'from-rose-600 to-red-500 shadow-rose-500/30';
+        // 1. Water Contamination / Crisis Droplet with Alert
         let svgIcon = `
-          <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.7l5.66 5.66a8 8 0 1 1-11.31 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
+            <circle cx="12" cy="16.5" r="0.8" fill="currentColor"/>
           </svg>
         `;
         let ringPing = '<div class="absolute w-7 h-7 rounded-full bg-rose-500 opacity-40 animate-ping pointer-events-none"></div>';
 
         if (isInspector) {
           badgeGradient = 'from-blue-600 to-sky-500 shadow-blue-500/30';
+          // 2. Field Inspection / Verification Loupe with Check
           svgIcon = `
             <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
+              <circle cx="10.5" cy="10.5" r="6"/>
+              <line x1="15" y1="15" x2="20.5" y2="20.5"/>
+              <polyline points="7.5 10.5 9.5 12.5 13.5 8.5"/>
             </svg>
           `;
           ringPing = '<div class="absolute w-6.5 h-6.5 rounded-full bg-blue-500 opacity-30 animate-pulse pointer-events-none"></div>';
         } else if (isAction) {
           badgeGradient = 'from-amber-600 to-amber-400 shadow-amber-500/30';
+          // 3. Action Worker / Field Remediation Safety Helmet
           svgIcon = `
-            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 18h20"/>
+              <path d="M5 18a7 7 0 0 1 14 0"/>
+              <line x1="12" y1="4" x2="12" y2="11"/>
+              <line x1="9.5" y1="4" x2="14.5" y2="4"/>
             </svg>
           `;
           ringPing = '<div class="absolute w-7 h-7 rounded-full bg-amber-500 opacity-35 animate-ping pointer-events-none"></div>';
         } else if (isResolved) {
           badgeGradient = 'from-emerald-600 to-teal-500 shadow-emerald-500/30';
+          // 4. Verified Restored Shield
           svgIcon = `
-            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
+            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <polyline points="9 12 11 14 15 10"/>
             </svg>
           `;
           ringPing = '';
@@ -793,7 +804,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 2. DISTRICT RESERVOIRS & DAMS (High-Visibility Cyan Dam Badge)
+    // 2. DISTRICT RESERVOIRS & DAMS (High-Visibility Cyan Dam Basin Badge)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'reservoirs') {
       districtReservoirs.forEach((res) => {
@@ -811,10 +822,10 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
             <div class="relative cursor-pointer flex items-center justify-center group" title="${res.name} Reservoir (${res.storagePercentage}% Full): Click to inspect">
               <div class="absolute w-7.5 h-7.5 rounded-lg bg-cyan-400 opacity-30 animate-ping pointer-events-none"></div>
               <div class="relative w-6 h-6 rounded-lg bg-gradient-to-tr ${resGradient} border-2 border-white shadow-md flex items-center justify-center transition-transform duration-200 group-hover:scale-130 group-hover:shadow-cyan-400/50">
-                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 12h20"/>
-                  <path d="M2 6c3 0 4 2 7 2s4-2 7-2 4 2 6 2"/>
-                  <path d="M2 18c3 0 4-2 7-2s4 2 7 2 4-2 6-2"/>
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 20V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v15"/>
+                  <path d="M4 11h16M8 4v7M12 4v7M16 4v7"/>
+                  <path d="M4 16c3-1.5 5 1.5 8 0s5 1.5 8 0"/>
                 </svg>
               </div>
             </div>
@@ -832,7 +843,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 3. DISTRICT RIVER GAUGE STATIONS (Deep Azure River Target Badge)
+    // 3. DISTRICT RIVER GAUGE STATIONS (Cascading River Flow Waves Badge)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'rivers') {
       districtRiverGauges.forEach((st) => {
@@ -849,9 +860,10 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
           html: `
             <div class="relative cursor-pointer flex items-center justify-center group" title="${st.name} River Gauge Station: Click to inspect telemetry">
               <div class="relative w-5.5 h-5.5 rounded-lg bg-gradient-to-tr ${riverGradient} border-2 border-white shadow-md flex items-center justify-center transition-transform duration-200 group-hover:scale-130">
-                <svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M3 12h3m12 0h3M12 3v3m0 12v3"/>
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 7c3.5-1.5 6.5 1.5 10 0s6.5 1.5 10 0"/>
+                  <path d="M2 13c3.5-1.5 6.5 1.5 10 0s6.5 1.5 10 0"/>
+                  <path d="M2 19c3.5-1.5 6.5 1.5 10 0s6.5 1.5 10 0"/>
                 </svg>
               </div>
             </div>
@@ -867,7 +879,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 4. DISTRICT GROUNDWATER PIEZOMETERS (Mint/Teal Borehole Depth Badge)
+    // 4. DISTRICT GROUNDWATER PIEZOMETERS (Borehole Wellhead & Aquifer Drop)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'groundwater') {
       districtGroundwaterWells.forEach((gw) => {
@@ -884,8 +896,11 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
           html: `
             <div class="relative cursor-pointer flex items-center justify-center group" title="${gw.village} DWLR Piezometer (${gw.dtwlMbgl} mbgl): Click to inspect telemetry">
               <div class="relative w-5 h-5 rounded-lg bg-gradient-to-tr ${gwGradient} border-1.5 border-white shadow-xs flex items-center justify-center transition-transform duration-200 group-hover:scale-130">
-                <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2v20M17 17l-5 5-5-5"/>
+                <svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="3" y1="7" x2="21" y2="7"/>
+                  <rect x="8" y="3" width="8" height="4" rx="1"/>
+                  <line x1="12" y1="7" x2="12" y2="12"/>
+                  <path d="M12 13c-2 2.2-2.5 3.3-2.5 4.5a2.5 2.5 0 0 0 5 0c0-1.2-.5-2.3-2.5-4.5z"/>
                 </svg>
               </div>
             </div>
@@ -901,7 +916,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
     }
 
     // -----------------------------------------------------------------------
-    // 5. DISTRICT MANDAL RAINFALL STATIONS (Sky-Blue Cloud Rain Badge)
+    // 5. DISTRICT MANDAL RAINFALL STATIONS (Rain Cloud with Streaks Badge)
     // -----------------------------------------------------------------------
     if (activeLayerFilter === 'all' || activeLayerFilter === 'rainfall') {
       districtRainfallStations.forEach((rf) => {
@@ -910,8 +925,11 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
           html: `
             <div class="relative cursor-pointer flex items-center justify-center group" title="${rf.mandal} Rainfall (${rf.actualMm}mm): Click to inspect telemetry">
               <div class="relative w-5 h-5 rounded-lg bg-gradient-to-tr from-sky-600 to-sky-400 border-1.5 border-white shadow-xs flex items-center justify-center transition-transform duration-200 group-hover:scale-130">
-                <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M8 19v2m8-2v2m-4-1v2"/>
+                <svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.5 18H9a6 6 0 1 1 5.75-7.75h1.75a3.5 3.5 0 0 1 1 6.85Z"/>
+                  <line x1="9" y1="19" x2="7" y2="23"/>
+                  <line x1="13" y1="19" x2="11" y2="23"/>
+                  <line x1="17" y1="19" x2="15" y2="23"/>
                 </svg>
               </div>
             </div>
@@ -1063,40 +1081,11 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
             </button>
           </div>
 
-          {/* Basemap Switcher & Reset */}
+          {/* Basemap Indicator */}
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200">
-              <button
-                onClick={() => setBasemapTheme('satellite')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer flex items-center gap-1 ${
-                  basemapTheme === 'satellite'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <Satellite className="w-3.5 h-3.5 text-blue-500" />
-                <span>Satellite</span>
-              </button>
-              <button
-                onClick={() => setBasemapTheme('light_gis')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer flex items-center gap-1 ${
-                  basemapTheme === 'light_gis'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <span>Light GIS</span>
-              </button>
-              <button
-                onClick={() => setBasemapTheme('topo')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer flex items-center gap-1 ${
-                  basemapTheme === 'topo'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <span>Topo</span>
-              </button>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
+              <Satellite className="w-3.5 h-3.5 text-blue-600" />
+              <span>Satellite Map</span>
             </div>
           </div>
         </div>
@@ -1110,7 +1099,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
 
         {/* Live Cursor Coordinate Readout */}
         {cursorCoords && (
-          <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-md text-slate-200 border border-slate-700/80 px-3.5 py-1.5 rounded-xl text-[11px] font-mono shadow-md z-20 flex items-center gap-2 pointer-events-none">
+          <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-md text-slate-200 border border-slate-700/80 px-3.5 py-1.5 rounded-xl text-[11px] font-mono shadow-md z-[1000] flex items-center gap-2 pointer-events-none">
             <Compass className="w-3.5 h-3.5 text-cyan-400" />
             <span>GPS: {cursorCoords.lat}°N, {cursorCoords.lng}°E</span>
             <span className="text-slate-500">|</span>
@@ -1123,7 +1112,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
         {/* ============================================================== */}
         {!isLegendOpen ? (
           /* Minimized State: Sleek Floating Pill Badge */
-          <div className={`absolute ${legendPosition === 'top-right' ? 'top-4 right-4' : 'bottom-4 right-4'} z-20 transition-all duration-200 pointer-events-auto`}>
+          <div className={`absolute ${legendPosition === 'top-right' ? 'top-4 right-4' : 'bottom-4 right-4'} z-[1000] transition-all duration-200 pointer-events-auto`}>
             <button
               type="button"
               onClick={() => setIsLegendOpen(true)}
@@ -1140,7 +1129,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
           </div>
         ) : (
           /* Expanded State: 2-Column High-Tech Telemetry HUD Card */
-          <div className={`absolute ${legendPosition === 'top-right' ? 'top-4 right-4' : 'bottom-4 right-4'} z-20 bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 p-3.5 rounded-2xl shadow-2xl space-y-2.5 pointer-events-auto max-w-[340px] sm:max-w-[440px] w-full max-h-[min(340px,calc(100%-2rem))] overflow-y-auto scrollbar-thin transition-all duration-200`}>
+          <div className={`absolute ${legendPosition === 'top-right' ? 'top-4 right-4' : 'bottom-4 right-4'} z-[1000] bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 p-3.5 rounded-2xl shadow-2xl space-y-2.5 pointer-events-auto max-w-[340px] sm:max-w-[440px] w-full max-h-[min(340px,calc(100%-2rem))] overflow-y-auto scrollbar-thin transition-all duration-200`}>
             {/* Header: Title, Live Status, Position Switcher, Minimize */}
             <div className="flex items-center justify-between gap-2 border-b border-slate-700/80 pb-2">
               <div className="flex items-center gap-2">
@@ -1182,7 +1171,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
               </div>
             </div>
 
-            {/* 2-Column Grid of Beautiful High-Fidelity Symbols */}
+            {/* 2-Column Grid of Beautiful High-Fidelity Representative Symbols */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3.5 gap-y-2 text-[11px]">
               {/* Column 1: Citizen Grievance Lifecycle */}
               <div className="space-y-1.5">
@@ -1199,13 +1188,13 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-rose-600 to-red-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2.7l5.66 5.66a8 8 0 1 1-11.31 0z"/>
                         <line x1="12" y1="9" x2="12" y2="13"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        <circle cx="12" cy="16.5" r="0.8" fill="currentColor"/>
                       </svg>
                     </div>
-                    <span className="text-slate-200 font-medium truncate">Submitted</span>
+                    <span className="text-slate-200 font-medium truncate">Grievance Alert</span>
                   </div>
                   <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-950/80 text-rose-300 border border-rose-800/60 shrink-0">
                     {grievanceSubmittedCount}
@@ -1221,8 +1210,9 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-blue-600 to-sky-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
                       <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
+                        <circle cx="10.5" cy="10.5" r="6"/>
+                        <line x1="15" y1="15" x2="20.5" y2="20.5"/>
+                        <polyline points="7.5 10.5 9.5 12.5 13.5 8.5"/>
                       </svg>
                     </div>
                     <span className="text-slate-200 font-medium truncate">Inspector On-Site</span>
@@ -1240,11 +1230,14 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-amber-600 to-amber-400 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 18h20"/>
+                        <path d="M5 18a7 7 0 0 1 14 0"/>
+                        <line x1="12" y1="4" x2="12" y2="11"/>
+                        <line x1="9.5" y1="4" x2="14.5" y2="4"/>
                       </svg>
                     </div>
-                    <span className="text-slate-200 font-medium truncate">Action in Progress</span>
+                    <span className="text-slate-200 font-medium truncate">Action Team</span>
                   </div>
                   <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 shrink-0">
                     {grievanceActionCount}
@@ -1259,8 +1252,9 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <polyline points="9 12 11 14 15 10"/>
                       </svg>
                     </div>
                     <span className="text-slate-200 font-medium truncate">Resolved</span>
@@ -1286,10 +1280,10 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-[#0077B6] to-[#00B4D8] border border-white/80 shadow-xs flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12h20"/>
-                        <path d="M2 6c3 0 4 2 7 2s4-2 7-2 4 2 6 2"/>
-                        <path d="M2 18c3 0 4-2 7-2s4 2 7 2 4-2 6-2"/>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 20V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v15"/>
+                        <path d="M4 11h16M8 4v7M12 4v7M16 4v7"/>
+                        <path d="M4 16c3-1.5 5 1.5 8 0s5 1.5 8 0"/>
                       </svg>
                     </div>
                     <span className="text-slate-200 font-medium truncate">Reservoir Dam</span>
@@ -1307,9 +1301,10 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-[#03045E] to-[#0077B6] border border-white/80 shadow-xs flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M3 12h3m12 0h3M12 3v3m0 12v3"/>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 7c3.5-1.5 6.5 1.5 10 0s6.5 1.5 10 0"/>
+                        <path d="M2 13c3.5-1.5 6.5 1.5 10 0s6.5 1.5 10 0"/>
+                        <path d="M2 19c3.5-1.5 6.5 1.5 10 0s6.5 1.5 10 0"/>
                       </svg>
                     </div>
                     <span className="text-slate-200 font-medium truncate">River Gauge</span>
@@ -1327,8 +1322,11 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-emerald-700 to-teal-500 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
-                      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2v20M17 17l-5 5-5-5"/>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="3" y1="7" x2="21" y2="7"/>
+                        <rect x="8" y="3" width="8" height="4" rx="1"/>
+                        <line x1="12" y1="7" x2="12" y2="12"/>
+                        <path d="M12 13c-2 2.2-2.5 3.3-2.5 4.5a2.5 2.5 0 0 0 5 0c0-1.2-.5-2.3-2.5-4.5z"/>
                       </svg>
                     </div>
                     <span className="text-slate-200 font-medium truncate">DWLR Well</span>
@@ -1346,8 +1344,11 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-sky-600 to-sky-400 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
-                      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M8 19v2m8-2v2m-4-1v2"/>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.5 18H9a6 6 0 1 1 5.75-7.75h1.75a3.5 3.5 0 0 1 1 6.85Z"/>
+                        <line x1="9" y1="19" x2="7" y2="23"/>
+                        <line x1="13" y1="19" x2="11" y2="23"/>
+                        <line x1="17" y1="19" x2="15" y2="23"/>
                       </svg>
                     </div>
                     <span className="text-slate-200 font-medium truncate">Rain Station</span>

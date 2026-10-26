@@ -747,7 +747,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       tileLayerRef.current = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         {
-          maxZoom: 18,
+          maxZoom: 19,
+          maxNativeZoom: 18,
           attribution: 'Esri World Imagery & ISRO Bhuvan'
         }
       ).addTo(map);
@@ -755,7 +756,8 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
       labelLayerRef.current = L.tileLayer(
         'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
         {
-          maxZoom: 18,
+          maxZoom: 19,
+          maxNativeZoom: 18,
           opacity: 0.95
         }
       ).addTo(map);
@@ -1512,7 +1514,7 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
 
 
         {/* Live Legend Box on Right Side (Over Bay of Bengal Ocean) */}
-        <div className="absolute bottom-4 right-4 z-20 bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200/90 max-w-xs text-xs space-y-2 pointer-events-auto">
+        <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200/90 max-w-xs text-xs space-y-2 pointer-events-auto">
           <div className="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
             <span className="font-extrabold text-[#03045E] flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-[#0077B6]" />
@@ -1641,23 +1643,20 @@ export const StateAdminSatelliteMap: React.FC<StateAdminSatelliteMapProps> = ({
               <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
                 2. MAP BASEMAP THEME
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="grid grid-cols-1 gap-2.5 text-xs">
                 {[
-                  { id: 'satellite', title: 'ISRO Bhuvan Satellite (Default)', desc: 'High-resolution ISRO satellite imagery & boundaries' },
-                  { id: 'light_gis', title: 'Nir-ikshan Portal Theme (Light)', desc: 'Clean GIS cartography matching portal style' },
-                  { id: 'topo', title: 'Topographic Relief', desc: 'Terrain relief & catchment elevation' }
+                  { id: 'satellite', title: 'ISRO Bhuvan Satellite (Active)', desc: 'High-resolution ISRO satellite imagery, cadastral layers & water body boundaries' }
                 ].map((t) => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => setTempBasemapTheme(t.id as any)}
-                    className={`p-3 rounded-2xl border text-left space-y-1 transition-all cursor-pointer ${
-                      tempBasemapTheme === t.id
-                        ? 'border-[#0077B6] bg-sky-50/80 text-[#03045E] ring-2 ring-[#0077B6]/20'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                    }`}
+                    className="p-3 rounded-2xl border text-left space-y-1 transition-all border-[#0077B6] bg-sky-50/80 text-[#03045E] ring-2 ring-[#0077B6]/20"
                   >
-                    <strong className="block font-bold">{t.title}</strong>
+                    <div className="flex items-center justify-between">
+                      <strong className="block font-bold">{t.title}</strong>
+                      <span className="text-[10px] font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">Default Active</span>
+                    </div>
                     <p className="text-[10px] text-slate-500 leading-tight">{t.desc}</p>
                   </button>
                 ))}
