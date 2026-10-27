@@ -53,7 +53,7 @@ export const NodalMonthlyReviewView: React.FC<NodalMonthlyReviewViewProps> = ({
       id: directives.length + 1,
       title: newDirectiveTitle.trim() || 'Urgent Executive Mandate',
       mandateText: newDirectiveText.trim(),
-      targetDate: '31 May 2024',
+      targetDate: '31 Oct 2026',
       nodalOfficer: 'P. Kalyani, District Nodal Hydrologist',
       statusBadge: 'Legally Recorded',
     };
@@ -76,7 +76,7 @@ export const NodalMonthlyReviewView: React.FC<NodalMonthlyReviewViewProps> = ({
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-xs font-mono font-bold text-[#0077b6]">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
-            <span>STATUTORY GOVERNANCE CYCLE • AP-HYD-2024-M05</span>
+            <span>STATUTORY GOVERNANCE CYCLE • AP-HYD-2026-M10</span>
           </div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
             Monthly Hydrology Assurance Review
@@ -89,9 +89,9 @@ export const NodalMonthlyReviewView: React.FC<NodalMonthlyReviewViewProps> = ({
         {/* Month Selector & Export Action */}
         <div className="flex items-center gap-2.5">
           <select className="p-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-xs text-slate-800 shadow-2xs outline-none cursor-pointer">
-            <option>May 2024 (Monthly Review)</option>
-            <option>April 2024</option>
-            <option>March 2024</option>
+            <option>October 2026 (Monthly Review)</option>
+            <option>September 2026</option>
+            <option>August 2026</option>
           </select>
 
           <button
@@ -190,7 +190,7 @@ export const NodalMonthlyReviewView: React.FC<NodalMonthlyReviewViewProps> = ({
             </p>
           </div>
           <span className="font-mono text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200 font-bold">
-            Cycle: 01 May – 31 May 2024
+            Cycle: 01 Oct – 31 Oct 2026
           </span>
         </div>
 
@@ -236,7 +236,7 @@ export const NodalMonthlyReviewView: React.FC<NodalMonthlyReviewViewProps> = ({
               Concentrated in <strong>Bobbili</strong> and <strong>Bhogapuram</strong> feeder corridors. Mandated for immediate pre-monsoon cycle clearance prior to inflow surges.
             </p>
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[10px] font-mono text-slate-500">Statutory SLA: 28 May 2024</span>
+              <span className="text-[10px] font-mono text-slate-500">Statutory SLA: 28 Oct 2026</span>
               <button
                 onClick={() => alert('Dispatched emergency mobile squads to Bobbili and Bhogapuram feeder corridors.')}
                 className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] shadow-2xs flex items-center gap-1 cursor-pointer"
@@ -440,7 +440,7 @@ export const NodalMonthlyReviewView: React.FC<NodalMonthlyReviewViewProps> = ({
                 </h3>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Nodal Officer Directives for June 2024 execution cycle. Legally recorded in District Hydrology Assurance Gazette.
+                Nodal Officer Directives for November 2026 execution cycle. Legally recorded in District Hydrology Assurance Gazette.
               </p>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#0077b6] border border-blue-200">

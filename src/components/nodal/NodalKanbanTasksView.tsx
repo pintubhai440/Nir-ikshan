@@ -676,12 +676,12 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                     <Camera className="w-3 h-3 text-[#0077b6]" />
                     <span>Field Inspection Visual Evidence</span>
                   </span>
-                  <span>GPS Tagged • 18 May 2024, 11:28 AM</span>
+                  <span>GPS Tagged • 18 Oct 2026, 11:28 AM</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                   <div className="sm:col-span-5 relative rounded-lg overflow-hidden h-24 border border-slate-200">
                     <img
-                      src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=400&q=80"
+                      src="https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=400&q=80"
                       alt="Sluice Defect Evidence"
                       className="w-full h-full object-cover"
                     />
@@ -893,7 +893,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                             className="w-full h-full object-cover"
                           />
                           <span className="absolute top-2 left-2 bg-rose-700 text-white text-[9px] font-bold px-2 py-0.5 rounded">
-                            🔴 Before Rectific. 14 Oct 2024
+                            🔴 Before Rectific. 18 Oct 2026
                           </span>
                           <span className="absolute bottom-1 left-2 text-white text-[8px] font-mono bg-black/60 px-1 rounded">
                             18.5721° N, 83.3644° E • ±1.4m
@@ -914,7 +914,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                             className="w-full h-full object-cover"
                           />
                           <span className="absolute top-2 left-2 bg-emerald-700 text-white text-[9px] font-bold px-2 py-0.5 rounded">
-                            🟢 Field Submissi. 19 Oct 2024
+                            🟢 Field Submissi. 26 Oct 2026
                           </span>
                           <span className="absolute bottom-1 left-2 text-white text-[8px] font-mono bg-black/60 px-1 rounded">
                             18.5721° N, 83.3644° E • ±1.1m
@@ -990,7 +990,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
 
                     <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-[11px]">
                       <span className="text-slate-500">Statutory Mandate Deadline:</span>
-                      <strong className="text-slate-800">22 Oct 2024 (On-Track)</strong>
+                      <strong className="text-slate-800">28 Oct 2026 (On-Track)</strong>
                     </div>
                   </div>
 

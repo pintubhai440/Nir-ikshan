@@ -38,7 +38,15 @@ import {
   CalendarCheck,
   CalendarDays,
   Sparkles,
-  Info
+  Info,
+  Phone,
+  Activity,
+  ShieldCheck,
+  AlertCircle,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  Wrench
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
@@ -118,7 +126,7 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       const mandal = districtMandals[idx % districtMandals.length] || item.mandal;
       return {
         ...item,
-        id: `INS-${districtPrefix}-2024-04${12 + idx * 5}`,
+        id: `INS-${districtPrefix}-2026-04${12 + idx * 5}`,
         assetCode: `AP-${districtPrefix}-${mandal.slice(0, 3).toUpperCase()}-00${80 + idx * 12}`,
         mandal,
       };
@@ -127,7 +135,7 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
 
   const [scheduleItems, setScheduleItems] = useState<InspectionScheduleItem[]>(initialDistrictSchedule);
   const [selectedInspection, setSelectedInspection] = useState<InspectionScheduleItem>(initialDistrictSchedule[0]);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
   const [selectedMandal, setSelectedMandal] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -141,12 +149,22 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
   const [newAssetName, setNewAssetName] = useState(`${districtMandals[0] || district} Canal Tail-End Regulator`);
   const [newMandal, setNewMandal] = useState(districtMandals[0] || 'Bobbili');
   const [newType, setNewType] = useState<'Pre-monsoon' | 'Routine' | 'Follow-up'>('Pre-monsoon');
-  const [newDate, setNewDate] = useState('2024-05-28');
+  const [newDate, setNewDate] = useState('2026-10-28');
   const [newInspector, setNewInspector] = useState('Pooja Reddy');
 
-  // Calendar View State: default to May 2024 (where initial schedule dates live), user can navigate freely
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date(2024, 4, 1)); // May 2024
-  const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null);
+  // Calendar View State: initialized to current active operational month October 2026
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date(2026, 9, 1)); // October 2026
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>('2026-10-27');
+  const [calendarStatusFilter, setCalendarStatusFilter] = useState<'all' | 'Completed' | 'Overdue' | 'Due Soon' | 'Scheduled'>('all');
+  const [isLegendExpanded, setIsLegendExpanded] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((curr) => (curr === msg ? null : curr));
+    }, 4000);
+  };
 
   // Update default mandal and code when district changes
   useEffect(() => {
@@ -173,8 +191,9 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       const name = `${mandal} ${type} #${(i % 8) + 1}`;
       const village = `${mandal} ${['North', 'East', 'South', 'Weir Basin', 'Canal Head'][i % 5]}`;
       const inspector = inspectors[i % inspectors.length];
-      const day = 24 + (i % 7);
-      const targetDate = `2024-05-${String(day).padStart(2, '0')}`;
+      const isOctober = i % 2 === 0;
+      const day = isOctober ? 25 + (i % 6) : 1 + (i % 7);
+      const targetDate = `2026-${isOctober ? '10' : '11'}-${String(day).padStart(2, '0')}`;
 
       return {
         id: `UNINS-${districtPrefix}-${i + 1}`,
@@ -197,7 +216,7 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
   const [reviewSearch, setReviewSearch] = useState<string>('');
   const [reviewMandalFilter, setReviewMandalFilter] = useState<string>('all');
   const [batchInspector, setBatchInspector] = useState<string>('M. Venkat');
-  const [batchDate, setBatchDate] = useState<string>('2024-05-28');
+  const [batchDate, setBatchDate] = useState<string>('2026-10-28');
 
   // Filtered 42 uninspected assets in modal
   const filteredUninspected = useMemo(() => {
@@ -244,13 +263,13 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
   // Dispatch selected assets from review modal into live inspection schedule
   const handleDispatchSelectedAssets = async () => {
     if (selectedAssetIds.length === 0) {
-      alert('Please select at least 1 asset to dispatch.');
+      showToast('⚠️ Please select at least 1 water asset to dispatch.');
       return;
     }
 
     const assetsToDispatch = uninspected42Assets.filter((a) => selectedAssetIds.includes(a.id));
     const newScheduleList: InspectionScheduleItem[] = assetsToDispatch.map((asset) => ({
-      id: `INS-${districtPrefix}-2024-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `INS-${districtPrefix}-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       assetCode: asset.assetCode,
       assetName: asset.assetName,
       mandal: asset.mandal,
@@ -307,7 +326,7 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
   // Handle create new inspection plan
   const handleCreatePlanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const uniqueId = `INS-${districtPrefix}-2024-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 90 + 10)}`;
+    const uniqueId = `INS-${districtPrefix}-2026-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 90 + 10)}`;
     const newItem: InspectionScheduleItem = {
       id: uniqueId,
       assetCode: newAssetCode,
@@ -367,7 +386,7 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
   // Helper to parse date strings into { year, month, day }
   const parseDateString = (str: string): { year: number; month: number; day: number } | null => {
     if (!str) return null;
-    // Format "18 May 2024" or "2024-05-18"
+    // Format "18 Oct 2026" or "2026-10-18"
     if (str.includes('-')) {
       const parts = str.split('-');
       if (parts.length === 3) {
@@ -396,6 +415,17 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
     return map;
   }, [scheduleItems]);
 
+  // Inspections scheduled on the currently selected calendar date
+  const selectedDateItems = useMemo(() => {
+    if (!calendarSelectedDate) return [];
+    return scheduleItems.filter((item) => {
+      const p = parseDateString(item.scheduledDate);
+      if (!p) return false;
+      const key = `${p.year}-${String(p.month + 1).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+      return key === calendarSelectedDate;
+    });
+  }, [scheduleItems, calendarSelectedDate]);
+
   // Calendar Grid Days
   const calendarGrid = useMemo(() => {
     const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay(); // 0 = Sun
@@ -407,6 +437,10 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       isCurrentMonth: boolean;
       dateKey: string;
       items: InspectionScheduleItem[];
+      isToday: boolean;
+      hasOverdue: boolean;
+      hasDueSoon: boolean;
+      hasCompleted: boolean;
     }[] = [];
 
     // Preceding month trailing days
@@ -415,22 +449,32 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       const prevMonth = calendarMonth === 0 ? 11 : calendarMonth - 1;
       const prevYear = calendarMonth === 0 ? calendarYear - 1 : calendarYear;
       const key = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const items = inspectionsByDate.get(key) || [];
       cells.push({
         day: d,
         isCurrentMonth: false,
         dateKey: key,
-        items: inspectionsByDate.get(key) || [],
+        items,
+        isToday: key === '2026-10-27',
+        hasOverdue: items.some(it => it.status === 'Overdue'),
+        hasDueSoon: items.some(it => it.status === 'Due Soon'),
+        hasCompleted: items.some(it => it.status === 'Completed'),
       });
     }
 
     // Current month days
     for (let d = 1; d <= totalDaysInMonth; d++) {
       const key = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const items = inspectionsByDate.get(key) || [];
       cells.push({
         day: d,
         isCurrentMonth: true,
         dateKey: key,
-        items: inspectionsByDate.get(key) || [],
+        items,
+        isToday: key === '2026-10-27',
+        hasOverdue: items.some(it => it.status === 'Overdue'),
+        hasDueSoon: items.some(it => it.status === 'Due Soon'),
+        hasCompleted: items.some(it => it.status === 'Completed'),
       });
     }
 
@@ -440,11 +484,16 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       const nextMonth = calendarMonth === 11 ? 0 : calendarMonth + 1;
       const nextYear = calendarMonth === 11 ? calendarYear + 1 : calendarYear;
       const key = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const items = inspectionsByDate.get(key) || [];
       cells.push({
         day: i,
         isCurrentMonth: false,
         dateKey: key,
-        items: inspectionsByDate.get(key) || [],
+        items,
+        isToday: key === '2026-10-27',
+        hasOverdue: items.some(it => it.status === 'Overdue'),
+        hasDueSoon: items.some(it => it.status === 'Due Soon'),
+        hasCompleted: items.some(it => it.status === 'Completed'),
       });
     }
 
@@ -461,7 +510,8 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
   };
 
   const handleTodayMonth = () => {
-    setCalendarDate(new Date(2024, 4, 1)); // May 2024 where active cadence resides
+    setCalendarDate(new Date(2026, 9, 1)); // October 2026 active operational cadence
+    setCalendarSelectedDate('2026-10-27');
   };
 
   // Month Statistics
@@ -489,6 +539,17 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       scheduled,
     };
   }, [scheduleItems, calendarYear, calendarMonth]);
+
+  // Formatted date string for the selected day in calendar view
+  const selectedDateFormatted = useMemo(() => {
+    if (!calendarSelectedDate) return 'No Date Selected';
+    const parts = calendarSelectedDate.split('-');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      return d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    return calendarSelectedDate;
+  }, [calendarSelectedDate]);
 
   return (
     <div className="space-y-6">
@@ -772,175 +833,563 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       {/* VIEW MODE: HIGH-FIDELITY CALENDAR VIEW                         */}
       {/* ============================================================== */}
       {viewMode === 'calendar' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
-          {/* Calendar Month Header & Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-[#0077b6] flex items-center justify-center font-bold">
-                <CalendarIcon className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <span>{monthNames[calendarMonth]} {calendarYear}</span>
-                  <span className="text-xs font-mono font-bold bg-sky-50 text-[#0077b6] border border-sky-200 px-2 py-0.5 rounded-full">
-                    {monthStats.total} Scheduled Audits
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Cadastral Inspection Cadence for <strong>{district} District</strong>
-                </p>
-              </div>
-            </div>
-
-            {/* Navigation & Stats Chips */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handlePrevMonth}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
-                title="Previous Month"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleTodayMonth}
-                className="px-3 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
-              >
-                Active Window
-              </button>
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
-                title="Next Month"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Month Status Counters Legend */}
-          <div className="flex flex-wrap items-center gap-3 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Month Summary:</span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-              {monthStats.completed} Completed
-            </span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[11px] font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
-              {monthStats.overdue} Overdue
-            </span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-              {monthStats.dueSoon} Due Soon
-            </span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-600"></span>
-              {monthStats.scheduled} Scheduled
-            </span>
-            <span className="text-slate-400 ml-auto text-[11px]">Click any inspection pill to view field telemetry audit</span>
-          </div>
-
-          {/* 7-Day Calendar Grid */}
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
-            {/* Weekday Header */}
-            <div className="grid grid-cols-7 bg-slate-100 text-center text-[11px] font-black text-slate-600 border-b border-slate-200 py-2 uppercase tracking-wider">
-              <div>Sun</div>
-              <div>Mon</div>
-              <div>Tue</div>
-              <div>Wed</div>
-              <div>Thu</div>
-              <div>Fri</div>
-              <div>Sat</div>
-            </div>
-
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 divide-x divide-y divide-slate-200 bg-slate-50/50">
-              {calendarGrid.map((cell, idx) => {
-                const hasItems = cell.items.length > 0;
-                const isSelectedCell = calendarSelectedDate === cell.dateKey;
-
-                return (
-                  <div
-                    key={cell.dateKey + idx}
-                    onClick={() => {
-                      setCalendarSelectedDate(cell.dateKey);
-                      if (cell.items.length > 0) {
-                        setSelectedInspection(cell.items[0]);
-                      } else {
-                        // Open create modal with this date preselected
-                        setNewDate(cell.dateKey);
-                        setIsCreateModalOpen(true);
-                      }
-                    }}
-                    className={`min-h-[105px] p-2 transition-colors cursor-pointer relative group ${
-                      !cell.isCurrentMonth
-                        ? 'bg-slate-100/50 text-slate-400'
-                        : isSelectedCell
-                        ? 'bg-blue-50/70'
-                        : 'bg-white hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-bold ${
-                          !cell.isCurrentMonth
-                            ? 'text-slate-400'
-                            : 'text-slate-800'
-                        }`}
-                      >
-                        {cell.day}
-                      </span>
-
-                      {hasItems && (
-                        <span className="text-[9px] font-mono font-bold bg-[#0077b6] text-white px-1.5 py-0.2 rounded-full">
-                          {cell.items.length}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Inspection Pills on this Date */}
-                    <div className="mt-1.5 space-y-1">
-                      {cell.items.slice(0, 3).map((item) => {
-                        const isCompleted = item.status === 'Completed';
-                        const isOverdue = item.status === 'Overdue';
-                        const isDueSoon = item.status === 'Due Soon';
-                        const badgeBg = isCompleted
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                          : isOverdue
-                          ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                          : isDueSoon
-                          ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                          : 'bg-sky-50 text-sky-800 border-sky-200 hover:bg-sky-100';
-
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedInspection(item);
-                            }}
-                            className={`px-1.5 py-0.5 rounded border text-[10px] font-bold truncate transition-transform hover:scale-102 shadow-2xs ${badgeBg}`}
-                            title={`${item.assetName} (${item.status}) - ${item.inspectorName}: Click to view telemetry`}
-                          >
-                            <span className="truncate block">
-                              {item.assetName.replace(district, '').replace('Complex', '').trim()}
-                            </span>
-                          </div>
-                        );
-                      })}
-
-                      {cell.items.length > 3 && (
-                        <div className="text-[9px] font-bold text-slate-500 pl-1">
-                          +{cell.items.length - 3} more
-                        </div>
-                      )}
-                    </div>
+        <div className="space-y-6">
+          {/* ========================================================== */}
+          {/* EXECUTIVE STATUTORY STATUS TAXONOMY & INTERACTIVE FILTERS  */}
+          {/* ========================================================== */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs transition-all space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0077b6] to-[#023e8a] text-white flex items-center justify-center font-bold shadow-xs">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">
+                      Statutory Cadastral Protocol & Status Taxonomy
+                    </h3>
+                    <span className="text-[10px] font-mono font-bold bg-blue-50 text-[#0077b6] px-2 py-0.5 rounded-full border border-blue-200">
+                      APWALTA §10 Mandate
+                    </span>
                   </div>
-                );
-              })}
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Click any status card below to filter the operational calendar. All workflows follow Andhra Pradesh statutory water guidelines.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {calendarStatusFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setCalendarStatusFilter('all')}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>Show All ({monthStats.total})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Info className="w-3.5 h-3.5 text-[#0077b6]" />
+                  <span>{isLegendExpanded ? 'Hide Protocol Guide' : 'Statutory Legal Details'}</span>
+                  {isLegendExpanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+                </button>
+              </div>
             </div>
+
+            {/* 4 Interactive Executive Status Filter Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* GREEN: Completed & Certified */}
+              <div
+                onClick={() => setCalendarStatusFilter(calendarStatusFilter === 'Completed' ? 'all' : 'Completed')}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
+                  calendarStatusFilter === 'Completed'
+                    ? 'ring-2 ring-emerald-500 bg-emerald-50/90 border-emerald-400 shadow-xs'
+                    : 'bg-emerald-50/30 border-emerald-200/80 hover:bg-emerald-50/60 hover:border-emerald-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span>
+                    <span className="text-xs font-black text-emerald-950 uppercase tracking-wide">
+                      Completed
+                    </span>
+                  </div>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    {monthStats.completed} Audits
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                  Field GPS anchored & telemetry filed. Compliant under APWALTA §10.
+                </p>
+                <div className="mt-2 text-[10px] font-bold text-emerald-700 flex items-center justify-between">
+                  <span>{calendarStatusFilter === 'Completed' ? '✓ Filter Active' : 'Click to Filter'}</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+              </div>
+
+              {/* RED: Overdue SLA Breach */}
+              <div
+                onClick={() => setCalendarStatusFilter(calendarStatusFilter === 'Overdue' ? 'all' : 'Overdue')}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
+                  calendarStatusFilter === 'Overdue'
+                    ? 'ring-2 ring-rose-500 bg-rose-50/90 border-rose-400 shadow-xs'
+                    : 'bg-rose-50/30 border-rose-200/80 hover:bg-rose-50/60 hover:border-rose-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200 animate-pulse"></span>
+                    <span className="text-xs font-black text-rose-950 uppercase tracking-wide">
+                      Overdue Breach
+                    </span>
+                  </div>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
+                    {monthStats.overdue} Alerts
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                  &gt;24h statutory window elapsed. Direct warning memo dispatched.
+                </p>
+                <div className="mt-2 text-[10px] font-bold text-rose-700 flex items-center justify-between">
+                  <span>{calendarStatusFilter === 'Overdue' ? '✓ Filter Active' : 'Click to Filter'}</span>
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                </div>
+              </div>
+
+              {/* AMBER: Due Soon / Today */}
+              <div
+                onClick={() => setCalendarStatusFilter(calendarStatusFilter === 'Due Soon' ? 'all' : 'Due Soon')}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
+                  calendarStatusFilter === 'Due Soon'
+                    ? 'ring-2 ring-amber-500 bg-amber-50/90 border-amber-400 shadow-xs'
+                    : 'bg-amber-50/30 border-amber-200/80 hover:bg-amber-50/60 hover:border-amber-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200"></span>
+                    <span className="text-xs font-black text-amber-950 uppercase tracking-wide">
+                      Due Soon / Today
+                    </span>
+                  </div>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    {monthStats.dueSoon} Active
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                  Shift window closing &lt;24h. Officer dispatched to GPS coordinates.
+                </p>
+                <div className="mt-2 text-[10px] font-bold text-amber-700 flex items-center justify-between">
+                  <span>{calendarStatusFilter === 'Due Soon' ? '✓ Filter Active' : 'Click to Filter'}</span>
+                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                </div>
+              </div>
+
+              {/* BLUE: Scheduled in Roster */}
+              <div
+                onClick={() => setCalendarStatusFilter(calendarStatusFilter === 'Scheduled' ? 'all' : 'Scheduled')}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
+                  calendarStatusFilter === 'Scheduled'
+                    ? 'ring-2 ring-sky-500 bg-sky-50/90 border-sky-400 shadow-xs'
+                    : 'bg-sky-50/30 border-sky-200/80 hover:bg-sky-50/60 hover:border-sky-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#0077b6] ring-2 ring-sky-200"></span>
+                    <span className="text-xs font-black text-sky-950 uppercase tracking-wide">
+                      Scheduled Roster
+                    </span>
+                  </div>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-sky-100 text-[#0077b6] border border-sky-300">
+                    {monthStats.scheduled} Queued
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                  Pre-monsoon integrity cadence approved. Assigned to Mandal AEE team.
+                </p>
+                <div className="mt-2 text-[10px] font-bold text-[#0077b6] flex items-center justify-between">
+                  <span>{calendarStatusFilter === 'Scheduled' ? '✓ Filter Active' : 'Click to Filter'}</span>
+                  <CalendarDays className="w-3.5 h-3.5 text-[#0077b6]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Expandable Statutory Legal Details Drawer */}
+            {isLegendExpanded && (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-[#0077b6]" />
+                    <span>Statutory APWALTA Operational Governance Rules</span>
+                  </h4>
+                  <span className="text-[10px] font-mono text-slate-500">Government of Andhra Pradesh • Water Resources Department</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-600 leading-relaxed">
+                  <div className="p-3 bg-white rounded-lg border border-slate-200">
+                    <strong className="text-slate-900 block font-bold mb-1">§ 10.1 Physical Verification Mandate</strong>
+                    Every minor irrigation tank, weir, and sluice gate must receive an on-site physical inspection by an accredited Assistant Executive Engineer prior to monsoon onset, with tamper-proof GPS coordinates and geotagged imagery.
+                  </div>
+                  <div className="p-3 bg-white rounded-lg border border-slate-200">
+                    <strong className="text-slate-900 block font-bold mb-1">§ 10.2 Strict 24-Hour SLA Escalation</strong>
+                    If a field inspection is not completed within 24 hours of scheduled dispatch, the system automatically marks it Overdue (Red SLA Breach) and initiates a statutory warning memo to the Mandal Nodal Desk.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ========================================================== */}
+          {/* HIGH-FIDELITY CALENDAR GRID WITH MODERN NAVIGATION        */}
+          {/* ========================================================== */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+            {/* Header: Month Title, Filter Indicator, Navigation */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-[#0077b6] flex items-center justify-center font-bold">
+                  <CalendarIcon className="w-5 h-5 text-[#0077b6]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>{monthNames[calendarMonth]} {calendarYear}</span>
+                    <span className="text-xs font-mono font-bold bg-sky-50 text-[#0077b6] border border-sky-200 px-2.5 py-0.5 rounded-full">
+                      {monthStats.total} Scheduled Audits
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Cadastral Inspection Cadence for <strong className="text-slate-800">{district} District</strong> • Today: <strong>27 October 2026</strong>
+                  </p>
+                </div>
+              </div>
+
+              {/* Month Navigation & Today Shortcut */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePrevMonth}
+                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                  title="Previous Month"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTodayMonth}
+                  className="px-3.5 py-2 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#0077b6] flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#0077b6] animate-ping"></span>
+                  <span>Today (27 Oct 2026)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                  title="Next Month"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* 7-Day Calendar Grid */}
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+              {/* Weekday Header */}
+              <div className="grid grid-cols-7 bg-slate-100/90 text-center text-[11px] font-black text-slate-700 border-b border-slate-200 py-2.5 uppercase tracking-wider">
+                <div>SUN</div>
+                <div>MON</div>
+                <div>TUE</div>
+                <div>WED</div>
+                <div>THU</div>
+                <div>FRI</div>
+                <div>SAT</div>
+              </div>
+
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 divide-x divide-y divide-slate-200 bg-slate-50/30">
+                {calendarGrid.map((cell, idx) => {
+                  const filteredCellItems = calendarStatusFilter === 'all'
+                    ? cell.items
+                    : cell.items.filter((item) => item.status === calendarStatusFilter);
+
+                  const isSelectedCell = calendarSelectedDate === cell.dateKey;
+                  const isToday = cell.isToday;
+
+                  return (
+                    <div
+                      key={cell.dateKey + idx}
+                      onClick={() => {
+                        setCalendarSelectedDate(cell.dateKey);
+                        if (cell.items.length > 0) {
+                          setSelectedInspection(cell.items[0]);
+                        } else {
+                          setNewDate(cell.dateKey);
+                          setIsCreateModalOpen(true);
+                        }
+                      }}
+                      className={`min-h-[114px] p-2 transition-all cursor-pointer relative group flex flex-col justify-between ${
+                        !cell.isCurrentMonth
+                          ? 'bg-slate-100/30 text-slate-400'
+                          : isToday
+                          ? 'bg-blue-50/50 ring-2 ring-[#0077b6] ring-inset shadow-xs'
+                          : isSelectedCell
+                          ? 'bg-sky-50/70 ring-2 ring-sky-400 ring-inset'
+                          : 'bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      {/* Cell Top Header */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`text-xs font-black ${
+                                !cell.isCurrentMonth
+                                  ? 'text-slate-400'
+                                  : isToday
+                                  ? 'text-[#0077b6] font-black text-sm'
+                                  : 'text-slate-800'
+                              }`}
+                            >
+                              {cell.day}
+                            </span>
+                            {isToday && (
+                              <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded bg-[#0077b6] text-white shadow-2xs">
+                                TODAY
+                              </span>
+                            )}
+                          </div>
+
+                          {cell.items.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              {cell.hasOverdue && (
+                                <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" title="Overdue inspection on this day"></span>
+                              )}
+                              <span className="text-[9px] font-mono font-bold bg-slate-800 text-white px-1.5 py-0.2 rounded-full">
+                                {cell.items.length}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Inspection Cards within this Cell */}
+                        <div className="mt-1.5 space-y-1">
+                          {filteredCellItems.slice(0, 3).map((item) => {
+                            const isCompleted = item.status === 'Completed';
+                            const isOverdue = item.status === 'Overdue';
+                            const isDueSoon = item.status === 'Due Soon';
+                            const isFollowUp = item.type === 'Follow-up';
+
+                            const badgeStyle = isOverdue
+                              ? 'bg-rose-50 text-rose-900 border-rose-300'
+                              : isDueSoon
+                              ? 'bg-amber-50 text-amber-900 border-amber-300'
+                              : isCompleted
+                              ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                              : isFollowUp
+                              ? 'bg-purple-50 text-purple-900 border-purple-300'
+                              : 'bg-sky-50 text-sky-900 border-sky-300';
+
+                            const dotColor = isOverdue
+                              ? 'bg-rose-500 animate-pulse'
+                              : isDueSoon
+                              ? 'bg-amber-500'
+                              : isCompleted
+                              ? 'bg-emerald-500'
+                              : isFollowUp
+                              ? 'bg-purple-500'
+                              : 'bg-[#0077b6]';
+
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCalendarSelectedDate(cell.dateKey);
+                                  setSelectedInspection(item);
+                                }}
+                                className={`px-1.5 py-1 rounded-md border text-[10px] font-bold truncate transition-transform hover:scale-101 shadow-2xs flex items-center justify-between gap-1 ${badgeStyle}`}
+                                title={`${item.assetName} • ${item.status} • Assigned to ${item.inspectorName} (${item.mandal} Mandal)`}
+                              >
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`}></span>
+                                  <span className="truncate">
+                                    {item.assetName.replace(district, '').replace('Complex', '').trim()}
+                                  </span>
+                                </div>
+                                <span className="text-[8px] font-mono font-bold px-1 rounded bg-white/80 text-slate-700 shrink-0">
+                                  {item.inspectorName.split(' ').map((n) => n[0]).join('')}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          {filteredCellItems.length > 3 && (
+                            <div className="text-[9px] font-bold text-slate-500 pl-1 pt-0.5">
+                              +{filteredCellItems.length - 3} more audits
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Hover action prompt */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-bold text-slate-400 text-right mt-1">
+                        {cell.items.length > 0 ? 'Click to inspect' : '+ Schedule'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+
+          {/* ========================================================== */}
+          {/* CADASTRAL INSPECTION DOSSIER FOR SELECTED DATE             */}
+          {/* ========================================================== */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200 text-[#0077b6] flex items-center justify-center font-bold">
+                  <CalendarCheck className="w-5 h-5 text-[#0077b6]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                      Cadastral Inspection Schedule for {selectedDateFormatted}
+                    </h3>
+                    <span className="text-xs font-mono font-bold bg-blue-50 text-[#0077b6] px-2 py-0.5 rounded-full border border-blue-200">
+                      {selectedDateItems.length} Audits
+                    </span>
+                    {calendarSelectedDate === '2026-10-27' && (
+                      <span className="text-[10px] font-mono font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                        ACTIVE OPERATIONAL SHIFT
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Mandatory field inspections and physical structural audits assigned for this specific operational date.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (calendarSelectedDate) setNewDate(calendarSelectedDate);
+                  setIsCreateModalOpen(true);
+                }}
+                className="px-3.5 py-1.5 bg-[#0077b6] hover:bg-[#005f92] text-white font-bold rounded-lg text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Schedule Audit for this Date</span>
+              </button>
+            </div>
+
+            {/* List of Audits Scheduled on Selected Date */}
+            {selectedDateItems.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {selectedDateItems.map((item) => {
+                  const isCompleted = item.status === 'Completed';
+                  const isOverdue = item.status === 'Overdue';
+                  const isDueSoon = item.status === 'Due Soon';
+                  const isSelected = selectedInspection?.id === item.id;
+
+                  const statusBadge = isCompleted ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      Completed & Certified
+                    </span>
+                  ) : isOverdue ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold border border-rose-200">
+                      <AlertTriangle className="w-3 h-3 text-rose-600" />
+                      Overdue SLA Breach
+                    </span>
+                  ) : isDueSoon ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200">
+                      <Clock className="w-3 h-3 text-amber-600" />
+                      Due Soon / Active Window
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-bold border border-sky-200">
+                      <CalendarIcon className="w-3 h-3 text-sky-600" />
+                      Scheduled in Roster
+                    </span>
+                  );
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedInspection(item)}
+                      className={`p-4 rounded-xl border transition-all cursor-pointer relative ${
+                        isSelected
+                          ? 'border-[#0077b6] bg-blue-50/40 ring-2 ring-[#0077b6]/30 shadow-xs'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold text-slate-400">
+                            {item.assetCode}
+                          </span>
+                          <h4 className="text-sm font-extrabold text-slate-900 mt-0.5 leading-snug">
+                            {item.assetName}
+                          </h4>
+                        </div>
+                        {statusBadge}
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Mandal:</span>
+                          <span className="font-bold text-slate-800">{item.mandal} ({district})</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Inspector:</span>
+                          <div className="flex items-center gap-1 font-bold text-slate-800">
+                            <span>{item.inspectorName}</span>
+                            <a
+                              href={`tel:${item.inspectorPhone.replace(/\s+/g, '')}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-blue-600 hover:text-blue-800 p-0.5"
+                              title={`Call ${item.inspectorName}: ${item.inspectorPhone}`}
+                            >
+                              <Phone className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+
+                        {item.fieldEvidence && (
+                          <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200 text-[11px]">
+                            <span className="text-slate-500">Silt: <strong className="text-rose-700">{item.fieldEvidence.siltDepthM}m</strong></span>
+                            <span className="text-slate-500">Spindle: <strong className="text-slate-800">{item.fieldEvidence.spindleOperability.split(' ')[0]}</strong></span>
+                            <span className="text-slate-500">Inflow: <strong className="text-emerald-700">{item.fieldEvidence.inflowCondition.split(' ')[0]}</strong></span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-slate-400">ID: {item.id}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedInspection(item);
+                          }}
+                          className={`text-xs font-bold px-2.5 py-1 rounded transition-colors flex items-center gap-1 ${
+                            isSelected ? 'bg-[#0077b6] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{isSelected ? 'Viewing Telemetry Below' : 'View Telemetry'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                <CalendarIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <h4 className="text-sm font-bold text-slate-700">No Statutory Audits on this Date</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                  There are no scheduled inspections assigned for {selectedDateFormatted}. All assets in this window have either been certified or queued for subsequent cycles.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (calendarSelectedDate) setNewDate(calendarSelectedDate);
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="mt-3 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#0077b6] text-xs font-bold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Schedule Inspection on {selectedDateFormatted}</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -948,168 +1397,595 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
       {/* ============================================================== */}
       {/* VERIFIED INSPECTION RECORD & FIELD TELEMETRY PANEL             */}
       {/* ============================================================== */}
-      {selectedInspection && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                Verified Inspection Record & Field Telemetry
-              </h3>
-              <span className="font-mono text-xs text-[#0077b6] bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold">
-                {selectedInspection.id}
-              </span>
-              <span className="text-xs text-slate-500 font-bold">
-                • {selectedInspection.mandal} Mandal ({district})
-              </span>
-            </div>
-            <div className="text-xs text-slate-400 font-medium">
-              Inspected / Scheduled: {selectedInspection.fieldEvidence?.timestamp || selectedInspection.scheduledDate}
-            </div>
-          </div>
+      {selectedInspection && (() => {
+        const isCompleted = selectedInspection.status === 'Completed';
+        const isOverdue = selectedInspection.status === 'Overdue';
+        const isDueSoon = selectedInspection.status === 'Due Soon';
+        const isScheduled = selectedInspection.status === 'Scheduled' || selectedInspection.status === 'Skipped';
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Geotagged Site Photo with HUD Overlay */}
-            <div className="lg:col-span-4 space-y-2">
-              <div className="relative rounded-xl overflow-hidden border border-slate-200 shadow-xs h-56 bg-slate-950">
-                <img
-                  src={selectedInspection.fieldEvidence?.photoUrl || 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=800&q=80'}
-                  alt="Geotagged Sluice Evidence"
-                  className="w-full h-full object-cover opacity-90"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-3 text-white">
-                  <div className="font-mono text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    <span>
-                      @{selectedInspection.fieldEvidence?.coords.lat.toFixed(4) || '18.5721'}° N,{' '}
-                      {selectedInspection.fieldEvidence?.coords.lng.toFixed(4) || '83.3644'}° E
+        const hasFieldEvidence = isCompleted && Boolean(selectedInspection.fieldEvidence);
+        const hasIdentifiedDefect = isCompleted && (
+          selectedInspection.result?.startsWith('Issue') ||
+          (selectedInspection.fieldEvidence && (
+            selectedInspection.fieldEvidence.siltDepthM >= 0.4 ||
+            selectedInspection.fieldEvidence.spindleOperability.includes('Jammed') ||
+            selectedInspection.fieldEvidence.spindleOperability.includes('Stiff') ||
+            selectedInspection.fieldEvidence.escalationPriority.includes('Priority')
+          ))
+        );
+
+        // Calculate exact active stage (1, 2, or 3) and stage description
+        let activeStage = 1;
+        let activeStageTitle = 'Stage 1: Awaiting On-Site Physical Inspection';
+        let activeStageSubtitle = `Field Inspector Sri ${selectedInspection.inspectorName} is assigned to visit GPS coordinates on ${selectedInspection.scheduledDate}.`;
+        let activeStageBadge = 'STAGE 1 ACTIVE • AWAITING FIELD VISIT';
+        let activeStageBadgeClass = 'bg-sky-100 text-[#0077b6] border-sky-300';
+
+        if (isOverdue) {
+          activeStage = 1;
+          activeStageTitle = 'Stage 1: Field Survey SLA Breached (>24h Delay)';
+          activeStageSubtitle = `Mandatory statutory inspection deadline has expired on ${selectedInspection.scheduledDate}. Warning notice dispatched to Mandal officer.`;
+          activeStageBadge = 'STAGE 1 CRITICAL • 24H SLA BREACHED';
+          activeStageBadgeClass = 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse';
+        } else if (isCompleted && hasIdentifiedDefect) {
+          activeStage = 3;
+          activeStageTitle = 'Stage 3: Engineering Work Order Active (Repair in Progress)';
+          activeStageSubtitle = `Stage 1 & 2 completed on site. Severe physical damage was detected. Work Order #${selectedInspection.relatedTaskId || 'TSK-VZ-1204'} is currently active on the ground. This asset is NOT yet fixed.`;
+          activeStageBadge = 'STAGE 3 ACTIVE • REPAIR WORK ORDER OPEN';
+          activeStageBadgeClass = 'bg-amber-100 text-amber-950 border-amber-300 animate-pulse';
+        } else if (isCompleted && !hasIdentifiedDefect) {
+          activeStage = 3;
+          activeStageTitle = 'Stage 3: Asset Certified Sound & Healthy under APWALTA §10';
+          activeStageSubtitle = `Stage 1 & 2 completed. Zero structural defects found. Sluice gate, bund, and intake channel verified fully functional.`;
+          activeStageBadge = 'STAGE 3 COMPLETE • ASSET CERTIFIED HEALTHY';
+          activeStageBadgeClass = 'bg-emerald-100 text-emerald-950 border-emerald-300';
+        }
+
+        return (
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-5">
+            {/* Header: Dynamic Icon & Status Based on TRUE Asset Condition */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold shadow-xs ${
+                  hasIdentifiedDefect 
+                    ? 'bg-rose-50 border border-rose-200 text-rose-600' 
+                    : isCompleted 
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-600' 
+                    : isOverdue 
+                    ? 'bg-rose-50 border border-rose-200 text-rose-600'
+                    : 'bg-sky-50 border border-sky-200 text-[#0077b6]'
+                }`}>
+                  {hasIdentifiedDefect ? (
+                    <ShieldAlert className="w-6 h-6 text-rose-600 animate-pulse" />
+                  ) : isCompleted ? (
+                    <ShieldCheck className="w-6 h-6 text-emerald-600" />
+                  ) : isOverdue ? (
+                    <AlertTriangle className="w-6 h-6 text-rose-600 animate-pulse" />
+                  ) : (
+                    <Clock className="w-6 h-6 text-[#0077b6]" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                      {hasIdentifiedDefect 
+                        ? 'Ground Telemetry & Physical Defect Record' 
+                        : isCompleted 
+                        ? 'Verified Inspection Record & Certified Telemetry' 
+                        : isOverdue
+                        ? 'Overdue Inspection Alert & Telemetry Backlog'
+                        : 'Scheduled Inspection Telemetry Baseline'}
+                    </h3>
+                    <span className="font-mono text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-bold">
+                      {selectedInspection.id}
+                    </span>
+                    {/* Primary Physical Reality Badge */}
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                      hasIdentifiedDefect 
+                        ? 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse' 
+                        : isCompleted 
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
+                        : isOverdue
+                        ? 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse'
+                        : 'bg-sky-100 text-sky-900 border-sky-300'
+                    }`}>
+                      {hasIdentifiedDefect 
+                        ? '🚨 PHYSICAL DEFECT DETECTED — REPAIR REQUIRED' 
+                        : isCompleted 
+                        ? '✅ ASSET CERTIFIED HEALTHY — FULL CAPACITY' 
+                        : isOverdue
+                        ? '🔴 SLA BREACHED — 24H VERIFICATION OVERDUE'
+                        : '⏳ PENDING ON-SITE FIELD VERIFICATION'}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-200 mt-0.5">
-                    {selectedInspection.fieldEvidence?.landmarkText || `${selectedInspection.mandal}, Verified GPS Baseline Anchor Hit`}
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Asset: <strong className="text-slate-800">{selectedInspection.assetName}</strong> • {selectedInspection.mandal} Mandal ({district} District)
                   </p>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500">
-                Assigned Inspector: <strong>{selectedInspection.inspectorName}</strong> ({selectedInspection.inspectorPhone})
-              </p>
-            </div>
 
-            {/* Protocol Verification Results */}
-            <div className="lg:col-span-5 space-y-3">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                  PROTOCOL VERIFICATION RESULTS
+              <div className="text-xs text-slate-600 font-semibold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-2">
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
+                <span>
+                  {isCompleted ? 'Survey Completed On:' : 'Scheduled Inspection Date:'}{' '}
+                  <strong>{selectedInspection.fieldEvidence?.timestamp || selectedInspection.scheduledDate}</strong>
                 </span>
-                <h4 className="text-sm font-extrabold text-slate-900 mt-0.5">
-                  {selectedInspection.assetName} Audit
-                </h4>
-                <p className="text-[11px] text-slate-500 font-mono">
-                  Asset Code: <strong>{selectedInspection.assetCode}</strong> • Protocol Standard: Sluice & Embankment Integrity Protocol v2.1
-                </p>
-              </div>
-
-              {/* 4 Protocol Metric Boxes */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-bold block">Silt Level Depth</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-sm font-black text-rose-700">
-                      {selectedInspection.fieldEvidence?.siltDepthM ?? 0.8} m
-                    </span>
-                    <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-1 rounded">Excessive</span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-bold block">Sluice Spindle Operability</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-xs font-bold text-rose-700">
-                      {selectedInspection.fieldEvidence?.spindleOperability || 'Jammed / Corroded'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-bold block">Earthen Embankment Bund</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-xs font-bold text-emerald-700">
-                      {selectedInspection.fieldEvidence?.bundCondition || 'No Seepage / Stable'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-bold block">Canal Head Inflow Capacity</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-xs font-bold text-amber-700">
-                      {selectedInspection.fieldEvidence?.inflowCondition || 'Weeds 35% / Partial Block'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Field Notes Quote */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 italic">
-                "{selectedInspection.fieldEvidence?.fieldNotes || 'Spindle gear teeth heavily oxidized due to high mineral runoff. Gate cannot be lifted manually past 0.3m. De-silting necessary before monsoon reaches full supply level.'}"
               </div>
             </div>
 
-            {/* Escalation Status Card (Right Column) */}
-            <div className="lg:col-span-3 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block">
-                  ESCALATION STATUS
-                </span>
-                <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
-                  {selectedInspection.fieldEvidence?.escalationPriority || 'Priority 1 Emergency'}
-                </span>
-                <h5 className="text-xs font-bold text-slate-900 mt-1">
-                  Sluice Gate & Desilting Rehabilitation
-                </h5>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {selectedInspection.fieldEvidence?.assignedDivision || `Minor Irrigation Div. ${selectedInspection.mandal} Sub-division`}
-                </p>
-              </div>
-
-              <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Target Resolution:</span>
-                  <span className="font-bold text-slate-800">
-                    {selectedInspection.fieldEvidence?.targetResolution || '01 June 2024'}
-                  </span>
+            {/* ============================================================== */}
+            {/* ASSIGNED FIELD INSPECTOR AUTHORITY CARD (ANSWERS "WHO IS INSPECTING") */}
+            {/* ============================================================== */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0077b6] to-[#03045e] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                  {selectedInspection.inspectorName.split(' ').map((n) => n[0]).join('')}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Estimated Outlay:</span>
-                  <span className="font-bold text-slate-800">
-                    ₹ {(selectedInspection.fieldEvidence?.estimatedCostInr || 58000).toLocaleString('en-IN')}
-                  </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-white text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                      ASSIGNED FIELD INSPECTOR
+                    </span>
+                    <span className="text-xs text-slate-500 font-semibold">
+                      Andhra Pradesh Water Resources Dept.
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-2">
+                    <span>Sri {selectedInspection.inspectorName}</span>
+                    <span className="text-xs font-semibold text-slate-500 font-normal">
+                      (Assistant Executive Engineer / AEE)
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Field Sub-division: <strong>{selectedInspection.mandal} Section</strong> • Statutory Cadastre under <strong>APWALTA §10</strong>
+                  </p>
                 </div>
               </div>
 
-              <div className="pt-2 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => onOpenTaskDetails && onOpenTaskDetails(selectedInspection.relatedTaskId || 'TSK-VZ-1204')}
-                  className="w-full py-2 bg-[#0077b6] hover:bg-[#005f92] text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              <div className="flex items-center gap-2.5">
+                <a
+                  href={`tel:${selectedInspection.inspectorPhone.replace(/\s+/g, '')}`}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title={`Call Inspector: ${selectedInspection.inspectorPhone}`}
                 >
-                  <FileCheck2 className="w-3.5 h-3.5" />
-                  <span>Open Task {selectedInspection.relatedTaskId || 'TSK-VZ-1204'}</span>
-                </button>
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call Inspector: {selectedInspection.inspectorPhone}</span>
+                </a>
+              </div>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => alert(`Official Section 65B Certified Field Inspection PDF generated for ${selectedInspection.id}. Downloading official gazette copy.`)}
-                  className="w-full py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-lg text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Download Certified Field PDF</span>
-                </button>
+            {/* ============================================================== */}
+            {/* 3-STAGE LIFECYCLE STEPPER: PROMINENT "YOU ARE HERE" INDICATOR   */}
+            {/* ============================================================== */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+              {/* Stepper Header: Shows Active Stage Clearly */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <Activity className="w-5 h-5 text-[#0077b6]" />
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                      3-Stage Verification & Action Lifecycle
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Statutory audit pipeline from physical ground survey to engineering resolution.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Prominent Active Stage Banner */}
+                <div className={`px-3 py-1.5 rounded-xl border text-xs font-black flex items-center gap-2 shadow-2xs ${activeStageBadgeClass}`}>
+                  <span className="w-2 h-2 rounded-full bg-current animate-ping"></span>
+                  <span>👉 CURRENT LOCATION: {activeStageBadge}</span>
+                </div>
+              </div>
+
+              {/* 3-Stage Pipeline Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {/* -------------------------------------------------------- */}
+                {/* STAGE 1: ON-SITE PHYSICAL VISIT                         */}
+                {/* -------------------------------------------------------- */}
+                <div className={`p-4 rounded-xl border transition-all relative ${
+                  activeStage === 1
+                    ? isOverdue
+                      ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500 ring-inset shadow-xs'
+                      : 'bg-sky-50/90 border-sky-300 ring-2 ring-[#0077b6] ring-inset shadow-xs'
+                    : 'bg-white border-slate-200'
+                }`}>
+                  {activeStage === 1 && (
+                    <span className={`absolute -top-2.5 right-3 text-[9px] font-mono font-black px-2 py-0.5 rounded-full text-white shadow-2xs ${
+                      isOverdue ? 'bg-rose-600' : 'bg-[#0077b6]'
+                    }`}>
+                      👉 YOU ARE HERE (STAGE 1)
+                    </span>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">
+                      Stage 1 • Field Survey
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      isCompleted 
+                        ? 'bg-slate-100 text-slate-700 border-slate-300' 
+                        : isOverdue 
+                        ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse'
+                        : 'bg-sky-100 text-[#0077b6] border-sky-300 font-black'
+                    }`}>
+                      {isCompleted ? '✓ Survey Filed' : isOverdue ? '🔴 Overdue' : '📍 Awaiting Visit'}
+                    </span>
+                  </div>
+                  <h5 className="text-sm font-black text-slate-900 mt-1">
+                    On-Site Ground Inspection
+                  </h5>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    {isCompleted
+                      ? `Sri ${selectedInspection.inspectorName} physically verified GPS anchor coordinates on ${selectedInspection.fieldEvidence?.timestamp || selectedInspection.scheduledDate}.`
+                      : isOverdue
+                      ? `Verification window has passed (>24h delay). Inspector Sri ${selectedInspection.inspectorName} has not submitted on-site evidence.`
+                      : `Inspector Sri ${selectedInspection.inspectorName} is scheduled to arrive at site on ${selectedInspection.scheduledDate} with ultrasonic silt probe.`}
+                  </p>
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/70 text-[11px] font-semibold text-slate-600 flex justify-between">
+                    <span>Stage Status:</span>
+                    <strong className={isCompleted ? 'text-slate-800' : isOverdue ? 'text-rose-700' : 'text-[#0077b6]'}>
+                      {isCompleted ? 'Visit Completed' : isOverdue ? 'SLA Breached' : 'Scheduled / En-Route'}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* -------------------------------------------------------- */}
+                {/* STAGE 2: PHYSICAL DAMAGE FINDING                        */}
+                {/* -------------------------------------------------------- */}
+                <div className={`p-4 rounded-xl border transition-all relative ${
+                  !isCompleted
+                    ? 'bg-slate-50/60 border-dashed border-slate-300 text-slate-400'
+                    : hasIdentifiedDefect
+                    ? 'bg-rose-50/80 border-rose-300 shadow-2xs'
+                    : 'bg-emerald-50/60 border-emerald-300 shadow-2xs'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                      !isCompleted ? 'text-slate-400' : hasIdentifiedDefect ? 'text-rose-700' : 'text-emerald-700'
+                    }`}>
+                      Stage 2 • Ground Finding
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      !isCompleted 
+                        ? 'bg-slate-200 text-slate-500 border-slate-300' 
+                        : hasIdentifiedDefect 
+                        ? 'bg-rose-100 text-rose-800 border-rose-300 font-black' 
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-300 font-black'
+                    }`}>
+                      {!isCompleted ? '⏳ Pending Stage 1' : hasIdentifiedDefect ? '🚨 Damage Detected' : '✅ 100% Sound'}
+                    </span>
+                  </div>
+                  <h5 className={`text-sm font-black mt-1 ${
+                    !isCompleted ? 'text-slate-500' : hasIdentifiedDefect ? 'text-rose-950' : 'text-emerald-950'
+                  }`}>
+                    {!isCompleted 
+                      ? 'Structural Finding Pending' 
+                      : hasIdentifiedDefect 
+                      ? 'Severe Mechanical Choke' 
+                      : 'Zero Civil Defects'}
+                  </h5>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    {!isCompleted 
+                      ? `Structural condition and silt levels will be recorded once Inspector Sri ${selectedInspection.inspectorName} completes the physical visit.` 
+                      : hasIdentifiedDefect 
+                      ? 'Probe verified 0.8m silt layer & oxidized spindle teeth. Sluice valve cannot be operated manually.' 
+                      : 'Intake channel and twin sluice gates tested under full hydrostatic load. All mechanisms verified 100% sound.'}
+                  </p>
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/70 text-[11px] font-semibold text-slate-600 flex justify-between">
+                    <span>Physical Finding:</span>
+                    <strong className={!isCompleted ? 'text-slate-500' : hasIdentifiedDefect ? 'text-rose-700' : 'text-emerald-700'}>
+                      {!isCompleted ? 'Awaiting Inspection' : hasIdentifiedDefect ? 'Defective (Blocked)' : 'Optimal Hydraulic Flow'}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* -------------------------------------------------------- */}
+                {/* STAGE 3: CURRENT ACTION / WORK ORDER                    */}
+                {/* -------------------------------------------------------- */}
+                <div className={`p-4 rounded-xl border transition-all relative ${
+                  !isCompleted
+                    ? 'bg-slate-50/60 border-dashed border-slate-300 text-slate-400'
+                    : hasIdentifiedDefect
+                    ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-500 ring-inset shadow-xs'
+                    : 'bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-500 ring-inset shadow-xs'
+                }`}>
+                  {activeStage === 3 && (
+                    <span className={`absolute -top-2.5 right-3 text-[9px] font-mono font-black px-2 py-0.5 rounded-full text-white shadow-2xs ${
+                      hasIdentifiedDefect ? 'bg-amber-600' : 'bg-emerald-700'
+                    }`}>
+                      👉 YOU ARE HERE (STAGE 3)
+                    </span>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                      !isCompleted ? 'text-slate-400' : hasIdentifiedDefect ? 'text-amber-800' : 'text-emerald-800'
+                    }`}>
+                      Stage 3 • Action Status
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      !isCompleted 
+                        ? 'bg-slate-200 text-slate-500 border-slate-300' 
+                        : hasIdentifiedDefect 
+                        ? 'bg-amber-100 text-amber-950 border-amber-300 font-black' 
+                        : 'bg-emerald-100 text-emerald-950 border-emerald-300 font-black'
+                    }`}>
+                      {!isCompleted 
+                        ? '⏳ Locked / Pending' 
+                        : hasIdentifiedDefect 
+                        ? '🚜 Work Order Active' 
+                        : '✓ Routine Monitoring'}
+                    </span>
+                  </div>
+                  <h5 className="text-sm font-black text-slate-900 mt-1">
+                    {!isCompleted 
+                      ? 'Remediation Decision Pending' 
+                      : hasIdentifiedDefect 
+                      ? 'Engineering Remediation' 
+                      : 'Asset Certified Sound'}
+                  </h5>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    {!isCompleted 
+                      ? 'A repair work order will be created only if Stage 2 inspection uncovers physical defects or siltation breaches.' 
+                      : hasIdentifiedDefect 
+                      ? `Work Order #${selectedInspection.relatedTaskId || 'TSK-VZ-1204'} is currently assigned to Executive Engineer with excavator machinery.` 
+                      : 'Asset certified under §10. Scheduled for routine post-monsoon review in next operational cycle.'}
+                  </p>
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/70 text-[11px] font-semibold text-slate-600 flex justify-between">
+                    <span>Current Action:</span>
+                    <strong className={!isCompleted ? 'text-slate-500' : hasIdentifiedDefect ? 'text-amber-800' : 'text-emerald-700'}>
+                      {!isCompleted ? 'Pending Survey Result' : hasIdentifiedDefect ? 'Work In Progress (Not Resolved)' : 'Asset Sound'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ============================================================== */}
+            {/* MAIN TELEMETRY, EVIDENCE & PROTOCOL MEASUREMENTS               */}
+            {/* ============================================================== */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Geotagged Site Photo with HUD Overlay */}
+              <div className="lg:col-span-4 space-y-2">
+                <div className="relative rounded-xl overflow-hidden border border-slate-200 shadow-xs h-56 bg-slate-950">
+                  <img
+                    src={selectedInspection.fieldEvidence?.photoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=800&q=80'}
+                    alt="Geotagged Sluice Evidence"
+                    className="w-full h-full object-cover opacity-90"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=800&q=80';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent flex flex-col justify-end p-3 text-white">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="font-mono text-[10px] text-slate-200 font-bold flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-[#0077b6]" />
+                        <span>
+                          @{selectedInspection.fieldEvidence?.coords.lat.toFixed(4) || '18.5721'}° N,{' '}
+                          {selectedInspection.fieldEvidence?.coords.lng.toFixed(4) || '83.3644'}° E
+                        </span>
+                      </div>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                        !isCompleted 
+                          ? 'bg-slate-900/80 text-sky-300 border-sky-500/50' 
+                          : hasIdentifiedDefect 
+                          ? 'bg-rose-950/80 text-rose-300 border-rose-500/50' 
+                          : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                      }`}>
+                        {!isCompleted ? 'SCHEDULED TARGET' : hasIdentifiedDefect ? 'DEFECT LOCATION' : 'VERIFIED BASELINE'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 mt-1 line-clamp-1">
+                      {selectedInspection.fieldEvidence?.landmarkText || `${selectedInspection.mandal} Mandal, Target Cadastral Anchor`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span>Assigned Inspector: <strong>{selectedInspection.inspectorName}</strong></span>
+                  <a
+                    href={`tel:${selectedInspection.inspectorPhone.replace(/\s+/g, '')}`}
+                    className="text-[#0077b6] hover:text-[#005f92] font-bold flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs"
+                    title={`Call Inspector: ${selectedInspection.inspectorPhone}`}
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span>{selectedInspection.inspectorPhone}</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Protocol Verification Results (Strict Realism, Zero False Green) */}
+              <div className="lg:col-span-5 space-y-3">
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                    PHYSICAL PROTOCOL MEASUREMENTS
+                  </span>
+                  <h4 className="text-sm font-black text-slate-900 mt-0.5">
+                    {selectedInspection.assetName}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Cadastral Code: <strong>{selectedInspection.assetCode}</strong> • Standard Sluice Protocol v2.1
+                  </p>
+                </div>
+
+                {/* 4 Protocol Metric Boxes: Color Matches Actual Risk (No fake values if not yet surveyed!) */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* Silt Depth */}
+                  <div className={`p-2.5 rounded-xl border ${
+                    !isCompleted 
+                      ? 'bg-slate-50/70 border-slate-200' 
+                      : hasIdentifiedDefect 
+                      ? 'bg-rose-50/80 border-rose-200' 
+                      : 'bg-emerald-50/50 border-emerald-200'
+                  }`}>
+                    <span className="text-[10px] text-slate-500 font-bold block">Silt Level Depth</span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className={`text-sm font-black ${
+                        !isCompleted ? 'text-slate-500' : hasIdentifiedDefect ? 'text-rose-700' : 'text-slate-800'
+                      }`}>
+                        {!isCompleted ? '— Pending Probe' : `${selectedInspection.fieldEvidence?.siltDepthM ?? 0.8} m`}
+                      </span>
+                      {isCompleted && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                          hasIdentifiedDefect ? 'text-rose-800 bg-rose-100 border-rose-300' : 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                        }`}>
+                          {hasIdentifiedDefect ? '⚠️ Excessive' : 'Optimal'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sluice Spindle Operability */}
+                  <div className={`p-2.5 rounded-xl border ${
+                    !isCompleted 
+                      ? 'bg-slate-50/70 border-slate-200' 
+                      : hasIdentifiedDefect 
+                      ? 'bg-rose-50/80 border-rose-200' 
+                      : 'bg-emerald-50/50 border-emerald-200'
+                  }`}>
+                    <span className="text-[10px] text-slate-500 font-bold block">Sluice Spindle Operability</span>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className={`text-xs font-bold ${
+                        !isCompleted ? 'text-slate-500' : hasIdentifiedDefect ? 'text-rose-700' : 'text-slate-800'
+                      }`}>
+                        {!isCompleted ? '— Pending Physical Test' : (selectedInspection.fieldEvidence?.spindleOperability || 'Jammed / Corroded')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Earthen Embankment Bund */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] text-slate-500 font-bold block">Earthen Embankment Bund</span>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-xs font-bold text-slate-700">
+                        {!isCompleted ? '— Visual Survey Pending' : (selectedInspection.fieldEvidence?.bundCondition || 'No Seepage / Stable')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Canal Head Inflow Capacity */}
+                  <div className={`p-2.5 rounded-xl border ${
+                    !isCompleted 
+                      ? 'bg-slate-50/70 border-slate-200' 
+                      : hasIdentifiedDefect 
+                      ? 'bg-amber-50/80 border-amber-200' 
+                      : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <span className="text-[10px] text-slate-500 font-bold block">Canal Head Inflow Capacity</span>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className={`text-xs font-bold ${
+                        !isCompleted ? 'text-slate-500' : hasIdentifiedDefect ? 'text-amber-800' : 'text-slate-800'
+                      }`}>
+                        {!isCompleted ? '— Inflow Probe Pending' : (selectedInspection.fieldEvidence?.inflowCondition || 'Weeds 35%')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Field Notes Quote */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 italic">
+                  {!isCompleted
+                    ? `"Inspection scheduled on cadastral roster. Field officer Sri ${selectedInspection.inspectorName} dispatched to record ultrasonic silt telemetry and geotagged photographic evidence."`
+                    : `"${selectedInspection.fieldEvidence?.fieldNotes || 'Spindle gear teeth heavily oxidized due to high mineral runoff. Gate cannot be lifted manually in current state. De-silting necessary before monsoon reaches full supply level.'}"`}
+                </div>
+              </div>
+
+              {/* Escalation Status & Action Center (Right Column) */}
+              <div className={`lg:col-span-3 rounded-xl p-4 space-y-3 border ${
+                !isCompleted 
+                  ? 'bg-slate-50 border-slate-200' 
+                  : hasIdentifiedDefect 
+                  ? 'bg-rose-50/40 border-rose-200' 
+                  : 'bg-emerald-50/30 border-emerald-200'
+              }`}>
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block">
+                    REMEDIATION STATUS
+                  </span>
+                  <span className={`inline-block mt-1 text-[10px] font-black px-2.5 py-0.5 rounded border ${
+                    !isCompleted
+                      ? 'bg-slate-200 text-slate-800 border-slate-300'
+                      : hasIdentifiedDefect 
+                      ? 'bg-rose-100 text-rose-900 border-rose-300' 
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                  }`}>
+                    {!isCompleted 
+                      ? '⏳ Survey Pending — In Roster' 
+                      : hasIdentifiedDefect 
+                      ? '⚠️ Work In Progress — Not Resolved' 
+                      : 'Routine Baseline (Healthy)'}
+                  </span>
+                  <h5 className="text-xs font-black text-slate-900 mt-1.5">
+                    {!isCompleted 
+                      ? 'Scheduled Pre-Monsoon Probing' 
+                      : hasIdentifiedDefect 
+                      ? 'Sluice Gate & Desilting Rehabilitation' 
+                      : 'Regular Operational Monitoring'}
+                  </h5>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {selectedInspection.fieldEvidence?.assignedDivision || `Minor Irrigation Div. ${selectedInspection.mandal} Sub-division`}
+                  </p>
+                </div>
+
+                <div className="border-t border-slate-200/80 pt-2 space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Target Date:</span>
+                    <span className="font-bold text-slate-800">
+                      {!isCompleted 
+                        ? selectedInspection.scheduledDate 
+                        : (selectedInspection.fieldEvidence?.targetResolution || '28 Oct 2026')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Estimated Outlay:</span>
+                    <span className="font-bold text-slate-800">
+                      {!isCompleted
+                        ? 'Pending Survey Budget'
+                        : hasIdentifiedDefect 
+                        ? `₹ ${(selectedInspection.fieldEvidence?.estimatedCostInr || 58000).toLocaleString('en-IN')}`
+                        : '₹ 0 (Nil Outlay Required)'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  {!isCompleted ? (
+                    <a
+                      href={`tel:${selectedInspection.inspectorPhone.replace(/\s+/g, '')}`}
+                      className="w-full py-2 bg-[#0077b6] hover:bg-[#005f92] text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call Inspector {selectedInspection.inspectorName}</span>
+                    </a>
+                  ) : hasIdentifiedDefect ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenTaskDetails && onOpenTaskDetails(selectedInspection.relatedTaskId || 'TSK-VZ-1204')}
+                      className="w-full py-2 bg-[#0077b6] hover:bg-[#005f92] text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                      <span>Open Work Task {selectedInspection.relatedTaskId || 'TSK-VZ-1204'}</span>
+                    </button>
+                  ) : (
+                    <div className="w-full py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Zero Defects • Asset Certified</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => showToast(`📄 Certified APWALTA §10 Inspection Dossier downloaded for ${selectedInspection.id}. Official gazette copy archived.`)}
+                    className="w-full py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-lg text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3 h-3" />
+                    <span>Download Official Gazette Dossier</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ============================================================== */}
       {/* MODAL 1: PRE-MONSOON 42 UNINSPECTED ASSETS REVIEW & DISPATCH   */}
@@ -1458,6 +2334,21 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Floating Status Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200 max-w-md">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-xs font-bold leading-relaxed text-slate-100">{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0 ml-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
     </div>
