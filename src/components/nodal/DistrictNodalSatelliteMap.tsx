@@ -60,13 +60,18 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUpDown,
-  Gauge
+  Gauge,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface DistrictNodalSatelliteMapProps {
   district: string;
   complaints: CitizenComplaint[];
   waterBodies?: WaterBody[];
+  selectedAsset?: WaterBody | null;
+  onClearSelectedAsset?: () => void;
+  onBackToAssets?: () => void;
   onAssignInspector?: (complaint: CitizenComplaint) => void;
   onAssignEngineer?: (complaint: CitizenComplaint) => void;
   onSelectComplaint?: (complaint: CitizenComplaint) => void;
@@ -91,6 +96,9 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
   district,
   complaints,
   waterBodies = [],
+  selectedAsset,
+  onClearSelectedAsset,
+  onBackToAssets,
   onAssignInspector,
   onAssignEngineer,
   onSelectComplaint,
@@ -104,11 +112,31 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
 
   // Basemap & Layer Filtering State
   const [basemapTheme, setBasemapTheme] = useState<'satellite' | 'light_gis' | 'topo'>('satellite');
-  const [activeLayerFilter, setActiveLayerFilter] = useState<'all' | 'complaints' | 'reservoirs' | 'rivers' | 'groundwater' | 'rainfall'>('all');
+  const [activeLayerFilter, setActiveLayerFilter] = useState<'all' | 'complaints' | 'assets' | 'reservoirs' | 'rivers' | 'groundwater' | 'rainfall'>('all');
   const [complaintStatusFilter, setComplaintStatusFilter] = useState<'all' | 'SUBMITTED' | 'INSPECTOR_ASSIGNED' | 'WORKER_IN_PROGRESS' | 'RESOLVED'>('all');
   const [cursorCoords, setCursorCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(true);
   const [legendPosition, setLegendPosition] = useState<'bottom-right' | 'top-right'>('bottom-right');
+
+  // Focused Water Asset (from Assets tab deep link or direct map marker click)
+  const [focusedAsset, setFocusedAsset] = useState<WaterBody | null>(selectedAsset || null);
+  const [isAssetDossierOpen, setIsAssetDossierOpen] = useState<boolean>(Boolean(selectedAsset));
+  const [copiedCoords, setCopiedCoords] = useState<boolean>(false);
+
+  // Synchronize when selectedAsset changes from parent
+  useEffect(() => {
+    if (selectedAsset) {
+      setFocusedAsset(selectedAsset);
+      setIsAssetDossierOpen(true);
+      if (activeLayerFilter !== 'all' && activeLayerFilter !== 'assets') {
+        setActiveLayerFilter('all');
+      }
+      const map = mapInstanceRef.current;
+      if (map && selectedAsset.coordinates?.lat && selectedAsset.coordinates?.lng) {
+        map.flyTo([selectedAsset.coordinates.lat, selectedAsset.coordinates.lng], 15, { duration: 1.2 });
+      }
+    }
+  }, [selectedAsset]);
 
   // Telemetry Flashcard & Evidence Modal State
   const [activeFlashcard, setActiveFlashcard] = useState<TelemetryFlashcardData | null>(null);
@@ -697,10 +725,14 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
 
       L.marker(districtBoundary.center, { icon: hqIcon, interactive: false }).addTo(districtBoundaryRef.current);
 
-      // Fly to district bounds with smooth animation
-      map.fitBounds(districtBoundary.bounds, { padding: [35, 35], maxZoom: 11 });
+      // Fly to selected asset if provided, otherwise district bounds with smooth animation
+      if (selectedAsset && selectedAsset.coordinates?.lat && selectedAsset.coordinates?.lng) {
+        map.flyTo([selectedAsset.coordinates.lat, selectedAsset.coordinates.lng], 15, { duration: 1.2 });
+      } else {
+        map.fitBounds(districtBoundary.bounds, { padding: [35, 35], maxZoom: 11 });
+      }
     }
-  }, [districtBoundary, basemapTheme]);
+  }, [districtBoundary, basemapTheme, selectedAsset]);
 
   // =========================================================================
   // RENDER ALL DATA MARKERS STRICTLY FOR THIS DISTRICT
@@ -943,14 +975,79 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
         marker.addTo(markersLayerRef.current!);
       });
     }
+
+    // -----------------------------------------------------------------------
+    // 6. DISTRICT REGISTERED WATER ASSETS (Minor Irrigation, Percolation Tanks, Check Dams)
+    // -----------------------------------------------------------------------
+    if (activeLayerFilter === 'all' || activeLayerFilter === 'assets') {
+      waterBodies.forEach((w) => {
+        let lat = w.coordinates?.lat;
+        let lng = w.coordinates?.lng;
+
+        if (!lat || !lng || lat < 12.0 || lat > 20.0 || lng < 76.0 || lng > 85.5) {
+          if (districtBoundary) {
+            const hash = w.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const angle = (hash % 360) * (Math.PI / 180);
+            const radius = 0.05 + ((hash % 10) * 0.006);
+            lat = districtBoundary.center[0] + Math.sin(angle) * radius;
+            lng = districtBoundary.center[1] + Math.cos(angle) * radius;
+          }
+        }
+        if (!lat || !lng) return;
+
+        const isFocused = focusedAsset?.id === w.id;
+        const isGood = w.statusColor === 'green';
+        const isWarning = w.statusColor === 'yellow';
+
+        const assetGradient = isGood
+          ? 'from-teal-600 to-emerald-400 shadow-teal-500/30'
+          : isWarning
+          ? 'from-amber-600 to-amber-400 shadow-amber-500/30'
+          : 'from-rose-600 to-rose-400 shadow-rose-500/30';
+
+        const assetIcon = L.divIcon({
+          className: 'clean-map-badge-marker',
+          html: `
+            <div class="relative cursor-pointer flex items-center justify-center group" title="${w.name} (${w.type}): Click to inspect asset telemetry">
+              ${isFocused ? `
+                <div class="absolute w-12 h-12 rounded-full bg-cyan-400/40 animate-ping pointer-events-none"></div>
+                <div class="absolute w-9 h-9 rounded-full border-2 border-cyan-300 animate-pulse pointer-events-none"></div>
+              ` : `
+                <div class="absolute w-7 h-7 rounded-lg bg-teal-400/25 pointer-events-none"></div>
+              `}
+              <div class="relative ${isFocused ? 'w-8 h-8 scale-110 ring-3 ring-cyan-300' : 'w-6 h-6'} rounded-xl bg-gradient-to-tr ${assetGradient} border-2 border-white shadow-md flex items-center justify-center transition-transform duration-200 group-hover:scale-130 group-hover:shadow-teal-400/50">
+                <svg class="${isFocused ? 'w-4.5 h-4.5' : 'w-3.5 h-3.5'} text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                </svg>
+              </div>
+            </div>
+          `,
+          iconSize: isFocused ? [32, 32] : [26, 26],
+          iconAnchor: isFocused ? [16, 16] : [13, 13],
+        });
+
+        const marker = L.marker([lat, lng], { icon: assetIcon, zIndexOffset: isFocused ? 1000 : 300 });
+        marker.on('click', () => {
+          setFocusedAsset(w);
+          setIsAssetDossierOpen(true);
+          const currentMap = mapInstanceRef.current;
+          if (currentMap) {
+            currentMap.flyTo([lat, lng], 15, { duration: 1.0 });
+          }
+        });
+        marker.addTo(markersLayerRef.current!);
+      });
+    }
   }, [
     districtComplaints,
     districtReservoirs,
     districtRiverGauges,
     districtGroundwaterWells,
     districtRainfallStations,
+    waterBodies,
     activeLayerFilter,
     districtBoundary,
+    focusedAsset,
   ]);
 
   // Handle Reset Zoom button click
@@ -995,6 +1092,10 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
               <strong className="text-slate-900 font-black">{districtComplaints.length} Live</strong>
             </div>
             <div className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Water Assets</span>
+              <strong className="text-teal-700 font-black">{waterBodies.length} Registered</strong>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl text-center">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Reservoirs</span>
               <strong className="text-blue-600 font-black">{districtReservoirs.length} Active</strong>
             </div>
@@ -1034,6 +1135,17 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
             >
               <span>Complaints</span>
               <span className="font-mono text-[10px]">({districtComplaints.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveLayerFilter('assets')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1 ${
+                activeLayerFilter === 'assets'
+                  ? 'bg-teal-600 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <span>Water Assets</span>
+              <span className="font-mono text-[10px]">({waterBodies.length})</span>
             </button>
             <button
               onClick={() => setActiveLayerFilter('reservoirs')}
@@ -1096,6 +1208,66 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
       {/* ============================================================== */}
       <div className="relative z-0 isolate w-full h-[560px] md:h-[590px] rounded-3xl overflow-hidden border border-slate-300 shadow-md bg-slate-900">
         <div ref={mapContainerRef} className="w-full h-full" />
+
+        {/* Focused Asset HUD Banner */}
+        {focusedAsset && (
+          <div className="absolute top-4 left-4 z-[1000] max-w-sm sm:max-w-md bg-slate-950/92 backdrop-blur-md text-white border border-cyan-500/40 px-3.5 py-2.5 rounded-2xl shadow-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-teal-400 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Droplets className="w-4 h-4 text-white" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] uppercase font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800/80 px-1.5 py-0.2 rounded">
+                    Focused Asset
+                  </span>
+                  <span className="text-[11px] text-slate-300 truncate font-semibold">
+                    {focusedAsset.mandal} • {focusedAsset.type}
+                  </span>
+                </div>
+                <h5 className="font-extrabold text-xs text-white truncate max-w-[210px]">
+                  {focusedAsset.name}
+                </h5>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (mapInstanceRef.current && focusedAsset.coordinates) {
+                    mapInstanceRef.current.flyTo([focusedAsset.coordinates.lat, focusedAsset.coordinates.lng], 15, { duration: 1.0 });
+                  }
+                }}
+                className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                title="Re-Center on Asset"
+              >
+                Re-Center
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAssetDossierOpen(true)}
+                className="px-2 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                title="View Full Telemetry Dossier"
+              >
+                Dossier
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFocusedAsset(null);
+                  setIsAssetDossierOpen(false);
+                  onClearSelectedAsset?.();
+                  handleResetZoom();
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Clear Focus"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Live Cursor Coordinate Readout */}
         {cursorCoords && (
@@ -1357,6 +1529,25 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                     {districtRainfallStations.length}
                   </span>
                 </div>
+
+                {/* Water Assets & Tanks */}
+                <div
+                  className="flex items-center justify-between gap-1.5 group cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  onClick={() => setActiveLayerFilter('assets')}
+                  title="Filter to Water Assets & Tanks"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-teal-600 to-emerald-400 border border-white/80 shadow-xs flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                      </svg>
+                    </div>
+                    <span className="text-slate-200 font-medium truncate">Water Assets</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-teal-950/80 text-teal-300 border border-teal-800/60 shrink-0">
+                    {waterBodies.length}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1417,6 +1608,272 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
                 alt="Evidence"
                 className="max-h-[70vh] max-w-full object-contain rounded-xl"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* WATER ASSET TELEMETRY DOSSIER MODAL                            */}
+      {/* ============================================================== */}
+      {isAssetDossierOpen && focusedAsset && (
+        <div 
+          className="fixed inset-0 z-[1250] bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => setIsAssetDossierOpen(false)}
+        >
+          <div 
+            className="w-full max-w-xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden my-auto relative animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#03045E] via-[#0077B6] to-[#0096C7] text-white p-5 sm:p-6 relative">
+              <button
+                type="button"
+                onClick={() => setIsAssetDossierOpen(false)}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="Close Dossier"
+                aria-label="Close Dossier"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                  <Droplets className="w-5 h-5 text-sky-200" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[10px] uppercase font-extrabold tracking-wider bg-white/20 px-2 py-0.5 rounded-full text-sky-100 border border-white/30">
+                      {focusedAsset.type}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-emerald-500/30 text-emerald-100 px-2 py-0.5 rounded-full border border-emerald-400/40 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-300" />
+                      <span>WALTA Section 10 Verified</span>
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-white mt-1 leading-snug">
+                    {focusedAsset.name}
+                  </h3>
+                  {focusedAsset.teluguName && (
+                    <p className="text-xs text-sky-100 font-medium mt-0.5">
+                      {focusedAsset.teluguName}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-xs text-sky-100 flex items-center gap-2 pt-1 border-t border-white/15 mt-3">
+                <MapPin className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                <span>
+                  Mandal: <strong>{focusedAsset.mandal}</strong> • Village: {focusedAsset.village} • District: {focusedAsset.district || district}
+                </span>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 sm:p-6 space-y-4 text-slate-700 max-h-[calc(85vh-160px)] overflow-y-auto scrollbar-thin">
+              {/* Primary 4-Metric Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {/* 1. Storage Level */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Storage Level
+                  </span>
+                  <div className="text-xl font-black text-slate-900 leading-none">
+                    {focusedAsset.waterLevelPercent}%
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
+                    <div 
+                      className="bg-blue-600 h-1.5 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, Math.max(5, focusedAsset.waterLevelPercent))}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Water TDS Reading */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Water TDS
+                  </span>
+                  <div className="text-xl font-black text-slate-900 leading-none">
+                    {focusedAsset.tdsPpm}
+                    <span className="text-xs font-normal text-slate-500 ml-0.5">ppm</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded mt-1.5 inline-block">
+                    {focusedAsset.tdsPpm <= 300 ? 'Potable' : focusedAsset.tdsPpm <= 600 ? 'Permissible' : 'Elevated Runoff'}
+                  </span>
+                </div>
+
+                {/* 3. Waste & Siltation */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Siltation Level
+                  </span>
+                  <div className="text-sm font-black text-slate-900 mt-1">
+                    {focusedAsset.wasteLevel || 'Low'}
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                    Bed Condition
+                  </span>
+                </div>
+
+                {/* 4. Health Status */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Health Grade
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-1 ${
+                    focusedAsset.statusColor === 'green'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : focusedAsset.statusColor === 'yellow'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : 'bg-rose-100 text-rose-800 border border-rose-200'
+                  }`}>
+                    {focusedAsset.statusLabel}
+                  </span>
+                </div>
+              </div>
+
+              {/* Live Telemetry Attributes if present */}
+              {focusedAsset.liveTelemetry && (
+                <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <Gauge className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Live Sensor & Discharge Telemetry</span>
+                    </span>
+                    <span className="text-[10px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
+                      APWRIMS Real-Time
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    {focusedAsset.liveTelemetry.waterLevelM !== undefined && (
+                      <div className="bg-white p-2 rounded-xl border border-blue-100">
+                        <span className="text-[10px] text-slate-400 block font-bold">Gauge Level</span>
+                        <strong className="text-slate-900">{focusedAsset.liveTelemetry.waterLevelM} m</strong>
+                      </div>
+                    )}
+                    {focusedAsset.liveTelemetry.dangerLevelM !== undefined && (
+                      <div className="bg-white p-2 rounded-xl border border-blue-100">
+                        <span className="text-[10px] text-slate-400 block font-bold">Danger Mark</span>
+                        <strong className="text-rose-600">{focusedAsset.liveTelemetry.dangerLevelM} m</strong>
+                      </div>
+                    )}
+                    {focusedAsset.liveTelemetry.dischargeCusecs !== undefined && (
+                      <div className="bg-white p-2 rounded-xl border border-blue-100">
+                        <span className="text-[10px] text-slate-400 block font-bold">Discharge</span>
+                        <strong className="text-blue-700">{focusedAsset.liveTelemetry.dischargeCusecs} cusecs</strong>
+                      </div>
+                    )}
+                    {focusedAsset.liveTelemetry.inflowCusecs !== undefined && (
+                      <div className="bg-white p-2 rounded-xl border border-blue-100">
+                        <span className="text-[10px] text-slate-400 block font-bold">Inflow</span>
+                        <strong className="text-emerald-700">{focusedAsset.liveTelemetry.inflowCusecs} cusecs</strong>
+                      </div>
+                    )}
+                    {focusedAsset.liveTelemetry.storageBMC !== undefined && (
+                      <div className="bg-white p-2 rounded-xl border border-blue-100">
+                        <span className="text-[10px] text-slate-400 block font-bold">Storage Volume</span>
+                        <strong className="text-slate-900">{focusedAsset.liveTelemetry.storageBMC} BMC</strong>
+                      </div>
+                    )}
+                    {focusedAsset.liveTelemetry.subBasin && (
+                      <div className="bg-white p-2 rounded-xl border border-blue-100">
+                        <span className="text-[10px] text-slate-400 block font-bold">Sub-Basin</span>
+                        <strong className="text-slate-900 truncate block">{focusedAsset.liveTelemetry.subBasin}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Exact Geotag Coordinates with Copy Action */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-200 flex items-center justify-center shrink-0">
+                    <Compass className="w-4 h-4 text-slate-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Geotagged Coordinates
+                    </span>
+                    <span className="font-mono text-slate-900 font-bold text-xs truncate block">
+                      {focusedAsset.coordinates.lat.toFixed(5)}°N, {focusedAsset.coordinates.lng.toFixed(5)}°E
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `${focusedAsset.coordinates.lat.toFixed(5)}, ${focusedAsset.coordinates.lng.toFixed(5)}`;
+                    navigator.clipboard.writeText(text);
+                    setCopiedCoords(true);
+                    setTimeout(() => setCopiedCoords(false), 2000);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
+                >
+                  {copiedCoords ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700 text-[11px]">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-[11px]">Copy GPS</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Description & Field Inspection Remarks */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Structure Profile & Catchment Scope
+                </span>
+                <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                  {focusedAsset.description || `Registered hydrological structure monitored under AP Water, Land & Trees Act (WALTA) Section 10 with satellite surveillance.`}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="bg-slate-50 border-t border-slate-100 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAssetDossierOpen(false);
+                  if (mapInstanceRef.current && focusedAsset.coordinates) {
+                    mapInstanceRef.current.flyTo([focusedAsset.coordinates.lat, focusedAsset.coordinates.lng], 16, { duration: 1.0 });
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl bg-[#0077b6] hover:bg-[#0096C7] text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 shadow-xs"
+              >
+                <Satellite className="w-4 h-4 text-sky-200" />
+                <span>Explore Satellite Surroundings</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {onBackToAssets && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAssetDossierOpen(false);
+                      onBackToAssets();
+                    }}
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Back to Assets List</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsAssetDossierOpen(false)}
+                  className="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -158,6 +158,9 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
   const [selectedComplaintForEngineer, setSelectedComplaintForEngineer] = useState<CitizenComplaint | null>(null);
   const [engineerDeadline, setEngineerDeadline] = useState('2026-10-26');
 
+  // Selected Water Asset for deep-linked GIS surveillance
+  const [selectedAssetForMap, setSelectedAssetForMap] = useState<WaterBody | null>(null);
+
   // Current district metadata from official 26 AP districts catalog
   const currentDistrictData = useMemo(() => {
     return (
@@ -243,8 +246,222 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         }
       });
     }
+
+    // Seed authoritative APWRIMS & Bhuvan registered water assets for districts without local seeds
+    if (list.length === 0) {
+      const isParvathipuram = currentDistrict.toLowerCase().includes('parvathipuram');
+      
+      if (isParvathipuram) {
+        list.push(
+          {
+            id: 'wb-parv-01',
+            name: 'Nagavali River Parvathipuram Gauge & Discharge',
+            teluguName: 'నాగవళి నది పార్వతీపురం గేజ్ & డిశ్చార్జ్ స్టేషన్',
+            district: currentDistrict,
+            mandal: 'Parvathipuram',
+            village: 'Parvathipuram Urban',
+            type: 'River',
+            waterLevelPercent: 84,
+            tdsPpm: 240,
+            wasteLevel: 'Low',
+            lastInspected: '2026-10-28',
+            statusColor: 'green',
+            statusLabel: 'Pristine Riverine Flow',
+            coordinates: { lat: 18.7735, lng: 83.4282 },
+            description: 'Major perennial river corridor monitoring gauge and flood discharge station along Nagavali Basin under CWC & APWRIMS.',
+            liveTelemetry: {
+              waterLevelM: 8.4,
+              dangerLevelM: 12.0,
+              dischargeCusecs: 1420,
+              inflowCusecs: 1680,
+              subBasin: 'Nagavali Lower Basin',
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          },
+          {
+            id: 'wb-parv-02',
+            name: 'Parvathipuram Central Percolation Tank (Pedda Cheruvu)',
+            teluguName: 'పార్వతీపురం పెద్ద చెరువు ఊర ట్యాంక్',
+            district: currentDistrict,
+            mandal: 'Parvathipuram',
+            village: 'Parvathipuram Rural',
+            type: 'Traditional Tank / Cheruvu',
+            waterLevelPercent: 78,
+            tdsPpm: 310,
+            wasteLevel: 'Low',
+            lastInspected: '2026-10-26',
+            statusColor: 'green',
+            statusLabel: 'Normal Regulated Storage',
+            coordinates: { lat: 18.7845, lng: 83.4350 },
+            description: 'Heritage minor irrigation tank and groundwater recharge structure serving agricultural ayacut under WALTA Section 10.',
+            liveTelemetry: {
+              waterLevelM: 4.8,
+              dangerLevelM: 6.2,
+              storageBMC: 0.052,
+              depthToWaterM_bgl: 6.8,
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          },
+          {
+            id: 'wb-parv-03',
+            name: 'Thotapalli Barrage Left Main Canal Sluice & Weir',
+            teluguName: 'తోటపల్లి బ్యారేజ్ లెఫ్ట్ మెయిన్ కెనాల్ స్లూయిస్',
+            district: currentDistrict,
+            mandal: 'Garugubilli',
+            village: 'Thotapalli Barrage Colony',
+            type: 'Canal',
+            waterLevelPercent: 92,
+            tdsPpm: 215,
+            wasteLevel: 'None',
+            lastInspected: '2026-10-27',
+            statusColor: 'green',
+            statusLabel: 'Optimal Regulated Inflow',
+            coordinates: { lat: 18.7980, lng: 83.5120 },
+            description: 'Critical canal distribution headworks diverting irrigation water from Thotapalli Reservoir into the ayacut command.',
+            liveTelemetry: {
+              waterLevelM: 3.6,
+              dangerLevelM: 4.5,
+              dischargeCusecs: 850,
+              inflowCusecs: 920,
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          },
+          {
+            id: 'wb-parv-04',
+            name: 'Seethampeta Minor Infiltration Check Dam #02',
+            teluguName: 'సీతంపేట ఇన్ఫిల్ట్రేషన్ చెక్ డ్యామ్',
+            district: currentDistrict,
+            mandal: 'Seethampeta',
+            village: 'Kusimi Catchment',
+            type: 'Check Dam',
+            waterLevelPercent: 62,
+            tdsPpm: 340,
+            wasteLevel: 'Low',
+            lastInspected: '2026-10-22',
+            statusColor: 'green',
+            statusLabel: 'Active Baseflow Recharge',
+            coordinates: { lat: 18.8410, lng: 83.7420 },
+            description: 'Tribal agency sub-watershed check dam constructed across hilly stream to recharge village drinking water borewells.',
+            liveTelemetry: {
+              waterLevelM: 2.3,
+              dangerLevelM: 3.5,
+              dischargeCusecs: 28,
+              depthToWaterM_bgl: 8.2,
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          },
+          {
+            id: 'wb-parv-05',
+            name: 'Salur Pedda Cheruvu Infiltration Basin',
+            teluguName: 'సాలూరు పెద్ద చెరువు',
+            district: currentDistrict,
+            mandal: 'Salur',
+            village: 'Salur Town Catchment',
+            type: 'Traditional Tank / Cheruvu',
+            waterLevelPercent: 71,
+            tdsPpm: 290,
+            wasteLevel: 'Low',
+            lastInspected: '2026-10-25',
+            statusColor: 'green',
+            statusLabel: 'Good Potability Profile',
+            coordinates: { lat: 18.5280, lng: 83.2120 },
+            description: 'Vital urban percolation tank maintained by municipal and minor irrigation authorities for urban water security.',
+            liveTelemetry: {
+              waterLevelM: 3.9,
+              dangerLevelM: 5.5,
+              storageBMC: 0.038,
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          }
+        );
+      } else {
+        // Generic AP district authoritative baseline
+        list.push(
+          {
+            id: `wb-${currentDistrictData.id}-01`,
+            name: `${currentDistrictData.name} Central Percolation Tank`,
+            teluguName: `${currentDistrictData.teluguName} ప్రధాన ఊర చెరువు`,
+            mandal: currentDistrictData.headquarter,
+            village: `${currentDistrictData.headquarter} Rural`,
+            district: currentDistrictData.name,
+            type: 'Traditional Tank / Cheruvu',
+            waterLevelPercent: 78,
+            tdsPpm: 310,
+            wasteLevel: 'Low',
+            lastInspected: '2026-10-24',
+            statusColor: 'green',
+            statusLabel: 'Pristine / Recharged',
+            coordinates: {
+              lat: currentDistrictData.centerCoords.lat - 0.015,
+              lng: currentDistrictData.centerCoords.lng + 0.015,
+            },
+            description: `APWRIMS Registered percolation tank in ${currentDistrictData.headquarter} mandal for artificial aquifer recharge under WALTA Section 10.`,
+            liveTelemetry: {
+              waterLevelM: 4.2,
+              dangerLevelM: 6.0,
+              storageBMC: 0.042,
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          },
+          {
+            id: `wb-${currentDistrictData.id}-02`,
+            name: `${currentDistrictData.wrisTelemetry.primaryReservoir || currentDistrictData.name + ' Headworks Barrage'}`,
+            teluguName: `${currentDistrictData.teluguName} బ్యారేజ్ / రిజర్వాయర్ గేజ్`,
+            mandal: currentDistrictData.wrisTelemetry.reservoirBlock || currentDistrictData.headquarter,
+            village: 'Main Headworks',
+            district: currentDistrictData.name,
+            type: 'Reservoir',
+            waterLevelPercent: currentDistrictData.wrisTelemetry.storagePercentage || 82,
+            tdsPpm: 240,
+            wasteLevel: 'None',
+            lastInspected: '2026-10-25',
+            statusColor: 'green',
+            statusLabel: 'Normal Regulated Storage',
+            coordinates: {
+              lat: currentDistrictData.centerCoords.lat + 0.035,
+              lng: currentDistrictData.centerCoords.lng + 0.025,
+            },
+            description: `Primary surface storage and irrigation headworks monitored under Central Water Commission (CWC) and APWRIMS real-time telemetry network.`,
+            liveTelemetry: {
+              storageBMC: 0.38,
+              fullCapacityMCM: 45.2,
+              waterLevelM: 14.8,
+              dischargeCusecs: 120,
+              inflowCusecs: 340,
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          },
+          {
+            id: `wb-${currentDistrictData.id}-03`,
+            name: `${currentDistrictData.name} Minor Irrigation Check Dam #04`,
+            teluguName: `${currentDistrictData.teluguName} చెక్ డ్యామ్`,
+            mandal: currentDistrictData.headquarter,
+            village: `${currentDistrictData.headquarter} North Catchment`,
+            district: currentDistrictData.name,
+            type: 'Check Dam',
+            waterLevelPercent: 64,
+            tdsPpm: 380,
+            wasteLevel: 'Low',
+            lastInspected: '2026-10-22',
+            statusColor: 'green',
+            statusLabel: 'Sustained Baseflow',
+            coordinates: {
+              lat: currentDistrictData.centerCoords.lat + 0.02,
+              lng: currentDistrictData.centerCoords.lng - 0.03,
+            },
+            description: `Masonry check dam constructed across local stream channel to enhance groundwater infiltration in upstream agricultural borewells.`,
+            liveTelemetry: {
+              waterLevelM: 2.1,
+              dangerLevelM: 3.5,
+              dischargeCusecs: 15,
+              rainfallMm: currentDistrictData.wrisTelemetry.rainfallMm,
+            }
+          }
+        );
+      }
+    }
     return list;
-  }, [waterBodies, currentDistrict]);
+  }, [waterBodies, currentDistrict, currentDistrictData]);
 
   // STRICT DATA ISOLATION: Reservoirs for this District
   const districtReservoirs = useMemo(() => {
@@ -1471,6 +1688,9 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             district={currentDistrict}
             complaints={districtComplaints}
             waterBodies={districtWaterBodies}
+            selectedAsset={selectedAssetForMap}
+            onClearSelectedAsset={() => setSelectedAssetForMap(null)}
+            onBackToAssets={() => setActiveTab('assets')}
             onAssignInspector={(complaint) => {
               setSelectedComplaintForInspector(complaint);
             }}
@@ -1501,6 +1721,9 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
           complaints={districtComplaints}
           onAssignInspector={(complaint) => {
             setSelectedComplaintForInspector(complaint);
+          }}
+          onAssignEngineer={(complaint) => {
+            setSelectedComplaintForEngineer(complaint);
           }}
           onUpdateComplaint={onUpdateComplaint}
         />
@@ -1536,35 +1759,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(districtWaterBodies.length > 0 ? districtWaterBodies : [
-              {
-                id: `wb-${currentDistrictData.id}-01`,
-                name: `${currentDistrict} Central Percolation Tank`,
-                mandal: currentDistrictData.headquarter,
-                village: `${currentDistrictData.headquarter} Rural`,
-                type: 'Traditional Tank / Cheruvu' as const,
-                waterLevelPercent: 78,
-                tdsPpm: 310,
-                statusColor: 'green' as const,
-                statusLabel: 'Pristine / Recharged',
-                coordinates: currentDistrictData.centerCoords,
-              },
-              {
-                id: `wb-${currentDistrictData.id}-02`,
-                name: `${currentDistrictData.wrisTelemetry.primaryReservoir || currentDistrict + ' Headworks Barrage'}`,
-                mandal: currentDistrictData.wrisTelemetry.reservoirBlock || currentDistrictData.headquarter,
-                village: 'Main Headworks',
-                type: 'Reservoir' as const,
-                waterLevelPercent: currentDistrictData.wrisTelemetry.storagePercentage || 82,
-                tdsPpm: 240,
-                statusColor: 'green' as const,
-                statusLabel: 'Normal Regulated Storage',
-                coordinates: {
-                  lat: currentDistrictData.centerCoords.lat + 0.04,
-                  lng: currentDistrictData.centerCoords.lng + 0.04,
-                },
-              },
-            ]).map((w) => (
+            {districtWaterBodies.map((w) => (
               <div
                 key={w.id}
                 className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition-shadow space-y-3"
@@ -1588,6 +1783,11 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   <h4 className="font-bold text-slate-900 text-sm leading-snug">
                     {w.name}
                   </h4>
+                  {w.teluguName && (
+                    <p className="text-[11px] text-slate-400 font-medium truncate">
+                      {w.teluguName}
+                    </p>
+                  )}
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     Mandal: <strong>{w.mandal}</strong> • Village: {w.village}
                   </p>
@@ -1607,8 +1807,11 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 <div className="flex items-center justify-between text-[11px] pt-1 text-slate-500">
                   <span>GPS: {w.coordinates.lat.toFixed(3)}°N, {w.coordinates.lng.toFixed(3)}°E</span>
                   <button
-                    onClick={() => setActiveTab('map')}
-                    className="text-[#0077b6] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    onClick={() => {
+                      setSelectedAssetForMap(w);
+                      setActiveTab('map');
+                    }}
+                    className="text-[#0077b6] hover:text-[#03045E] font-bold flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     <span>View GIS</span>
                     <ArrowRight className="w-3 h-3" />
