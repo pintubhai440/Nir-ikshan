@@ -28,6 +28,7 @@ import { CitizenComplaint, WaterBody, OfficerContact } from '../types/nirikshan'
 import { ANDHRA_PRADESH_26_DISTRICTS, DistrictTelemetry } from '../data/andhraDistrictsData';
 import { AP_OFFICIAL_RESERVOIRS } from '../data/apReservoirsData';
 import { VIZIANAGARAM_ALL_MANDAL_WATER_BODIES } from '../data/vizianagaramMandalsWaterData';
+import { getDistrictTeamProfiles } from '../data/nodalOfficerData';
 import { InteractiveAndhraMap } from './InteractiveAndhraMap';
 import { DistrictNodalSatelliteMap } from './nodal/DistrictNodalSatelliteMap';
 import { NodalComplaintsView } from './nodal/NodalComplaintsView';
@@ -645,6 +646,10 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
 
   // The 9 Executive Flashcards definition (Exact match to image_734aec45.png)
   const NODAL_FLASHCARDS = useMemo(() => {
+    const districtTeamList = getDistrictTeamProfiles(currentDistrict);
+    const districtInspCount = districtTeamList.filter(t => t.role === 'Field Inspector').length;
+    const districtWrkCount = districtTeamList.filter(t => t.role === 'Action Worker').length;
+
     return [
       {
         id: 'map' as NodalActiveTab,
@@ -731,15 +736,15 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         category: 'gov',
         title: 'My Team',
         subtitle: 'District Field Team Management',
-        badge: `${districtInspectors.length + districtEngineers.length + 15} Personnel`,
+        badge: `${districtTeamList.length} Personnel`,
         badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
         icon: Users,
         iconBg: 'bg-teal-50 text-teal-600',
         accentBorder: 'hover:border-teal-500',
-        description: 'Operational roster of Technical Field Inspectors and Action Workers / Remediation Crews. Real-time workload capacity monitoring, overdue alerts, and direct VoIP dispatch.',
+        description: `Operational roster of Technical Field Inspectors and Action Workers / Remediation Crews in ${currentDistrict}. Real-time workload capacity monitoring, overdue alerts, and direct VoIP dispatch.`,
         statLabel: 'Field Inspectors',
-        statValue: `${districtInspectors.length + 4} Active`,
-        secondaryStat: `${districtEngineers.length + 10} Remediation Leads`,
+        statValue: `${districtInspCount} Active`,
+        secondaryStat: `${districtWrkCount} Remediation Leads`,
         ctaText: 'Manage Team & Workloads',
       },
       {

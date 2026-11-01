@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CitizenComplaint } from '../types/nirikshan';
 import { DepartmentalPersonnel, INITIAL_DEPARTMENTAL_PERSONNEL } from '../data/stateAdminData';
+import { TeamMemberProfile, getDistrictTeamProfiles } from '../data/nodalOfficerData';
 
 // Support Vite import.meta.env, window globals, and safe browser localStorage (which never touches git)
 export const getStoredSupabaseConfig = () => {
@@ -524,7 +525,7 @@ export async function fetchPersonnelFromSupabase(): Promise<DepartmentalPersonne
 
       if (!workerErr && Array.isArray(workerData) && workerData.length > 0) {
         for (const row of workerData) {
-          const crewName = String(row.name_or_crew_type || row.contact_person || row.name || 'Remediation Crew').trim();
+          const crewName = String(row.name_or_crew || row.name_or_crew_type || row.contact_person || row.name || 'Remediation Crew').trim();
           const contactPerson = String(row.contact_person || crewName).trim();
           const rawPhone = String(row.phone || '+91 90000 20001');
           const cleanDigits = rawPhone.replace(/\D/g, '');
@@ -698,16 +699,15 @@ export async function savePersonnelToSupabase(p: DepartmentalPersonnel): Promise
       const isEngineer = p.name.toLowerCase().startsWith('eng') || p.agencyOrUnit?.toLowerCase().includes('engineer');
       const workerType = isContractor ? 'Contractor' : isEngineer ? 'Engineer' : 'Crew';
 
-      const workerRow = {
+      const workerRow: any = {
         worker_id: p.staffId,
-        name_or_crew_type: p.name,
+        name_or_crew: p.name,
         type: workerType,
         contact_person: p.name,
         phone: p.phone,
-        skills: p.specializationOrMachinery || 'waste cleaning/desilting',
+        skills: p.specializationOrMachinery || 'waste cleaning;desilting',
         service_areas: p.jurisdictionSubBasin || p.district,
         district: p.district,
-        nodal_officer_id: `NO-${districtShort}-01`,
         availability: p.status === 'On Duty' ? 'Busy' : p.status === 'Standby' ? 'On leave' : 'Available',
         languages: 'Telugu/English',
         status: p.status === 'Inactive' ? 'Inactive' : 'Active',
@@ -805,6 +805,265 @@ export function subscribeToPersonnel(
       { event: '*', schema: 'public', table: 'citizen_complaints' },
       () => onChanged()
     )
+    .subscribe();
+
+  return () => {
+    client.removeChannel(channel);
+  };
+}
+
+/**
+ * Normalizes district matching across subtle naming variations (e.g. 'Parvathipuram' vs 'Parvathipuram Manyam')
+ */
+export function isDistrictMatch(rowDistrict: string | null | undefined, targetDistrict: string): boolean {
+  if (!rowDistrict || !targetDistrict) return false;
+  const d1 = rowDistrict.toLowerCase().replace(/district/g, '').trim();
+  const d2 = targetDistrict.toLowerCase().replace(/district/g, '').trim();
+  if (d1 === d2) return true;
+  if (d1.includes('parvathipuram') && d2.includes('parvathipuram')) return true;
+  if (d1.includes('manyam') && d2.includes('manyam')) return true;
+  if (d1.includes('vizianagaram') && d2.includes('vizianagaram')) return true;
+  if (d1.includes('visakhapatnam') && d2.includes('visakhapatnam')) return true;
+  if (d1.includes('srikakulam') && d2.includes('srikakulam')) return true;
+  return d1.includes(d2) || d2.includes(d1);
+}
+
+/**
+ * Fetches district-specific team members from Supabase ('field_inspectors' and 'action_workers' tables)
+ * strictly isolated to the specified district. Merges with authoritative verified baseline if records are missing.
+ */
+export async function fetchDistrictTeamFromSupabase(districtName: string): Promise<TeamMemberProfile[]> {
+  const baseline = getDistrictTeamProfiles(districtName);
+  const client = getSupabaseClient();
+  if (!client) {
+    return baseline;
+  }
+
+  const teamMap = new Map<string, TeamMemberProfile>();
+  // Seed baseline first
+  for (const member of baseline) {
+    teamMap.set(member.employeeCode.toUpperCase().trim(), member);
+  }
+
+  try {
+    // 1. Fetch Field Inspectors for this district
+    const { data: inspData, error: inspErr } = await client
+      .from('field_inspectors')
+      .select('*');
+
+    if (!inspErr && Array.isArray(inspData) && inspData.length > 0) {
+      for (const row of inspData) {
+        if (row && (isDistrictMatch(row.district, districtName) || (!row.district && districtName.toLowerCase().includes('vizianagaram')))) {
+          const rawPhone = String(row.phone || '+91 90000 10001');
+          const cleanDigits = rawPhone.replace(/\D/g, '');
+          const maskedPhone = cleanDigits.length >= 4 
+            ? `+91 ${cleanDigits.slice(0, 2)}******${cleanDigits.slice(-2)}` 
+            : '+91 90******01';
+
+          const code = String(row.inspector_id || `INS-${row.id || Math.floor(100 + Math.random() * 900)}`).toUpperCase().trim();
+          const openInspections = Number(row.open_inspections) || 0;
+          const overdueInspections = Number(row.overdue_inspections) || 0;
+          const statusRaw = String(row.status || 'Active').toLowerCase();
+          const status = 
+            overdueInspections > 0 || openInspections > 10 ? 'Overloaded' :
+            statusRaw === 'on leave' || statusRaw === 'standby' ? 'Standby' :
+            statusRaw === 'inactive' ? 'Inactive' :
+            openInspections === 0 ? 'Available' : 'Optimal';
+
+          const mandal = row.mandal ? String(row.mandal).trim() : 'Central';
+
+          const profile: TeamMemberProfile = {
+            id: `sup-insp-${code.toLowerCase()}`,
+            employeeCode: code,
+            name: String(row.full_name || row.name || 'Field Inspector'),
+            role: 'Field Inspector',
+            designation: `Field Inspector ${row.meter_id ? `(Meter ${row.meter_id})` : ''}`,
+            specialization: row.meter_id 
+              ? `Calibrated Digital Meter (${row.meter_id}) • Water Quality & Silt Auditing` 
+              : 'TDS Multi-Parameter Water Testing & Field Auditing',
+            phone: rawPhone,
+            maskedPhone,
+            assignedMandals: [mandal],
+            activeTasks: openInspections,
+            capacityLimit: 10,
+            overdueTasks: overdueInspections,
+            status,
+            rating: 4.9,
+            meterId: row.meter_id || undefined,
+            meterCalibrated: row.meter_last_calibrated || undefined,
+            languages: row.languages || 'Telugu/English',
+            email: row.email || undefined,
+            district: row.district || districtName,
+            joinedOn: row.joined_on || undefined,
+          };
+
+          teamMap.set(code, profile);
+        }
+      }
+    }
+
+    // 2. Fetch Action Workers for this district
+    const { data: wrkData, error: wrkErr } = await client
+      .from('action_workers')
+      .select('*');
+
+    if (!wrkErr && Array.isArray(wrkData) && wrkData.length > 0) {
+      for (const row of wrkData) {
+        if (row && (isDistrictMatch(row.district, districtName) || (!row.district && districtName.toLowerCase().includes('vizianagaram')))) {
+          const rawPhone = String(row.phone || '+91 90000 20001');
+          const cleanDigits = rawPhone.replace(/\D/g, '');
+          const maskedPhone = cleanDigits.length >= 4 
+            ? `+91 ${cleanDigits.slice(0, 2)}******${cleanDigits.slice(-2)}` 
+            : '+91 90******01';
+
+          const code = String(row.worker_id || `MW-${row.id || Math.floor(100 + Math.random() * 900)}`).toUpperCase().trim();
+          const openTasks = Number(row.open_tasks) || 0;
+          const name = String(row.name_or_crew || row.name_or_crew_type || row.contact_person || 'Action Team').trim();
+          const contactPerson = String(row.contact_person || name).trim();
+          const workerType = String(row.type || (name.toLowerCase().includes('crew') ? 'Crew' : name.toLowerCase().includes('eng') ? 'Engineer' : 'Contractor'));
+          const availRaw = String(row.availability || row.status || 'Available').toLowerCase();
+          const status = 
+            openTasks > 8 ? 'Overloaded' :
+            availRaw === 'busy' ? 'On Duty' :
+            availRaw === 'on leave' || availRaw === 'standby' ? 'Standby' :
+            availRaw === 'inactive' ? 'Inactive' :
+            openTasks > 0 ? 'Normal' : 'Available';
+
+          const serviceAreasStr = String(row.service_areas || row.mandal || districtName);
+          const serviceMandals = serviceAreasStr.split(/[\/,;]/).map(s => s.trim()).filter(Boolean);
+
+          const profile: TeamMemberProfile = {
+            id: `sup-wrk-${code.toLowerCase()}`,
+            employeeCode: code,
+            name,
+            role: 'Action Worker',
+            designation: `${workerType} (Lead: ${contactPerson})`,
+            specialization: `${row.skills || 'Waste Cleaning & Desilting'} • Areas: ${serviceAreasStr}`,
+            phone: rawPhone,
+            maskedPhone,
+            assignedMandals: serviceMandals.length > 0 ? serviceMandals : [districtName],
+            activeTasks: openTasks,
+            capacityLimit: 8,
+            overdueTasks: 0,
+            status,
+            rating: 4.9,
+            workerType,
+            contactPerson,
+            skills: row.skills || undefined,
+            languages: row.languages || 'Telugu',
+            district: row.district || districtName,
+            joinedOn: row.added_on || undefined,
+          };
+
+          teamMap.set(code, profile);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Supabase District Team] Exception querying tables:', err);
+  }
+
+  return Array.from(teamMap.values());
+}
+
+/**
+ * Saves a new or updated Field Inspector to Supabase 'field_inspectors' table
+ */
+export async function saveFieldInspectorToSupabase(profile: TeamMemberProfile, districtName: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const districtShort = districtName.slice(0, 3).toUpperCase();
+    const mandalName = profile.assignedMandals[0] || 'Central';
+    const row = {
+      inspector_id: profile.employeeCode,
+      full_name: profile.name,
+      phone: profile.phone,
+      email: profile.email || `${profile.name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@example.org`,
+      district: districtName,
+      mandal: mandalName,
+      nodal_officer_id: `NO-${districtShort}-01`,
+      languages: profile.languages || 'Telugu/English',
+      status: profile.status === 'Inactive' ? 'Inactive' : profile.status === 'Standby' ? 'On leave' : 'Active',
+      meter_id: profile.meterId || `TDS-${districtShort}-${profile.employeeCode.replace(/\D/g, '') || '001'}`,
+      meter_last_calibrated: profile.meterCalibrated || new Date().toISOString().split('T')[0],
+      open_inspections: profile.activeTasks || 0,
+      overdue_inspections: profile.overdueTasks || 0,
+      joined_on: profile.joinedOn || new Date().toISOString().split('T')[0],
+    };
+
+    const { error } = await client
+      .from('field_inspectors')
+      .upsert(row, { onConflict: 'inspector_id' });
+
+    if (error) {
+      console.warn('[Supabase] Error upserting field_inspectors:', error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[Supabase] Network exception saving inspector:', err);
+    return false;
+  }
+}
+
+/**
+ * Saves a new or updated Action Worker to Supabase 'action_workers' table
+ */
+export async function saveActionWorkerToSupabase(profile: TeamMemberProfile, districtName: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const serviceAreas = profile.assignedMandals.join(';') || districtName;
+    const workerType = profile.workerType || 'Crew';
+    const row: any = {
+      worker_id: profile.employeeCode,
+      name_or_crew: profile.name,
+      type: workerType,
+      contact_person: profile.contactPerson || profile.name,
+      phone: profile.phone,
+      skills: profile.skills || profile.specialization || 'waste cleaning;desilting',
+      service_areas: serviceAreas,
+      district: districtName,
+      availability: profile.status === 'On Duty' ? 'Busy' : profile.status === 'Standby' ? 'On leave' : 'Available',
+      languages: profile.languages || 'Telugu',
+      status: profile.status === 'Inactive' ? 'Inactive' : 'Active',
+      open_tasks: profile.activeTasks || 0,
+      tasks_declined: 0,
+      no_response: 0,
+      added_on: profile.joinedOn || new Date().toISOString().split('T')[0],
+    };
+
+    const { error } = await client
+      .from('action_workers')
+      .upsert(row, { onConflict: 'worker_id' });
+
+    if (error) {
+      console.warn('[Supabase] Error upserting action_workers:', error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[Supabase] Network exception saving worker:', err);
+    return false;
+  }
+}
+
+/**
+ * Subscribes to real-time additions and updates on field_inspectors and action_workers
+ */
+export function subscribeToDistrictTeam(onTeamChanged: () => void): () => void {
+  const client = getSupabaseClient();
+  if (!client) return () => {};
+
+  const channel = client
+    .channel('district-team-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'field_inspectors' }, () => onTeamChanged())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'action_workers' }, () => onTeamChanged())
     .subscribe();
 
   return () => {
