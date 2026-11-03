@@ -29,6 +29,8 @@ import { ANDHRA_PRADESH_26_DISTRICTS, DistrictTelemetry } from '../data/andhraDi
 import { AP_OFFICIAL_RESERVOIRS } from '../data/apReservoirsData';
 import { VIZIANAGARAM_ALL_MANDAL_WATER_BODIES } from '../data/vizianagaramMandalsWaterData';
 import { getDistrictTeamProfiles } from '../data/nodalOfficerData';
+import { COMPLETE_AP_FIELD_INSPECTORS } from '../data/allDistrictsTeamData';
+import { isDistrictMatch } from '../utils/inspectorFilter';
 import { InteractiveAndhraMap } from './InteractiveAndhraMap';
 import { DistrictNodalSatelliteMap } from './nodal/DistrictNodalSatelliteMap';
 import { NodalComplaintsView } from './nodal/NodalComplaintsView';
@@ -178,13 +180,31 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
     );
   }, [complaints, currentDistrict]);
 
-  // STRICT DATA ISOLATION: Inspectors belonging to this district
+  // STRICT DATA ISOLATION: Real Field Inspectors belonging to this district
   const districtInspectors = useMemo(() => {
+    const realMatches = COMPLETE_AP_FIELD_INSPECTORS.filter((insp) =>
+      isDistrictMatch(insp.district, currentDistrict)
+    );
+
+    if (realMatches.length > 0) {
+      return realMatches.map((insp) => ({
+        id: insp.inspector_id,
+        name: insp.full_name,
+        designation: `Field Inspector (${insp.meter_id || 'TDS Multi-Param'})`,
+        role: 'Inspector' as const,
+        district: insp.district as any,
+        phone: insp.phone,
+        email: insp.email,
+        officeAddress: `${insp.mandal || currentDistrict} Mandal, ${insp.district} District`,
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        status: 'Active on Field' as const,
+      }));
+    }
+
     const list = officers.filter(
-      (o) => o.role === 'Inspector' && (o.district.toLowerCase() === currentDistrict.toLowerCase() || o.district === 'State Level (AP)')
+      (o) => o.role === 'Inspector' && (isDistrictMatch(o.district, currentDistrict) || o.district === 'State Level (AP)')
     );
     if (list.length === 0) {
-      // Fallback officer derived from official district catalog
       return [
         {
           id: `insp-${currentDistrictData.id}-01`,
@@ -201,7 +221,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
       ];
     }
     return list;
-  }, [officers, currentDistrict, currentDistrictData]);
+  }, [currentDistrict, officers, currentDistrictData]);
 
   // STRICT DATA ISOLATION: Engineers belonging to this district
   const districtEngineers = useMemo(() => {
@@ -538,6 +558,8 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         ...selectedComplaintForInspector,
         status: 'INSPECTOR_ASSIGNED',
         assignedInspector: inspector.name,
+        assignedInspectorId: inspector.id,
+        assignedInspectorEmail: inspector.email,
         assignedInspectorPhone: inspector.phone,
         assignedInspectorAt: new Date().toISOString(),
       };
@@ -750,34 +772,18 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
       {
         id: 'monthly_review' as NodalActiveTab,
         category: 'gov',
-        title: 'Monthly Review',
-        subtitle: 'Hydrology Assurance & Directives',
-        badge: 'Statutory Cycle',
+        title: 'Monthly Review & Reports',
+        subtitle: 'Hydrology Assurance, Gazette & 65B Dossiers',
+        badge: 'Statutory & Certified',
         badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
         icon: BarChart3,
         iconBg: 'bg-purple-50 text-purple-600',
         accentBorder: 'hover:border-purple-500',
-        description: 'Monthly statutory performance audit, pre-monsoon inspection coverage (90%), repeat failure diagnostic registry, root cause delay breakdown, and Collectorate directives.',
-        statLabel: 'Preparedness Index',
+        description: `Consolidated monthly statutory performance audit, pre-monsoon inspection coverage (90%), repeat failure diagnostic registry, plus download official Section 65B court-admissible dossiers and district water audit gazettes for ${currentDistrict}.`,
+        statLabel: 'Assurance & Reports',
         statValue: '78.4% Ready',
-        secondaryStat: '6 Repeat Failures Flagged',
-        ctaText: 'Open Assurance Review',
-      },
-      {
-        id: 'reports' as NodalActiveTab,
-        category: 'gov',
-        title: 'Reports',
-        subtitle: 'Gazette & Statutory Dossiers',
-        badge: 'Section 65B Certified',
-        badgeClass: 'bg-cyan-50 text-cyan-800 border-cyan-200',
-        icon: FileText,
-        iconBg: 'bg-cyan-50 text-cyan-600',
-        accentBorder: 'hover:border-cyan-500',
-        description: `Download official court-admissible dossiers, district water audit gazettes, and pre-monsoon readiness compliance certificates with cryptographic hashing for ${currentDistrict}.`,
-        statLabel: 'Official Gazette',
-        statValue: '2026 Edition',
-        secondaryStat: 'Section 65B Tamper-Evident',
-        ctaText: 'Generate Dossiers',
+        secondaryStat: '3 Certified Dossiers Available',
+        ctaText: 'Open Review & Reports',
       },
       {
         id: 'settings' as NodalActiveTab,
@@ -1356,7 +1362,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             iconBg: fc.iconBg,
           }))}
           onSelect={(id) => setActiveTab(id as NodalActiveTab)}
-          hubOptionLabel="Executive Hub (All 9 Modules)"
+          hubOptionLabel="Executive Hub (All 8 Modules)"
           hubOptionId="hub"
           hubIcon={Building2}
         />
@@ -1573,7 +1579,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                All Portals (9)
+                All Portals ({NODAL_FLASHCARDS.length})
               </button>
               <button
                 onClick={() => setSelectedCategory('ops')}
@@ -1603,12 +1609,12 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                Assurance & Governance (4)
+                Assurance & Governance ({NODAL_FLASHCARDS.filter(c => c.category === 'gov').length})
               </button>
             </div>
           </div>
 
-          {/* THE 9 FLASHCARDS GRID (Pixel-accurate to image_734aec45.png with rich styling) */}
+          {/* THE 8 FLASHCARDS GRID (Pixel-accurate with rich styling) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredFlashcards.map((card) => {
               const Icon = card.icon;
@@ -1835,91 +1841,15 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         />
       )}
 
-      {/* 7. MONTHLY REVIEW (Monthly Hydrology Assurance Review) */}
-      {activeTab === 'monthly_review' && (
+      {/* 7. MONTHLY REVIEW & REPORTS (Hydrology Assurance Review & Statutory Dossiers) */}
+      {(activeTab === 'monthly_review' || activeTab === 'reports') && (
         <NodalMonthlyReviewView
           district={currentDistrict}
+          initialSubTab={activeTab === 'reports' ? 'reports' : 'review'}
+          onDownloadDossierPdf={handleDownloadDossierPdf}
+          complaints={complaints}
+          waterBodies={waterBodies}
         />
-      )}
-
-      {/* 8. REPORTS (District Hydrological Gazette & Section 65B Dossiers) */}
-      {activeTab === 'reports' && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-2xs space-y-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-xs font-mono font-bold text-[#0077b6]">
-              <FileText className="w-3.5 h-3.5" />
-              <span>STATUTORY GAZETTE & SECTION 65B CERTIFIED DOSSIERS</span>
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-              {currentDistrict} District Official Hydrological Reports
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-3xl">
-              Legally certified monthly dossiers, pre-monsoon structural compliance statements, and Section 65B electronic evidence certificates with immutable SHA-256 integrity hashes.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Report 1 */}
-            <div className="border border-slate-200 rounded-2xl p-5 space-y-3 bg-slate-50/50">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                MONTHLY OFFICIAL GAZETTE
-              </span>
-              <h4 className="font-extrabold text-slate-900 text-base">
-                2026 Hydrology Assurance Dossier
-              </h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Contains complete pre-monsoon inspection rate audit, repeat failure diagnostic registry, and Collectorate sanctions for {currentDistrict}.
-              </p>
-              <button
-                onClick={handleDownloadDossierPdf}
-                className="w-full py-2 bg-[#0077b6] hover:bg-[#005f92] text-white font-bold rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Certified PDF</span>
-              </button>
-            </div>
-
-            {/* Report 2 */}
-            <div className="border border-slate-200 rounded-2xl p-5 space-y-3 bg-slate-50/50">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                EVIDENCE CERTIFICATE
-              </span>
-              <h4 className="font-extrabold text-slate-900 text-base">
-                Section 65B Court-Admissible Certificate
-              </h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Cryptographic timestamp certificate for all GPS field uploads, photos, and inspection telemetry recorded in {currentDistrict}.
-              </p>
-              <button
-                onClick={handleDownloadDossierPdf}
-                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-              >
-                <Award className="w-4 h-4" />
-                <span>Export 65B Legal Certificate</span>
-              </button>
-            </div>
-
-            {/* Report 3 */}
-            <div className="border border-slate-200 rounded-2xl p-5 space-y-3 bg-slate-50/50">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                MONSOON READINESS
-              </span>
-              <h4 className="font-extrabold text-slate-900 text-base">
-                Pre-Monsoon De-silting Compliance Log
-              </h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Excavation volume tallies, earthmover hours, and before/after verification logs for all water tanks across {currentDistrict}.
-              </p>
-              <button
-                onClick={handleDownloadDossierPdf}
-                className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export De-silting Log</span>
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* 9. SETTINGS (District Operational Configurations) */}

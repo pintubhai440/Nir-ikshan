@@ -393,7 +393,7 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                 <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shrink-0 ${
                   currentRole === 'inspector' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
                 }`}>
-                  {t('tagNoMap', 'NO MAP')}
+                  CAM-03 • TABLET
                 </span>
               </button>
 

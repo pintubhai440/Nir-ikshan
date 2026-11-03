@@ -293,7 +293,7 @@ export const NodalTeamManagementView: React.FC<NodalTeamManagementViewProps> = (
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Top Header & Action Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
@@ -312,33 +312,12 @@ export const NodalTeamManagementView: React.FC<NodalTeamManagementViewProps> = (
             )}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Technical Field Inspectors & Action Workers / Crews across {districtMandals.length} mandals. Live Supabase synchronization.
+            Technical Field Inspectors & Action Workers
           </p>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Supabase SQL Export Button */}
-          <button
-            onClick={() => setIsSqlModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs"
-            title="Generate & copy complete Supabase SQL seed script"
-          >
-            <Database className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Supabase SQL</span>
-          </button>
-
-          {/* Sync Roster */}
-          <button
-            onClick={() => loadTeamData(true)}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer active:scale-95"
-            title="Refresh from Supabase"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-sky-600' : ''}`} />
-            <span className="hidden sm:inline">Sync</span>
-          </button>
-
           {/* Add Team Member (Clean Single Plus) */}
           <button
             onClick={handleOpenAddModal}
@@ -429,85 +408,55 @@ export const NodalTeamManagementView: React.FC<NodalTeamManagementViewProps> = (
         </div>
       </div>
 
-      {/* Modern Clean Tabs & Search Strip (De-cluttering the UI) */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Category Segment Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-              activeTab === 'all' 
-                ? 'bg-slate-900 text-white' 
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            All Personnel ({stats.totalStaff})
-          </button>
-          <button
-            onClick={() => setActiveTab('inspectors')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-              activeTab === 'inspectors' 
-                ? 'bg-blue-600 text-white' 
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            Field Inspectors ({stats.inspectors})
-          </button>
-          <button
-            onClick={() => setActiveTab('workers')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-              activeTab === 'workers' 
-                ? 'bg-purple-700 text-white' 
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            Action Workers / Crews ({stats.actionWorkers})
-          </button>
-          {stats.overloaded > 0 && (
-            <button
-              onClick={() => setActiveTab('attention')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-                activeTab === 'attention' 
-                  ? 'bg-rose-600 text-white' 
-                  : 'text-rose-700 bg-rose-50 hover:bg-rose-100'
-              }`}
+      {/* Clean, Non-Messy Executive Table with Integrated Toolbar */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+        {/* Table Toolbar */}
+        <div className="p-3 sm:px-4 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3">
+          {/* Left Side: Search Bar & Mandal Filter */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Search */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search staff, code, meter..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none font-medium"
+              />
+            </div>
+
+            {/* Mandal Filter */}
+            <select
+              value={selectedMandal}
+              onChange={(e) => setSelectedMandal(e.target.value)}
+              className="p-1.5 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 outline-none cursor-pointer max-w-[140px] truncate shrink-0"
+              title="Filter by Mandal"
             >
-              Overloaded ({stats.overloaded})
-            </button>
+              <option value="all">All Mandals</option>
+              {districtMandals.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Right Side: Active KPI Filter badge if filtered */}
+          {activeTab !== 'all' && (
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+                <span>Filter: {activeTab === 'inspectors' ? 'Field Inspectors' : activeTab === 'workers' ? 'Action Workers' : 'High Load'}</span>
+                <button 
+                  onClick={() => setActiveTab('all')}
+                  className="hover:text-blue-900 cursor-pointer ml-1 text-xs"
+                  title="Clear filter"
+                >
+                  ✕
+                </button>
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Compact Filters */}
-        <div className="flex items-center gap-2">
-          {/* Search */}
-          <div className="relative flex-1 sm:w-56">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search staff, code, meter..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none font-medium"
-            />
-          </div>
-
-          {/* Mandal Filter */}
-          <select
-            value={selectedMandal}
-            onChange={(e) => setSelectedMandal(e.target.value)}
-            className="p-1.5 px-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 outline-none cursor-pointer max-w-[140px] truncate"
-            title="Filter by Mandal"
-          >
-            <option value="all">All Mandals</option>
-            {districtMandals.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Clean, Non-Messy Executive Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">

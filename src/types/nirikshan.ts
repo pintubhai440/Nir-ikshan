@@ -106,6 +106,8 @@ export interface CitizenComplaint {
     | 'REJECTED';
   assignedNodalOfficer: string;
   assignedInspector?: string;
+  assignedInspectorId?: string;
+  assignedInspectorEmail?: string;
   assignedInspectorPhone?: string;
   assignedInspectorAt?: string;
   assignedEngineer?: string;
