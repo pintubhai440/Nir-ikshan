@@ -73,6 +73,18 @@ export const AP_FIELD_INSPECTORS_ROSTER: FieldInspectorProfile[] = [
     rating: 4.95,
   },
   {
+    id: 'insp-vzm-04',
+    badgeId: 'AP-INSP-VZM-104',
+    name: 'Sri K. Raju',
+    phone: '+91 94402 33445',
+    email: 'k.raju@field.ap.gov.in',
+    district: 'Vizianagaram',
+    specialization: 'Canal Breach & Urban Water Drainage Verification',
+    assignedMandals: ['Vizianagaram Urban', 'Bobbili', 'Gantyada'],
+    activeInspectionsCount: 2,
+    rating: 4.9,
+  },
+  {
     id: 'insp-pvm-01',
     badgeId: 'AP-INSP-PVM-201',
     name: 'Sri M. Appala Naidu',

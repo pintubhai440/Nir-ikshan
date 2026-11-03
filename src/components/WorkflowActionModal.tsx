@@ -295,10 +295,27 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
   const [activeStepTab, setActiveStepTab] = useState<number>(initialStep >= 2 ? initialStep : 2);
 
   // Form states for Step 2: Assign Inspector
-  const [selectedInspectorId, setSelectedInspectorId] = useState<string>(
-    AP_FIELD_INSPECTORS_ROSTER.find(i => i.name === complaint.assignedInspector)?.id || AP_FIELD_INSPECTORS_ROSTER[0].id
-  );
+  const [selectedInspectorId, setSelectedInspectorId] = useState<string>(() => {
+    if (complaint.assignedInspectorId) return complaint.assignedInspectorId;
+    const matchByName = AP_FIELD_INSPECTORS_ROSTER.find(i => i.name === complaint.assignedInspector);
+    if (matchByName) return matchByName.id;
+    const matchDistrict = AP_FIELD_INSPECTORS_ROSTER.find(i => i.district.toLowerCase() === (complaint.district || '').toLowerCase());
+    return matchDistrict ? matchDistrict.id : AP_FIELD_INSPECTORS_ROSTER[0].id;
+  });
   const [inspectorNotes, setInspectorNotes] = useState<string>(txt.step2.defaultNote);
+
+  useEffect(() => {
+    if (complaint) {
+      if (complaint.assignedInspectorId && AP_FIELD_INSPECTORS_ROSTER.some(i => i.id === complaint.assignedInspectorId)) {
+        setSelectedInspectorId(complaint.assignedInspectorId);
+      } else {
+        const matchByName = AP_FIELD_INSPECTORS_ROSTER.find(i => i.name === complaint.assignedInspector);
+        const matchDistrict = AP_FIELD_INSPECTORS_ROSTER.find(i => i.district.toLowerCase() === (complaint.district || '').toLowerCase());
+        if (matchByName) setSelectedInspectorId(matchByName.id);
+        else if (matchDistrict) setSelectedInspectorId(matchDistrict.id);
+      }
+    }
+  }, [complaint]);
 
   // Form states for Step 3: Inspector Report
   const [inspectionWasteLevel, setInspectionWasteLevel] = useState<'Low' | 'Moderate' | 'Heavy' | 'Severe Choke'>(
@@ -359,6 +376,8 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
       // Step 2: Assign Inspector
       updated.assignedInspector = selectedInspector.name;
       updated.assignedInspectorPhone = selectedInspector.phone;
+      updated.assignedInspectorId = selectedInspector.id;
+      updated.assignedInspectorEmail = selectedInspector.email;
       updated.assignedInspectorAt = nowIso;
       updated.status = 'INSPECTOR_ASSIGNED';
     } else if (targetStep === 3) {
@@ -534,11 +553,24 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
                   onChange={(e) => setSelectedInspectorId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-800"
                 >
-                  {AP_FIELD_INSPECTORS_ROSTER.map(insp => (
-                    <option key={insp.id} value={insp.id}>
-                      {insp.name} ({insp.badgeId}) • {insp.district} • {insp.specialization}
-                    </option>
-                  ))}
+                  <optgroup label={`Registered Inspectors in ${complaint.district || 'District'}`}>
+                    {AP_FIELD_INSPECTORS_ROSTER.filter(
+                      i => i.district.toLowerCase() === (complaint.district || '').toLowerCase()
+                    ).map(insp => (
+                      <option key={insp.id} value={insp.id}>
+                        {insp.name} ({insp.badgeId}) • Mandals: {insp.assignedMandals.join(', ')} • {insp.specialization}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Other Districts & Statewide">
+                    {AP_FIELD_INSPECTORS_ROSTER.filter(
+                      i => i.district.toLowerCase() !== (complaint.district || '').toLowerCase()
+                    ).map(insp => (
+                      <option key={insp.id} value={insp.id}>
+                        {insp.name} ({insp.badgeId}) • {insp.district} • {insp.specialization}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
 

@@ -60,6 +60,27 @@ export interface VerificationTaskItem {
   readings: VerificationReadingMetric[];
   inspectorObservations: string;
   status: 'PENDING_SIGN_OFF' | 'VERIFIED' | 'REJECTED' | 'RE_INSPECT_REQUIRED';
+  citizenComplaintId?: string;
+}
+
+export interface CompletedInspectionItem {
+  id: string;
+  complaintId: string;
+  name: string;
+  assetCode: string;
+  cadastralParcel?: string;
+  district: string;
+  mandal: string;
+  inspectedAt: string;
+  inspectorName: string;
+  tdsReadingPpm: number;
+  waterPresence: string;
+  wasteLevel: string;
+  wasteType: string;
+  sitePhotoUrl: string;
+  validationRemarks: string;
+  status: string;
+  coordinates: { lat: number; lng: number };
 }
 
 export interface CalibratedHardwareDevice {

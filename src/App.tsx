@@ -505,7 +505,7 @@ export default function App() {
       />
 
       {/* Main Dashboard Body Container */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-6">
+      <main className="flex-1 w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-4 sm:px-8 py-5 space-y-6">
         {/* Sleek Breadcrumb Bar when viewing any restricted govt sub-dashboard (hidden on State Admin, Portal Home & Nodal) */}
         {currentRole !== 'overview' && currentRole !== 'user' && currentRole !== 'admin' && currentRole !== 'nodal' && !currentRole.startsWith('nodal_') && (
           <div className="bg-white border border-slate-200 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
@@ -610,6 +610,7 @@ export default function App() {
             waterBodies={waterBodies}
             onSubmitInspectionReport={handleSubmitInspectionReport}
             onSubmitPostWorkVerification={handleSubmitPostWorkVerification}
+            onRegisterNewInspection={handleComplaintSubmitted}
           />
         )}
 
@@ -627,7 +628,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="w-full bg-[#0b1b36] text-slate-300 text-xs py-7 border-t border-blue-900 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 space-y-4">
+        <div className="max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-4 sm:px-8 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">

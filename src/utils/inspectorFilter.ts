@@ -21,16 +21,28 @@ export function isComplaintAssignedToInspector(
 ): boolean {
   if (!complaint || !inspector) return false;
 
-  // 1. Direct match on assignedInspectorId
-  if (complaint.assignedInspectorId && inspector.inspector_id) {
-    if (complaint.assignedInspectorId.toLowerCase().trim() === inspector.inspector_id.toLowerCase().trim()) {
-      return true;
+  // District validation if both are specified
+  if (complaint.district && inspector.district && complaint.district !== 'State Level (AP)') {
+    if (!isDistrictMatch(complaint.district, inspector.district)) {
+      return false;
     }
   }
 
-  // 2. Direct match on assignedInspectorEmail
+  // 1. Direct match on assignedInspectorId (supports operational roster and Supabase INS codes)
+  if (complaint.assignedInspectorId && inspector.inspector_id) {
+    const cId = complaint.assignedInspectorId.toLowerCase().trim();
+    const iId = inspector.inspector_id.toLowerCase().trim();
+    if (cId === iId) return true;
+    if ((cId === 'insp-vzm-04' || cId === 'ap-insp-vzm-104') && (iId === 'ins-007' || iId === 'insp-vzm-04')) return true;
+    if (cId === 'ins-007' && (iId === 'insp-vzm-04' || iId === 'ap-insp-vzm-104')) return true;
+    if ((cId === 'insp-vzm-01' || cId === 'ap-insp-vzm-101') && (iId === 'ins-008' || iId === 'insp-vzm-01')) return true;
+  }
+
+  // 2. Direct match on assignedInspectorEmail (full or prefix before @)
   if (complaint.assignedInspectorEmail && inspector.email) {
-    if (complaint.assignedInspectorEmail.toLowerCase().trim() === inspector.email.toLowerCase().trim()) {
+    const emailA = complaint.assignedInspectorEmail.toLowerCase().trim();
+    const emailB = inspector.email.toLowerCase().trim();
+    if (emailA === emailB || emailA.split('@')[0] === emailB.split('@')[0]) {
       return true;
     }
   }
@@ -45,29 +57,26 @@ export function isComplaintAssignedToInspector(
   // Direct match on full name, ID, or email
   if (assigned === inspName || assigned === inspId || (inspEmail && assigned === inspEmail)) return true;
 
-  // Clean out common prefixes: Smt., Sri, Mr., Ms., Dr., Inspector
+  // Clean out common honorifics: Smt., Sri, Mr., Ms., Dr., Inspector, Er.
   const cleanAssigned = assigned
-    .replace(/^(smt\.|sri\.|mr\.|ms\.|dr\.|inspector)\s+/i, '')
+    .replace(/^(smt\.|sri\.|mr\.|ms\.|dr\.|inspector|er\.)\s+/i, '')
     .trim();
   const cleanInspName = inspName
-    .replace(/^(smt\.|sri\.|mr\.|ms\.|dr\.|inspector)\s+/i, '')
+    .replace(/^(smt\.|sri\.|mr\.|ms\.|dr\.|inspector|er\.)\s+/i, '')
     .trim();
 
   if (cleanAssigned === cleanInspName) return true;
 
-  // Check if assigned string contains the inspector ID (e.g. "INS-010" or "INS-PVM-003")
-  if (inspId && assigned.includes(inspId)) return true;
+  // Check if assigned string contains the inspector ID
+  if (inspId && (assigned === inspId || assigned.includes(inspId))) return true;
 
-  // Check bidirectional substring inclusion
-  if (cleanInspName.includes(cleanAssigned) || cleanAssigned.includes(cleanInspName)) {
-    return true;
-  }
+  // Match key personal names (e.g. "Raju", "Rama Krishna", "Jagannadha", "Pooja")
+  const assignedWords = cleanAssigned.split(/[\s,.-]+/).filter((w) => w.length >= 3 && !['rao', 'naidu', 'reddy'].includes(w));
+  const inspectorWords = cleanInspName.split(/[\s,.-]+/).filter((w) => w.length >= 3 && !['rao', 'naidu', 'reddy'].includes(w));
 
-  // Check distinctive name tokens (length >= 3)
-  const tokens = cleanInspName.split(/\s+/).filter((t) => t.length >= 3);
-  if (tokens.length >= 2) {
-    const allMatch = tokens.every((token) => cleanAssigned.includes(token));
-    if (allMatch) return true;
+  if (assignedWords.length > 0 && inspectorWords.length > 0) {
+    const hasCommonUniqueName = assignedWords.some((w) => inspectorWords.includes(w));
+    if (hasCommonUniqueName) return true;
   }
 
   return false;

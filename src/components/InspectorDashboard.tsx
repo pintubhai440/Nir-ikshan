@@ -16,7 +16,8 @@ import {
   VerificationTaskItem, 
   CalibratedHardwareDevice, 
   OfflineVaultQueueItem, 
-  CadastralMapAssetItem 
+  CadastralMapAssetItem,
+  CompletedInspectionItem
 } from './inspector/types';
 import { 
   INITIAL_SCHEDULED_TASKS, 
@@ -72,6 +73,7 @@ interface InspectorDashboardProps {
     photoUrl: string,
     remarks: string
   ) => void;
+  onRegisterNewInspection?: (complaint: CitizenComplaint) => void;
 }
 
 export type InspectorTabType = 'today' | 'map' | 'verify' | 'quick' | 'profile';
@@ -81,6 +83,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   waterBodies,
   onSubmitInspectionReport,
   onSubmitPostWorkVerification,
+  onRegisterNewInspection,
 }) => {
   // All Field Inspectors across AP (merged live from Supabase if connected)
   const [allInspectors, setAllInspectors] = useState<SupabaseFieldInspectorRow[]>(COMPLETE_AP_FIELD_INSPECTORS);
@@ -167,20 +170,56 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   // Active tab inside Workstation
   const [activeTab, setActiveTab] = useState<InspectorTabType>('today');
 
-  // 1. Complaints strictly assigned to this inspector by Nodal Officer (Strict Data Isolation)
+  const distCode = (selectedInspector?.district || 'VZM').slice(0, 3).toUpperCase();
+  const mandal = selectedInspector?.mandal || 'Central';
+
+  // 1. Complaints strictly assigned to this inspector by Nodal Officer
   const myAssignedComplaints = useMemo(() => {
     return complaints.filter((c) =>
       isComplaintAssignedToInspector(c, selectedInspector)
     );
   }, [complaints, selectedInspector]);
 
-  const distCode = (selectedInspector?.district || 'VZM').slice(0, 3).toUpperCase();
-  const mandal = selectedInspector?.mandal || 'Central';
+  // District-level unassigned or intake complaints
+  const districtIntakeComplaints = useMemo(() => {
+    return complaints.filter((c) =>
+      isDistrictMatch(c.district, selectedInspector.district) &&
+      (c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED') &&
+      !isComplaintAssignedToInspector(c, selectedInspector)
+    );
+  }, [complaints, selectedInspector]);
 
-  // 2. Scheduled Tasks: Strictly show ONLY complaints dispatched by Nodal Officer to this inspector
+  // Completed inspections strictly by this inspector
+  const completedInspections: CompletedInspectionItem[] = useMemo(() => {
+    return complaints
+      .filter((c) => 
+        isComplaintAssignedToInspector(c, selectedInspector) &&
+        (c.status === 'INSPECTION_COMPLETED' || c.inspectionReport !== undefined)
+      )
+      .map((c) => ({
+        id: `COMPL-${c.id}`,
+        complaintId: c.id,
+        name: c.locationLandmark || `Water Body at ${c.village || c.mandal}`,
+        assetCode: `AP-${distCode}-AST-${c.id.replace(/\D/g, '') || '101'}`,
+        district: c.district || selectedInspector.district,
+        mandal: c.mandal || mandal,
+        inspectedAt: c.inspectionReport?.inspectedAt || c.submittedAt,
+        inspectorName: c.inspectionReport?.inspectorName || selectedInspector.full_name,
+        tdsReadingPpm: c.inspectionReport?.tdsReadingPpm || 420,
+        waterPresence: c.inspectionReport?.waterPresence || 'Moderate',
+        wasteLevel: c.inspectionReport?.wasteLevel || 'Heavy',
+        wasteType: c.inspectionReport?.wasteType || c.wasteType || 'Plastic & Silt',
+        sitePhotoUrl: c.inspectionReport?.sitePhotoUrl || c.photoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
+        validationRemarks: c.inspectionReport?.validationRemarks || 'Statutory physical inspection conducted & report submitted.',
+        status: c.status,
+        coordinates: c.coordinates || { lat: 18.5721, lng: 83.3644 },
+      }));
+  }, [complaints, selectedInspector, distCode, mandal]);
+
+  // Scheduled Tasks: Strictly ONLY complaints assigned to this inspector by Nodal Officer
   const dynamicScheduledTasks: ScheduledInspectionTask[] = useMemo(() => {
-    return myAssignedComplaints
-      .filter((c) => c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED' || c.status === 'INSPECTION_COMPLETED')
+    const pendingDirectAssigned = myAssignedComplaints
+      .filter((c) => c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED')
       .map((c) => ({
         id: c.id,
         assetCode: `AP-${distCode}-LIVE-${c.id.replace(/\D/g, '') || '101'}`,
@@ -188,23 +227,26 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         cadastralParcel: `${c.village || mandal} Sector (${c.district || selectedInspector.district})`,
         ayacutHectares: 320,
         rechargeType: c.wasteType || 'Surface Water Drainage',
-        sourceType: 'Citizen Complaint',
-        priority: 'Critical',
-        distanceMeters: 450,
-        bearing: 'Nodal Officer Dispatch',
-        scheduledWindow: 'Priority Dispatch Today',
+        sourceType: 'Citizen Complaint' as const,
+        priority: 'Critical' as const,
+        distanceMeters: 380,
+        bearing: 'Assigned to You by Nodal Officer',
+        scheduledWindow: 'Priority Dispatch (24h SLA Active)',
         archivePhotoUrl: c.photoUrl,
-        photoPromptRequired: 'Live Citizen Complaint Site Verification & Multi-Param TDS Testing',
+        photoPromptRequired: 'Physical Site Verification & Multi-Param TDS / Water Quality Testing',
         citizenComplaintId: c.id,
         coordinates: c.coordinates || { lat: 18.5721, lng: 83.3644 },
       }));
-  }, [myAssignedComplaints, selectedInspector, distCode, mandal]);
 
-  // 3. Verification Tasks dynamically scoped to this inspector's jurisdiction
+    // Strict 1-to-1 Isolation: Zero leakage to other inspectors
+    return pendingDirectAssigned;
+  }, [myAssignedComplaints, distCode, mandal]);
+
+  // 3. Verification Tasks dynamically scoped strictly to this inspector's assigned grievances
   const dynamicVerificationTasks: VerificationTaskItem[] = useMemo(() => {
     const realVerifications = complaints.filter(
       (c) =>
-        isDistrictMatch(c.district, selectedInspector.district) &&
+        isComplaintAssignedToInspector(c, selectedInspector) &&
         (c.status === 'VERIFICATION_PENDING' || c.status === 'WORKER_IN_PROGRESS')
     );
 
@@ -215,9 +257,10 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       list.push({
         id: `VRF-LIVE-${c.id}`,
         taskId: `TSK-${distCode}-${c.id.replace(/\D/g, '') || idx + 101}`,
+        citizenComplaintId: c.id,
         priority: 'High Priority (Level 2)',
         title: `${c.wasteType || 'Restoration Work'} Closure Sign-off`,
-        locationName: c.locationLandmark,
+        locationName: c.locationLandmark || `Site at ${c.village}`,
         assetCode: `AP-${distCode}-AST-${idx + 101}`,
         catchmentBasin: `${c.mandal || mandal} Basin`,
         subBasin: `${selectedInspector.district} Watershed`,
@@ -284,104 +327,6 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         status: 'PENDING_SIGN_OFF',
       });
     });
-
-    // Baseline jurisdiction verifications demonstrating statutory dual control
-    if (list.length === 0) {
-      list.push(
-        {
-          id: `VRF-${distCode}-01`,
-          taskId: `TSK-${distCode}-1184`,
-          priority: 'High Priority (Level 2)',
-          title: `${mandal} Deep Basin Desilting`,
-          locationName: `${mandal} Catchment Basin`,
-          assetCode: `AP-${distCode}-003`,
-          catchmentBasin: `${mandal} Cheruvu`,
-          subBasin: `${selectedInspector.district} Circle`,
-          actionWorkerName: 'T. Anandhan (Excavator Crew #2)',
-          actionWorkerTeam: 'Rapid Remediation Fleet',
-          workExecutionClosedDate: 'Yesterday, 16:30 IST',
-          executionDurationDays: 3,
-          originallyFlaggedBy: 'Inspector M. Venkat (Independent)',
-          isSelfLoggedByCurrentUser: false,
-          statutoryRuleSatisfied: true,
-          beforePhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
-          beforeDate: '14 Oct 2026',
-          beforeInspectorId: 'INS-EXT-01',
-          beforeSiltLevel: '1.2m',
-          beforeDefectNotes: 'Canal completely blocked with prosopis juliflora weed and sediment deposit.',
-          afterPhotoUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-          afterDate: '19 Oct 2026',
-          afterWorkerName: 'T. Anandhan',
-          afterExcavationCubicMeters: '4,200 m³',
-          afterWorkerClosureNotes: 'Excavation completed, natural canal gradient restored toward discharge culvert.',
-          readings: [
-            {
-              parameter: 'Silt Bed Depth',
-              unit: 'm',
-              beforeValue: '1.4 m (Critical)',
-              beforeStatusClass: 'text-rose-600',
-              workerClaimValue: '0.1 m (Cleared)',
-              inspectorCheckValue: '0.12 m',
-              complianceLabel: 'Compliant',
-              isCompliant: true,
-            },
-            {
-              parameter: 'Water Inflow Velocity',
-              unit: 'm/s',
-              beforeValue: '0.05 m/s (Stagnant)',
-              beforeStatusClass: 'text-rose-600',
-              workerClaimValue: '0.42 m/s',
-              inspectorCheckValue: '0.40 m/s',
-              complianceLabel: 'Normal Flow',
-              isCompliant: true,
-            },
-          ],
-          inspectorObservations: '',
-          status: 'PENDING_SIGN_OFF',
-        },
-        {
-          id: `VRF-${distCode}-02`,
-          taskId: `TSK-${distCode}-1204`,
-          priority: 'Critical Priority',
-          title: `${mandal} Surplus Bund Revetment`,
-          locationName: `${mandal} Bund Revetment Sector`,
-          assetCode: `AP-${distCode}-008`,
-          catchmentBasin: `${mandal} Reservoir`,
-          subBasin: `${selectedInspector.district} Circle`,
-          actionWorkerName: 'S. Muralidhar (Bund Crew)',
-          actionWorkerTeam: 'Heavy Civil Reinforcement',
-          workExecutionClosedDate: '20 Oct 2026',
-          executionDurationDays: 5,
-          originallyFlaggedBy: `${selectedInspector.full_name} (Current User)`,
-          isSelfLoggedByCurrentUser: true,
-          statutoryRuleSatisfied: false,
-          beforePhotoUrl: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=600&q=80',
-          beforeDate: '18 Oct 2026',
-          beforeInspectorId: selectedInspector.inspector_id,
-          beforeSiltLevel: '0.9m',
-          beforeDefectNotes: 'Structural crack and breach observed on retaining masonry.',
-          afterPhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
-          afterDate: '22 Oct 2026',
-          afterWorkerName: 'S. Muralidhar',
-          afterExcavationCubicMeters: '1,800 m³',
-          afterWorkerClosureNotes: 'Reinforced cement grouting and rip-rap stone pitching completed over 80m.',
-          readings: [
-            {
-              parameter: 'Bund Compaction',
-              unit: '%',
-              beforeValue: '60% (Weak)',
-              beforeStatusClass: 'text-rose-600',
-              workerClaimValue: '95%',
-              inspectorCheckValue: '95%',
-              complianceLabel: 'Compliant',
-              isCompliant: true,
-            },
-          ],
-          inspectorObservations: '',
-          status: 'PENDING_SIGN_OFF',
-        }
-      );
-    }
 
     return list;
   }, [complaints, selectedInspector, distCode, mandal]);
@@ -470,7 +415,6 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       localStorage.setItem('nir_logged_in_inspector', JSON.stringify(insp));
       localStorage.setItem('nir_current_inspector_id', insp.inspector_id);
     } catch {}
-    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
   };
 
   // Handle Logout / Lock Workstation
@@ -559,10 +503,14 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
     setVerificationStatusOverrides((prev) => ({ ...prev, [taskId]: 'VERIFIED' }));
 
+    const cleanId = task.citizenComplaintId || task.id.replace('VRF-LIVE-', '');
     const matchingComplaint = complaints.find(
-      (c) => c.locationLandmark.toLowerCase().includes(task.locationName.toLowerCase().slice(0, 5)) ||
+      (c) => c.id === cleanId || 
+             c.id === task.taskId ||
+             c.locationLandmark.toLowerCase().includes(task.locationName.toLowerCase().slice(0, 5)) ||
              c.status === 'VERIFICATION_PENDING'
     );
+
     if (matchingComplaint) {
       onSubmitPostWorkVerification(
         matchingComplaint.id,
@@ -587,13 +535,18 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   // Handle punch-list reject
   const handleRejectRepair = (taskId: string, reason: string) => {
     setVerificationStatusOverrides((prev) => ({ ...prev, [taskId]: 'REJECTED' }));
-    const matchingComplaint = complaints.find((c) => c.status === 'VERIFICATION_PENDING');
+    const task = activeVerificationTasks.find((t) => t.id === taskId);
+    const cleanId = task?.citizenComplaintId || taskId.replace('VRF-LIVE-', '');
+    const matchingComplaint = complaints.find(
+      (c) => c.id === cleanId || c.status === 'VERIFICATION_PENDING'
+    );
+
     if (matchingComplaint) {
       onSubmitPostWorkVerification(
         matchingComplaint.id,
         false,
-        'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
-        reason
+        task?.afterPhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
+        reason || 'Defects found during physical verification. Requires remedial re-work.'
       );
     }
   };
@@ -606,8 +559,46 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   // Handle inspection wizard submission
   const handleWizardSubmit = (report: InspectorReport) => {
     if (activeWizardTask) {
-      const complaintId = 'id' in activeWizardTask ? activeWizardTask.id : complaints[0]?.id || 'CMP-AP-2026-101';
-      onSubmitInspectionReport(complaintId, report);
+      // 1. Identify target complaint ID
+      let targetComplaintId: string | null = null;
+      if ('citizenComplaintId' in activeWizardTask && activeWizardTask.citizenComplaintId) {
+        targetComplaintId = activeWizardTask.citizenComplaintId;
+      } else if ('id' in activeWizardTask && complaints.some((c) => c.id === activeWizardTask.id)) {
+        targetComplaintId = activeWizardTask.id;
+      }
+
+      if (targetComplaintId) {
+        onSubmitInspectionReport(targetComplaintId, report);
+      } else if (onRegisterNewInspection) {
+        // Newly surveyed asset/discovery from GIS map or quick audit
+        const taskName = 'name' in activeWizardTask ? activeWizardTask.name : 'Unmapped Water Asset';
+        const newRecord: CitizenComplaint = {
+          id: `CMP-AP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+          citizenName: `Official Field Audit (${selectedInspector.full_name})`,
+          citizenAge: 38,
+          citizenGender: 'Other',
+          citizenPhone: selectedInspector.phone,
+          state: 'Andhra Pradesh',
+          district: selectedInspector.district,
+          mandal: selectedInspector.mandal || 'Central',
+          village: 'In-Field Survey',
+          locationLandmark: taskName,
+          coordinates: 'coordinates' in activeWizardTask ? activeWizardTask.coordinates : { lat: 18.5721, lng: 83.3644 },
+          wasteType: report.wasteType,
+          shortDescription: report.validationRemarks || `Statutory Pre-monsoon physical inspection logged by Inspector ${selectedInspector.full_name}.`,
+          photoUrl: report.sitePhotoUrl,
+          submittedAt: new Date().toISOString(),
+          status: 'INSPECTION_COMPLETED',
+          assignedNodalOfficer: `District Nodal Officer (${selectedInspector.district})`,
+          assignedInspector: selectedInspector.full_name,
+          assignedInspectorId: selectedInspector.inspector_id,
+          assignedInspectorPhone: selectedInspector.phone,
+          inspectionReport: report,
+        };
+        onRegisterNewInspection(newRecord);
+      } else if (complaints[0]) {
+        onSubmitInspectionReport(complaints[0].id, report);
+      }
 
       const newVaultRecord: OfflineVaultQueueItem = {
         id: `VLT-REP-${Date.now()}`,
@@ -674,40 +665,21 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   return (
     <div className={`space-y-5 pb-16 ${sunlightMode ? 'brightness-105 contrast-125' : ''}`}>
       {/* ============================================================== */}
-      {/* 1. OFFICIAL CONSISTENT EXECUTIVE TOP HEADER (MATCHES WEBSITE)    */}
+      {/* 1. EXECUTIVE TOP HEADER (AS SHOWN IN VIDEO)                   */}
       {/* ============================================================== */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
         {/* Top Meta Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setIsSelectingInspector(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs group"
-              title="Browse other Field Inspectors across 26 districts"
-            >
-              <Users className="w-3.5 h-3.5 text-[#0077B6] group-hover:text-white" />
-              <span>Switch Officer</span>
-              <span className="text-[10px] bg-slate-200 group-hover:bg-white/20 text-slate-700 group-hover:text-white px-1.5 py-0.2 rounded font-mono">
-                {allInspectors.length}
-              </span>
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold transition-all cursor-pointer shadow-2xs group border border-rose-200"
-              title="Sign out and return to Email & Password login screen"
-            >
-              <LogOut className="w-3.5 h-3.5 text-rose-600 group-hover:text-white" />
-              <span>Sign Out</span>
-            </button>
-
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 font-medium ml-2">
-              <span>District:</span>
-              <strong className="text-slate-800">{selectedInspector.district}</strong>
-              <span className="text-slate-300">•</span>
-              <span>Mandal:</span>
-              <strong className="text-slate-800">{selectedInspector.mandal || 'Bobbili'}</strong>
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500 font-medium">
+            <span className="font-bold text-[#03045E] bg-blue-50 px-2.5 py-0.5 rounded border border-blue-100">
+              ROLE 3: FIELD INSPECTOR WORKSTATION
+            </span>
+            <span className="text-slate-300">•</span>
+            <span>District:</span>
+            <strong className="text-slate-800">{selectedInspector.district}</strong>
+            <span className="text-slate-300">•</span>
+            <span>Mandal:</span>
+            <strong className="text-slate-800">{selectedInspector.mandal || 'Urban'}</strong>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap text-xs">
@@ -725,10 +697,10 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
           </div>
         </div>
 
-        {/* Officer Profile & Greeting Row */}
+        {/* Officer Profile Row */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#03045E] to-[#0077B6] text-white flex items-center justify-center font-black text-xl shadow-xs">
+            <div className="w-13 h-13 rounded-2xl bg-[#03045E] text-white flex items-center justify-center font-black text-xl shadow-xs">
               {initials}
             </div>
             <div>
@@ -736,12 +708,16 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                   Inspector {selectedInspector.full_name}
                 </h1>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0077B6] border border-blue-200 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-rose-500" />
+                  <span>{selectedInspector.district} District • {selectedInspector.mandal || 'Urban'}</span>
+                </span>
                 <span className="font-mono text-xs font-bold bg-[#0077B6]/10 text-[#0077B6] border border-[#0077B6]/20 px-2 py-0.5 rounded-md">
                   {selectedInspector.inspector_id}
                 </span>
                 <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Authenticated Active</span>
+                  <span>On Field Duty</span>
                 </span>
               </div>
 
@@ -750,7 +726,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 <span className="text-slate-300">•</span>
                 <div className="flex items-center gap-1 text-slate-700 font-semibold">
                   <Cpu className="w-3.5 h-3.5 text-[#0077B6]" />
-                  <span>Calibrated Kit: {selectedInspector.meter_id || 'TDS-AP-001'}</span>
+                  <span>Kit: {selectedInspector.meter_id || 'TDS-AP-001'}</span>
                 </div>
                 <span className="text-slate-300">•</span>
                 <span>Phone: {selectedInspector.phone}</span>
@@ -761,10 +737,10 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsSelectingInspector(true)}
-              className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-[#0077B6] border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
             >
               <Users className="w-3.5 h-3.5 text-[#0077B6]" />
-              <span>Change Inspector</span>
+              <span>Change Officer</span>
             </button>
             <button
               onClick={handleLogout}
@@ -776,7 +752,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
           </div>
         </div>
 
-        {/* Clean Top Navigation Tabs (Zero floating dock covering content!) */}
+        {/* Clean Top Navigation Tabs */}
         <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto">
           {/* Tab 1: Today */}
           <button
@@ -788,7 +764,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Today's Schedule</span>
+            <span>1. Field Inspections</span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 activeTab === 'today' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
@@ -798,27 +774,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             </span>
           </button>
 
-          {/* Tab 2: Map */}
-          <button
-            onClick={() => setActiveTab('map')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'map'
-                ? 'bg-[#03045E] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <MapIcon className="w-4 h-4" />
-            <span>GIS Satellite Map</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                activeTab === 'map' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-              }`}
-            >
-              Real Leaflet
-            </span>
-          </button>
-
-          {/* Tab 3: Verify */}
+          {/* Tab 2: Verify */}
           <button
             onClick={() => setActiveTab('verify')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
@@ -828,12 +784,25 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             }`}
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Verifications</span>
+            <span>2. Repair Verifications</span>
             {pendingVerificationCount > 0 && (
-              <span className="bg-[#0077B6] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full font-mono">
-                {pendingVerificationCount}
+              <span className="bg-amber-400 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono">
+                {pendingVerificationCount} Action
               </span>
             )}
+          </button>
+
+          {/* Tab 3: Map */}
+          <button
+            onClick={() => setActiveTab('map')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'map'
+                ? 'bg-[#03045E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <MapIcon className="w-4 h-4" />
+            <span>3. GIS Cadastral Map</span>
           </button>
 
           {/* Tab 4: Quick Audit */}
@@ -846,7 +815,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             }`}
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Quick Field Audit</span>
+            <span>4. Quick Spot Audit</span>
           </button>
 
           {/* Tab 5: Profile & Vault */}
@@ -859,7 +828,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>Hardware &amp; Vault</span>
+            <span>5. Hardware Kit &amp; Vault</span>
             {queuedVaultCount > 0 && (
               <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full font-mono">
                 {queuedVaultCount}
@@ -876,6 +845,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         <InspectorTodayView
           inspector={selectedInspector}
           scheduledTasks={dynamicScheduledTasks}
+          completedTasks={completedInspections}
           verificationTasks={activeVerificationTasks}
           complaints={complaints}
           onStartInspection={handleStartInspection}
@@ -910,6 +880,8 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
       {activeTab === 'quick' && (
         <InspectorQuickAuditView
+          inspector={selectedInspector}
+          waterBodies={waterBodies}
           onRegisterAndLaunch={handleRegisterAndLaunch}
           onQuickSelectNearby={(name) => {
             const match = mapAssets.find((a) => a.name.includes(name.split(' ')[0]));

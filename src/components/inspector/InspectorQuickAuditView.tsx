@@ -13,13 +13,19 @@ import {
   Crosshair
 } from 'lucide-react';
 import { CadastralMapAssetItem } from './types';
+import { SupabaseFieldInspectorRow } from '../../data/allDistrictsTeamData';
+import { WaterBody } from '../../types/nirikshan';
 
 interface InspectorQuickAuditViewProps {
+  inspector?: SupabaseFieldInspectorRow;
+  waterBodies?: WaterBody[];
   onRegisterAndLaunch: (assetData: Partial<CadastralMapAssetItem>) => void;
   onQuickSelectNearby: (assetName: string) => void;
 }
 
 export const InspectorQuickAuditView: React.FC<InspectorQuickAuditViewProps> = ({
+  inspector,
+  waterBodies,
   onRegisterAndLaunch,
   onQuickSelectNearby,
 }) => {
@@ -27,24 +33,41 @@ export const InspectorQuickAuditView: React.FC<InspectorQuickAuditViewProps> = (
   const [localName, setLocalName] = useState('');
   const [surveyNo, setSurveyNo] = useState('');
   const [ayacut, setAyacut] = useState('120');
-  const [village, setVillage] = useState('Bobbili Rural');
+  const [village, setVillage] = useState(inspector?.mandal ? `${inspector.mandal} Sector` : 'Bobbili Rural');
   const [photoUrl, setPhotoUrl] = useState('');
   const [gpsLock, setGpsLock] = useState({ lat: 18.5721, lng: 83.3644, accuracy: 1.8 });
 
-  const nearbyAssets = [
-    { name: 'Pedda Cheruvu Sluice Gate Complex', code: 'AP-VZM-BOB-0082', dist: '180m', type: 'Sluice Gate' },
-    { name: 'Ramalayam Deep Recharge Shaft', code: 'AP-VZM-BOB-0091', dist: '1.2 km', type: 'Recharge Shaft' },
-    { name: 'Vegavathi Check Dam #4', code: 'AP-VZM-BOB-0105', dist: '2.1 km', type: 'Check Dam' },
-  ];
+  const nearbyAssets = React.useMemo(() => {
+    if (waterBodies && waterBodies.length > 0) {
+      const dist = inspector?.district?.toLowerCase() || '';
+      const matched = waterBodies.filter((w) =>
+        dist ? w.district?.toLowerCase().includes(dist) || dist.includes(w.district?.toLowerCase()) : true
+      );
+      if (matched.length > 0) {
+        return matched.slice(0, 4).map((w, idx) => ({
+          name: w.name,
+          code: `AP-${(w.district || 'VZM').slice(0, 3).toUpperCase()}-AST-${w.id.replace(/\D/g, '') || idx + 101}`,
+          dist: `${((idx + 1) * 0.4).toFixed(1)} km`,
+          type: w.type || 'Sluice Gate & Tank',
+        }));
+      }
+    }
+    return [
+      { name: 'Pedda Cheruvu Sluice Gate Complex', code: 'AP-VZM-BOB-0082', dist: '180m', type: 'Sluice Gate' },
+      { name: 'Ramalayam Deep Recharge Shaft', code: 'AP-VZM-BOB-0091', dist: '1.2 km', type: 'Recharge Shaft' },
+      { name: 'Vegavathi Check Dam #4', code: 'AP-VZM-BOB-0105', dist: '2.1 km', type: 'Check Dam' },
+    ];
+  }, [waterBodies, inspector]);
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!localName) return;
 
+    const distCode = (inspector?.district || 'VZM').slice(0, 3).toUpperCase();
     onRegisterAndLaunch({
       id: `MAP-NEW-${Date.now()}`,
       name: localName,
-      assetCode: `AP-VZM-UNMAPPED-${Math.floor(100 + Math.random() * 900)}`,
+      assetCode: `AP-${distCode}-UNMAPPED-${Math.floor(100 + Math.random() * 900)}`,
       parcelNo: surveyNo || 'R.S. Survey Pending',
       type: assetType as any,
       status: 'Due',
@@ -52,7 +75,7 @@ export const InspectorQuickAuditView: React.FC<InspectorQuickAuditViewProps> = (
       lng: gpsLock.lng,
       distanceMeters: 0,
       ayacutHa: Number(ayacut) || 100,
-      controllingAuthority: 'Minor Irrigation Sub-division (Bobbili)',
+      controllingAuthority: `${inspector?.district || 'Andhra Pradesh'} Minor Irrigation Sub-division`,
       photoUrl: photoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
     });
   };
@@ -64,7 +87,7 @@ export const InspectorQuickAuditView: React.FC<InspectorQuickAuditViewProps> = (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <span className="text-[10px] font-mono tracking-wider text-slate-400 uppercase font-bold block">
-              MANDAL TARGET TRACKER • Bobbili Pre-Monsoon Audit
+              MANDAL TARGET TRACKER • {inspector?.mandal || 'Jurisdiction'} Pre-Monsoon Audit
             </span>
             <h2 className="text-base sm:text-lg font-bold text-slate-900">
               Unscheduled On-Demand Audit &amp; Asset Discovery
@@ -73,7 +96,7 @@ export const InspectorQuickAuditView: React.FC<InspectorQuickAuditViewProps> = (
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-[#0077B6] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-              142 of 168 Verified (84.5% Complete)
+              Active in {inspector?.district || 'Andhra Pradesh'}
             </span>
           </div>
         </div>
