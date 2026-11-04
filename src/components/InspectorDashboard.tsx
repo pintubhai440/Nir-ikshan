@@ -199,6 +199,61 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   const distCode = (selectedInspector?.district || 'VZM').slice(0, 3).toUpperCase();
   const mandal = selectedInspector?.mandal || 'Central';
 
+  // Persistent tracking of completed tasks/dossiers
+  const [locallyCompletedTaskIds, setLocallyCompletedTaskIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('nir_inspector_completed_task_ids');
+      if (stored) {
+        const arr = JSON.parse(stored);
+        if (Array.isArray(arr)) {
+          return new Set(arr);
+        }
+      }
+    } catch {}
+    return new Set<string>();
+  });
+
+  const [locallyCompletedDossiers, setLocallyCompletedDossiers] = useState<CompletedInspectionItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('nir_inspector_completed_dossiers');
+      if (stored) {
+        const arr = JSON.parse(stored);
+        if (Array.isArray(arr)) {
+          return arr;
+        }
+      }
+    } catch {}
+    return [];
+  });
+
+  // Category in Today View ('pending' | 'completed' | 'verify')
+  const [todayCategory, setTodayCategory] = useState<'pending' | 'completed' | 'verify'>('pending');
+  const [submissionBanner, setSubmissionBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const storedIds = localStorage.getItem('nir_inspector_completed_task_ids');
+        if (storedIds) {
+          const arr = JSON.parse(storedIds);
+          if (Array.isArray(arr)) setLocallyCompletedTaskIds(new Set(arr));
+        }
+        const storedDossiers = localStorage.getItem('nir_inspector_completed_dossiers');
+        if (storedDossiers) {
+          const arr = JSON.parse(storedDossiers);
+          if (Array.isArray(arr)) setLocallyCompletedDossiers(arr);
+        }
+      } catch {}
+    };
+
+    window.addEventListener('nir_tasks_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('nir_tasks_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
   // 1. Complaints strictly assigned to this inspector by Nodal Officer
   const myAssignedComplaints = useMemo(() => {
     let merged = [...complaints];
@@ -237,7 +292,72 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
   // Completed inspections strictly by this inspector
   const completedInspections: CompletedInspectionItem[] = useMemo(() => {
-    return complaints
+    const list: CompletedInspectionItem[] = [];
+    const seenIds = new Set<string>();
+
+    // 1. First add locally submitted completed dossiers
+    locallyCompletedDossiers.forEach((item) => {
+      if (
+        !item.inspectorName ||
+        isInspectorNameMatch(item.inspectorName, selectedInspector) ||
+        isDistrictMatch(item.district, selectedInspector.district)
+      ) {
+        if (!seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          if (item.complaintId) seenIds.add(item.complaintId);
+          list.push(item);
+        }
+      }
+    });
+
+    // 2. Also check nir_nodal_tasks for any completed inspections
+    try {
+      const storedTasksStr = localStorage.getItem('nir_nodal_tasks');
+      if (storedTasksStr) {
+        const storedTasks = JSON.parse(storedTasksStr);
+        if (Array.isArray(storedTasks)) {
+          storedTasks.forEach((t) => {
+            if (
+              t &&
+              (t.inspectionReport || t.isInspected || t.status === 'INSPECTION_COMPLETED') &&
+              t.verificationInspectorName &&
+              isInspectorNameMatch(t.verificationInspectorName, selectedInspector)
+            ) {
+              const targetId = t.sourceRefId || t.id;
+              const itemId = `COMPL-${t.id}`;
+              if (!seenIds.has(t.id) && !seenIds.has(targetId) && !seenIds.has(itemId)) {
+                seenIds.add(t.id);
+                if (targetId) seenIds.add(targetId);
+                seenIds.add(itemId);
+                list.push({
+                  id: itemId,
+                  complaintId: targetId,
+                  name: t.title || `Water Structure at ${t.village || t.mandal || mandal}`,
+                  assetCode: t.assetCode || `AP-${distCode}-AST-${t.id.replace(/\D/g, '') || '101'}`,
+                  district: t.district || selectedInspector.district,
+                  mandal: t.mandal || mandal,
+                  inspectedAt: t.inspectedAt || t.reportedDate || new Date().toISOString(),
+                  inspectorName: t.verificationInspectorName || selectedInspector.full_name,
+                  tdsReadingPpm: t.inspectionReport?.tdsReadingPpm || 380,
+                  waterPresence: t.inspectionReport?.waterPresence || 'Moderate',
+                  wasteLevel: t.inspectionReport?.wasteLevel || 'Moderate',
+                  wasteType: t.inspectionReport?.wasteType || t.title || 'Plastic & Silt',
+                  sitePhotoUrl: t.inspectionReport?.sitePhotoUrl || t.beforePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
+                  validationRemarks: t.inspectionReport?.validationRemarks || 'Statutory physical inspection conducted & sealed.',
+                  status: 'INSPECTION_COMPLETED',
+                  coordinates: t.coordinates || { lat: 18.5721, lng: 83.3644 },
+                });
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // 3. Completed inspections from complaints
+    complaints
       .filter((c) => 
         isComplaintAssignedToInspector(c, selectedInspector) &&
         c.status !== 'INSPECTOR_ASSIGNED' &&
@@ -245,25 +365,34 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         (c.status === 'INSPECTION_COMPLETED' || c.inspectionReport !== undefined) &&
         (!c.inspectionReport?.inspectorName || isInspectorNameMatch(c.inspectionReport.inspectorName, selectedInspector))
       )
-      .map((c) => ({
-        id: `COMPL-${c.id}`,
-        complaintId: c.id,
-        name: c.locationLandmark || `Water Body at ${c.village || c.mandal}`,
-        assetCode: `AP-${distCode}-AST-${c.id.replace(/\D/g, '') || '101'}`,
-        district: c.district || selectedInspector.district,
-        mandal: c.mandal || mandal,
-        inspectedAt: c.inspectionReport?.inspectedAt || c.submittedAt,
-        inspectorName: c.inspectionReport?.inspectorName || selectedInspector.full_name,
-        tdsReadingPpm: c.inspectionReport?.tdsReadingPpm || 420,
-        waterPresence: c.inspectionReport?.waterPresence || 'Moderate',
-        wasteLevel: c.inspectionReport?.wasteLevel || 'Heavy',
-        wasteType: c.inspectionReport?.wasteType || c.wasteType || 'Plastic & Silt',
-        sitePhotoUrl: c.inspectionReport?.sitePhotoUrl || c.photoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
-        validationRemarks: c.inspectionReport?.validationRemarks || 'Statutory physical inspection conducted & report submitted.',
-        status: c.status,
-        coordinates: c.coordinates || { lat: 18.5721, lng: 83.3644 },
-      }));
-  }, [complaints, selectedInspector, distCode, mandal]);
+      .forEach((c) => {
+        const complId = `COMPL-${c.id}`;
+        if (!seenIds.has(c.id) && !seenIds.has(complId)) {
+          seenIds.add(c.id);
+          seenIds.add(complId);
+          list.push({
+            id: complId,
+            complaintId: c.id,
+            name: c.locationLandmark || `Water Body at ${c.village || c.mandal}`,
+            assetCode: `AP-${distCode}-AST-${c.id.replace(/\D/g, '') || '101'}`,
+            district: c.district || selectedInspector.district,
+            mandal: c.mandal || mandal,
+            inspectedAt: c.inspectionReport?.inspectedAt || c.submittedAt,
+            inspectorName: c.inspectionReport?.inspectorName || selectedInspector.full_name,
+            tdsReadingPpm: c.inspectionReport?.tdsReadingPpm || 420,
+            waterPresence: c.inspectionReport?.waterPresence || 'Moderate',
+            wasteLevel: c.inspectionReport?.wasteLevel || 'Heavy',
+            wasteType: c.inspectionReport?.wasteType || c.wasteType || 'Plastic & Silt',
+            sitePhotoUrl: c.inspectionReport?.sitePhotoUrl || c.photoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
+            validationRemarks: c.inspectionReport?.validationRemarks || 'Statutory physical inspection conducted & report submitted.',
+            status: c.status,
+            coordinates: c.coordinates || { lat: 18.5721, lng: 83.3644 },
+          });
+        }
+      });
+
+    return list;
+  }, [complaints, selectedInspector, distCode, mandal, locallyCompletedDossiers]);
 
   // Scheduled Tasks: Strictly ONLY complaints assigned to this inspector by Nodal Officer
   const dynamicScheduledTasks: ScheduledInspectionTask[] = useMemo(() => {
@@ -271,7 +400,11 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
     const seenIds = new Set<string>();
 
     const pendingDirectAssigned = myAssignedComplaints
-      .filter((c) => c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED');
+      .filter((c) => 
+        (c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED') &&
+        !c.inspectionReport &&
+        !locallyCompletedTaskIds.has(c.id)
+      );
 
     pendingDirectAssigned.forEach((c) => {
       seenIds.add(c.id);
@@ -306,19 +439,26 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         const storedTasks = JSON.parse(storedTasksStr);
         if (Array.isArray(storedTasks)) {
           storedTasks.forEach((t) => {
+            const targetId = t.sourceRefId || t.id;
+            const isCompletedLocally = 
+              locallyCompletedTaskIds.has(t.id) || 
+              (targetId && locallyCompletedTaskIds.has(targetId));
+            const hasReport = !!t.inspectionReport || !!t.isInspected || t.status === 'INSPECTION_COMPLETED';
+
             if (
               t &&
+              !isCompletedLocally &&
+              !hasReport &&
               (t.stage === 'assigned' || t.stage === 'in_progress') &&
               t.verificationInspectorName &&
               isInspectorNameMatch(t.verificationInspectorName, selectedInspector)
             ) {
-              const targetId = t.sourceRefId || t.id;
               if (!seenIds.has(targetId) && !seenIds.has(t.id)) {
                 seenIds.add(t.id);
                 if (targetId) seenIds.add(targetId);
                 list.unshift({
                   id: targetId,
-                  assetCode: `AP-${distCode}-LIVE-${t.id.replace(/\D/g, '') || '101'}`,
+                  assetCode: t.assetCode || `AP-${distCode}-LIVE-${t.id.replace(/\D/g, '') || '101'}`,
                   name: t.title || `Water Structure at ${t.village || t.mandal || mandal}`,
                   cadastralParcel: `${t.village || t.mandal || mandal} Sector (${t.district || selectedInspector.district})`,
                   ayacutHectares: 320,
@@ -349,7 +489,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
     // Strict 1-to-1 Isolation: Zero leakage to other inspectors
     return list;
-  }, [myAssignedComplaints, distCode, mandal, selectedInspector]);
+  }, [myAssignedComplaints, distCode, mandal, selectedInspector, locallyCompletedTaskIds]);
 
   // 3. Verification Tasks dynamically scoped strictly to this inspector's assigned grievances
   const dynamicVerificationTasks: VerificationTaskItem[] = useMemo(() => {
@@ -666,50 +806,128 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   // Handle inspection wizard submission
   const handleWizardSubmit = (report: InspectorReport) => {
     if (activeWizardTask) {
-      // 1. Identify target complaint ID
-      let targetComplaintId: string | null = null;
+      // 1. Identify target complaint ID & asset details
+      const taskId = 'id' in activeWizardTask ? String(activeWizardTask.id) : '';
+      let targetComplaintId: string = taskId;
       if ('citizenComplaintId' in activeWizardTask && activeWizardTask.citizenComplaintId) {
-        targetComplaintId = activeWizardTask.citizenComplaintId;
-      } else if ('id' in activeWizardTask && complaints.some((c) => c.id === activeWizardTask.id)) {
-        targetComplaintId = activeWizardTask.id;
+        targetComplaintId = String(activeWizardTask.citizenComplaintId);
       }
 
+      const taskName = 'name' in activeWizardTask ? activeWizardTask.name : (activeWizardTask as any).locationLandmark || 'Water Asset';
+      const assetCode = 'assetCode' in activeWizardTask && activeWizardTask.assetCode ? activeWizardTask.assetCode : `AP-${distCode}-AST-${taskId.replace(/\D/g, '') || '101'}`;
+      const taskDistrict = ('district' in activeWizardTask && activeWizardTask.district) ? activeWizardTask.district : selectedInspector.district;
+      const taskMandal = ('mandal' in activeWizardTask && activeWizardTask.mandal) ? activeWizardTask.mandal : (selectedInspector.mandal || mandal);
+      const coords = 'coordinates' in activeWizardTask && activeWizardTask.coordinates ? activeWizardTask.coordinates : { lat: 18.5721, lng: 83.3644 };
+
+      // 2. Add to completed IDs to immediately remove from pending queue
+      const idsToAdd = [taskId, targetComplaintId, `COMPL-${taskId}`, `COMPL-${targetComplaintId}`].filter(Boolean);
+      setLocallyCompletedTaskIds((prev) => {
+        const next = new Set(prev);
+        idsToAdd.forEach((id) => next.add(id));
+        try {
+          localStorage.setItem('nir_inspector_completed_task_ids', JSON.stringify(Array.from(next)));
+        } catch {}
+        return next;
+      });
+
+      // 3. Create completed dossier item to immediately display in Completed Dossiers
+      const newDossier: CompletedInspectionItem = {
+        id: `COMPL-${taskId || targetComplaintId || Date.now()}`,
+        complaintId: targetComplaintId || taskId,
+        name: taskName,
+        assetCode: assetCode,
+        district: taskDistrict,
+        mandal: taskMandal,
+        inspectedAt: report.inspectedAt || new Date().toISOString(),
+        inspectorName: report.inspectorName || selectedInspector.full_name,
+        tdsReadingPpm: report.tdsReadingPpm,
+        waterPresence: report.waterPresence,
+        wasteLevel: report.wasteLevel,
+        wasteType: report.wasteType,
+        sitePhotoUrl: report.sitePhotoUrl,
+        validationRemarks: report.validationRemarks,
+        status: 'INSPECTION_COMPLETED',
+        coordinates: coords,
+      };
+
+      setLocallyCompletedDossiers((prev) => {
+        const next = [newDossier, ...prev.filter((d) => d.complaintId !== targetComplaintId && d.id !== newDossier.id)];
+        try {
+          localStorage.setItem('nir_inspector_completed_dossiers', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
+      // 4. Update nir_nodal_tasks in localStorage
+      try {
+        const storedStr = localStorage.getItem('nir_nodal_tasks');
+        if (storedStr) {
+          const list = JSON.parse(storedStr);
+          if (Array.isArray(list)) {
+            const updatedList = list.map((t: any) => {
+              if (
+                t.id === taskId ||
+                t.sourceRefId === taskId ||
+                t.id === targetComplaintId ||
+                t.sourceRefId === targetComplaintId ||
+                (t.assetCode && t.assetCode === assetCode)
+              ) {
+                return {
+                  ...t,
+                  stage: 'under_verification',
+                  status: 'INSPECTION_COMPLETED',
+                  isInspected: true,
+                  inspectionReport: report,
+                  inspectedAt: report.inspectedAt || new Date().toISOString(),
+                  verificationInspectorName: report.inspectorName || selectedInspector.full_name,
+                };
+              }
+              return t;
+            });
+            localStorage.setItem('nir_nodal_tasks', JSON.stringify(updatedList));
+          }
+        }
+      } catch (e) {
+        console.error('Error updating nir_nodal_tasks on inspection submission', e);
+      }
+
+      // 5. Submit to parent / App.tsx
       if (targetComplaintId) {
         onSubmitInspectionReport(targetComplaintId, report);
-      } else if (onRegisterNewInspection) {
-        // Newly surveyed asset/discovery from GIS map or quick audit
-        const taskName = 'name' in activeWizardTask ? activeWizardTask.name : 'Unmapped Water Asset';
+      }
+
+      // Also register as completed complaint if not present
+      if (onRegisterNewInspection && !complaints.some((c) => c.id === targetComplaintId || c.id === taskId)) {
         const newRecord: CitizenComplaint = {
-          id: `CMP-AP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+          id: targetComplaintId || `CMP-AP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
           citizenName: `Official Field Audit (${selectedInspector.full_name})`,
           citizenAge: 38,
           citizenGender: 'Other',
           citizenPhone: selectedInspector.phone,
           state: 'Andhra Pradesh',
-          district: selectedInspector.district,
-          mandal: selectedInspector.mandal || 'Central',
+          district: taskDistrict,
+          mandal: taskMandal,
           village: 'In-Field Survey',
           locationLandmark: taskName,
-          coordinates: 'coordinates' in activeWizardTask ? activeWizardTask.coordinates : { lat: 18.5721, lng: 83.3644 },
+          coordinates: coords,
           wasteType: report.wasteType,
           shortDescription: report.validationRemarks || `Statutory Pre-monsoon physical inspection logged by Inspector ${selectedInspector.full_name}.`,
           photoUrl: report.sitePhotoUrl,
           submittedAt: new Date().toISOString(),
           status: 'INSPECTION_COMPLETED',
-          assignedNodalOfficer: `District Nodal Officer (${selectedInspector.district})`,
+          assignedNodalOfficer: `District Nodal Officer (${taskDistrict})`,
           assignedInspector: selectedInspector.full_name,
           assignedInspectorId: selectedInspector.inspector_id,
           assignedInspectorPhone: selectedInspector.phone,
           inspectionReport: report,
         };
         onRegisterNewInspection(newRecord);
-      } else if (complaints[0]) {
-        onSubmitInspectionReport(complaints[0].id, report);
       }
 
+      // 6. Push to offline vault queue
       const newVaultRecord: OfflineVaultQueueItem = {
         id: `VLT-REP-${Date.now()}`,
-        assetName: 'name' in activeWizardTask ? activeWizardTask.name : activeWizardTask.locationLandmark,
+        assetName: taskName,
         timestamp: new Date().toLocaleTimeString(),
         sizeKb: 4620,
         recordType: 'Full Inspection Dossier',
@@ -717,6 +935,16 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         cryptographicHash: `0x${Math.random().toString(16).slice(2, 8)}...${Math.random().toString(16).slice(2, 6)}`,
       };
       setVaultQueue((prev) => [newVaultRecord, ...prev]);
+
+      // 7. Dispatch event for real-time synchronization
+      window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
+
+      // 8. Auto switch view to Completed Dossiers so user sees the newly sealed dossier!
+      setTodayCategory('completed');
+      setSubmissionBanner(`Statutory Inspection Dossier for "${taskName}" Sealed & Moved to Completed Dossiers!`);
+
+      // Confetti celebration
+      confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
     }
   };
 
@@ -930,6 +1158,10 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
           onTriggerSync={handleTriggerSync}
           isSyncing={isSyncing}
           queuedSyncCount={queuedVaultCount}
+          activeCategory={todayCategory}
+          onCategoryChange={(cat) => setTodayCategory(cat)}
+          submissionBannerText={submissionBanner}
+          onDismissBanner={() => setSubmissionBanner(null)}
         />
       )}
 

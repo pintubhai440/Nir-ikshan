@@ -62,6 +62,10 @@ interface InspectorTodayViewProps {
   onTriggerSync: () => void;
   isSyncing: boolean;
   queuedSyncCount: number;
+  activeCategory?: 'pending' | 'completed' | 'verify';
+  onCategoryChange?: (category: 'pending' | 'completed' | 'verify') => void;
+  submissionBannerText?: string | null;
+  onDismissBanner?: () => void;
 }
 
 export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
@@ -73,8 +77,21 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
   onStartInspection,
   onOpenVerifyTask,
   onSwitchToMap,
+  activeCategory: controlledCategory,
+  onCategoryChange,
+  submissionBannerText,
+  onDismissBanner,
 }) => {
-  const [activeCategory, setActiveCategory] = useState<'pending' | 'completed' | 'verify'>('pending');
+  const [internalCategory, setInternalCategory] = useState<'pending' | 'completed' | 'verify'>('pending');
+  const activeCategory = controlledCategory !== undefined ? controlledCategory : internalCategory;
+
+  const handleCategorySwitch = (cat: 'pending' | 'completed' | 'verify') => {
+    setInternalCategory(cat);
+    if (onCategoryChange) {
+      onCategoryChange(cat);
+    }
+  };
+
   const [selectedCompletedDossier, setSelectedCompletedDossier] = useState<CompletedInspectionItem | null>(null);
   const [selectedPendingTask, setSelectedPendingTask] = useState<ScheduledInspectionTask | null>(null);
 
@@ -125,7 +142,7 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
       <div className="bg-white border border-slate-200/90 rounded-3xl p-3 sm:p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-2xl p-1 bg-slate-100 border border-slate-200/80 text-xs font-bold gap-1 flex-wrap">
           <button
-            onClick={() => setActiveCategory('pending')}
+            onClick={() => handleCategorySwitch('pending')}
             className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
               activeCategory === 'pending'
                 ? 'bg-[#03045E] text-white shadow-md'
@@ -144,7 +161,7 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveCategory('completed')}
+            onClick={() => handleCategorySwitch('completed')}
             className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
               activeCategory === 'completed'
                 ? 'bg-emerald-700 text-white shadow-md'
@@ -164,7 +181,7 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
 
           {pendingVerificationCount > 0 && (
             <button
-              onClick={() => setActiveCategory('verify')}
+              onClick={() => handleCategorySwitch('verify')}
               className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
                 activeCategory === 'verify'
                   ? 'bg-amber-600 text-white shadow-md'
@@ -548,15 +565,39 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
 
         {/* TAB 2: COMPLETED SEALED DOSSIERS */}
         {activeCategory === 'completed' && (
-          completedTasks.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center space-y-3 shadow-xs">
-              <FileCheck className="w-12 h-12 text-slate-300 mx-auto" />
-              <h3 className="font-black text-slate-900 text-lg">No Completed Inspections Yet</h3>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                Open the "Pending Field Inspections" tab to start your physical surveys and submit inspection dossiers.
-              </p>
-            </div>
-          ) : (
+          <div className="space-y-4">
+            {submissionBannerText && (
+              <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Check className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-950">{submissionBannerText}</p>
+                    <p className="text-[11px] text-emerald-700">The statutory physical inspection was successfully recorded, removed from your pending queue, and sealed under Completed Dossiers.</p>
+                  </div>
+                </div>
+                {onDismissBanner && (
+                  <button
+                    onClick={onDismissBanner}
+                    className="p-1.5 text-emerald-700 hover:text-emerald-950 rounded-lg hover:bg-emerald-100/60 cursor-pointer transition-colors"
+                    title="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {completedTasks.length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center space-y-3 shadow-xs">
+                <FileCheck className="w-12 h-12 text-slate-300 mx-auto" />
+                <h3 className="font-black text-slate-900 text-lg">No Completed Inspections Yet</h3>
+                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                  Open the "Pending Field Inspections" tab to start your physical surveys and submit inspection dossiers.
+                </p>
+              </div>
+            ) : (
             <div className="space-y-4">
               {/* Header Info Strip */}
               <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs">
@@ -744,7 +785,8 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                 })}
               </div>
             </div>
-          )
+          )}
+        </div>
         )}
 
         {/* TAB 3: REPAIR VERIFICATIONS / REPAIR SIGN-OFF */}

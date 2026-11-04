@@ -249,8 +249,21 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
           const inspectorComplaints = mergedComplaints.filter((c) =>
             isComplaintAssignedToInspector(c, inspector)
           );
+          let completedIdsSet = new Set<string>();
+          try {
+            const rawCompleted = localStorage.getItem('nir_inspector_completed_task_ids');
+            if (rawCompleted) {
+              const parsed = JSON.parse(rawCompleted);
+              if (Array.isArray(parsed)) {
+                parsed.forEach((id: string) => completedIdsSet.add(id));
+              }
+            }
+          } catch {}
+
           let activeAssignedCount = inspectorComplaints.filter(
-            (c) => c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED'
+            (c) => (c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED') &&
+                   !c.inspectionReport &&
+                   !completedIdsSet.has(c.id)
           ).length;
 
           // Check nodal tasks cache as well
@@ -260,8 +273,13 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
               const storedTasks = JSON.parse(storedTasksStr);
               if (Array.isArray(storedTasks)) {
                 storedTasks.forEach((t) => {
+                  const targetId = t.sourceRefId || t.id;
+                  const isCompletedLocally = completedIdsSet.has(t.id) || (targetId && completedIdsSet.has(targetId));
+                  const hasReport = !!t.inspectionReport || !!t.isInspected || t.status === 'INSPECTION_COMPLETED';
                   if (
                     t &&
+                    !isCompletedLocally &&
+                    !hasReport &&
                     (t.stage === 'assigned' || t.stage === 'in_progress') &&
                     t.verificationInspectorName &&
                     isInspectorNameMatch(t.verificationInspectorName, inspector)

@@ -383,20 +383,53 @@ export default function App() {
   // 3. Inspector conducts inspection & logs TDS/Waste source
   const handleSubmitInspectionReport = (complaintId: string, report: InspectorReport) => {
     let targetComplaint: CitizenComplaint | null = null;
-    setComplaints((prev) =>
-      prev.map((c) => {
-        if (c.id === complaintId) {
-          const updated: CitizenComplaint = {
-            ...c,
-            status: 'INSPECTION_COMPLETED',
-            inspectionReport: report,
-          };
-          targetComplaint = updated;
-          return updated;
-        }
-        return c;
-      })
-    );
+    setComplaints((prev) => {
+      const exists = prev.some((c) => c.id === complaintId);
+      let next: CitizenComplaint[];
+      if (exists) {
+        next = prev.map((c) => {
+          if (c.id === complaintId) {
+            const updated: CitizenComplaint = {
+              ...c,
+              status: 'INSPECTION_COMPLETED',
+              inspectionReport: report,
+            };
+            targetComplaint = updated;
+            return updated;
+          }
+          return c;
+        });
+      } else {
+        const created: CitizenComplaint = {
+          id: complaintId,
+          district: 'Vizianagaram',
+          mandal: 'Jurisdiction Circle',
+          village: 'Field Audit Sector',
+          locationLandmark: `Water Asset (${complaintId})`,
+          shortDescription: report.validationRemarks || `Statutory inspection completed by ${report.inspectorName || 'Field Inspector'}.`,
+          coordinates: { lat: 18.1124, lng: 83.3956 },
+          submittedAt: new Date().toISOString(),
+          citizenName: 'Statutory Inspection Record',
+          citizenAge: 40,
+          citizenGender: 'Other',
+          citizenPhone: '+91 94400 00000',
+          assignedNodalOfficer: 'District Nodal Officer',
+          status: 'INSPECTION_COMPLETED',
+          wasteType: report.wasteType || 'Inspected Surface Asset',
+          photoUrl: report.sitePhotoUrl,
+          assignedInspector: report.inspectorName,
+          inspectionReport: report,
+        };
+        targetComplaint = created;
+        next = [created, ...prev];
+      }
+      try {
+        localStorage.setItem('nir_complaints', JSON.stringify(next));
+      } catch (e) {
+        console.error('Failed to sync updated complaints', e);
+      }
+      return next;
+    });
     if (targetComplaint) {
       saveComplaintToSupabase(targetComplaint);
     }
