@@ -76,9 +76,17 @@ export default function App() {
           ]);
           const cleaned = parsed.filter(c => c && c.id && !legacyMockIds.has(c.id));
           if (cleaned.length > 0) {
-            const existingIds = new Set(cleaned.map(c => c.id));
+            const sampleMap = new Map(SAMPLE_CITIZEN_COMPLAINTS.map(s => [s.id, s]));
+            const merged = cleaned.map(c => {
+              const sample = sampleMap.get(c.id);
+              if (sample && sample.workExecution && (!c.workExecution || c.status === 'INSPECTOR_ASSIGNED')) {
+                return { ...c, ...sample };
+              }
+              return c;
+            });
+            const existingIds = new Set(merged.map(c => c.id));
             const missing = SAMPLE_CITIZEN_COMPLAINTS.filter(s => !existingIds.has(s.id));
-            return [...cleaned, ...missing];
+            return [...merged, ...missing];
           }
         }
       }

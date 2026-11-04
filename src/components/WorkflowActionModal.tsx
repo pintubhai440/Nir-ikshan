@@ -556,8 +556,8 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
                   <optgroup label={`Registered Inspectors in ${complaint.district || 'District'}`}>
                     {AP_FIELD_INSPECTORS_ROSTER.filter(
                       i => i.district.toLowerCase() === (complaint.district || '').toLowerCase()
-                    ).map(insp => (
-                      <option key={insp.id} value={insp.id}>
+                    ).map((insp, idx) => (
+                      <option key={`${insp.id}-dist-${idx}`} value={insp.id}>
                         {insp.name} ({insp.badgeId}) • Mandals: {insp.assignedMandals.join(', ')} • {insp.specialization}
                       </option>
                     ))}
@@ -565,8 +565,8 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
                   <optgroup label="Other Districts & Statewide">
                     {AP_FIELD_INSPECTORS_ROSTER.filter(
                       i => i.district.toLowerCase() !== (complaint.district || '').toLowerCase()
-                    ).map(insp => (
-                      <option key={insp.id} value={insp.id}>
+                    ).map((insp, idx) => (
+                      <option key={`${insp.id}-state-${idx}`} value={insp.id}>
                         {insp.name} ({insp.badgeId}) • {insp.district} • {insp.specialization}
                       </option>
                     ))}

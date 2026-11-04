@@ -234,9 +234,9 @@ export const InspectorLoginView: React.FC<InspectorLoginViewProps> = ({
 
         {/* Inspectors Grid for Selected District */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {filteredInspectors.map((insp) => (
+          {filteredInspectors.map((insp, idx) => (
             <div
-              key={insp.inspector_id}
+              key={`${insp.inspector_id}-${idx}`}
               onClick={() => handleSelectInspector(insp)}
               className="border border-slate-200 hover:border-[#0077B6] bg-slate-50/50 hover:bg-white rounded-2xl p-3.5 transition-all cursor-pointer shadow-2xs hover:shadow-xs group space-y-2.5"
             >

@@ -1,6 +1,19 @@
-import React, { useState } from 'react';
-import { CitizenComplaint, WaterBody, EngineerWorkExecution } from '../types/nirikshan';
-import { InteractiveAndhraMap } from './InteractiveAndhraMap';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ * 
+ * Nir-ikshan Action Worker & Remediation Engineering Workstation
+ * Fully dynamic GovTech portal for Executive Engineers & Field Remediation Crews.
+ * Supports complete lifecycle:
+ *  1. Work Order Review & Decision (Accept vs Reasoned Decline with Voice Note)
+ *  2. Active On-Site Remediation (Before Photo, Interactive Checklist, Crew Counter, Voice Memo, After Photo)
+ *  3. Dispatch to Field Inspector for Physical Re-Verification & Statutory Closure
+ *  4. GIS Cadastral Map with Google Hybrid Satellite tiles in English.
+ */
+
+import React, { useState, useEffect, useRef } from 'react';
+import { CitizenComplaint, WaterBody } from '../types/nirikshan';
+import { EngineerRealSatelliteMap } from './EngineerRealSatelliteMap';
 import { 
   Wrench, 
   MapPin, 
@@ -13,10 +26,44 @@ import {
   AlertTriangle, 
   Send, 
   X, 
-  Phone,
-  Building,
-  Check,
-  Ban
+  Phone, 
+  Building, 
+  Check, 
+  Volume2, 
+  ArrowLeft, 
+  ArrowRight, 
+  ShieldCheck, 
+  ChevronRight, 
+  Navigation, 
+  HardHat, 
+  Users, 
+  Mic, 
+  MicOff, 
+  Play, 
+  RotateCcw, 
+  Eye, 
+  CheckSquare, 
+  Square, 
+  Sparkles, 
+  ExternalLink, 
+  Trash2, 
+  Radio, 
+  FileText, 
+  HelpCircle, 
+  ListTodo, 
+  Layers,
+  Monitor,
+  Smartphone,
+  SlidersHorizontal,
+  Activity,
+  Filter,
+  CheckCheck,
+  Maximize2,
+  Database,
+  Search,
+  Droplets,
+  ThumbsUp,
+  FileCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useLanguage } from '../context/LanguageContext';
@@ -29,6 +76,9 @@ interface EngineerDashboardProps {
   onCompleteTask: (complaintId: string, afterPhotoUrl: string, workSummary: string) => void;
 }
 
+type WorkerTab = 'assigned' | 'in_progress' | 'completed' | 'map';
+type DecisionSubView = 'overview' | 'review' | 'accept_guidance' | 'decline_reason';
+
 export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   complaints,
   waterBodies,
@@ -36,416 +86,1696 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   onBlockTask,
   onCompleteTask,
 }) => {
-  const { t, language } = useLanguage();
-  const [selectedTaskToAccept, setSelectedTaskToAccept] = useState<CitizenComplaint | null>(null);
-  const [selectedTaskToBlock, setSelectedTaskToBlock] = useState<CitizenComplaint | null>(null);
-  const [selectedTaskToComplete, setSelectedTaskToComplete] = useState<CitizenComplaint | null>(null);
+  const { t } = useLanguage();
 
-  // Form states
-  const [beforePhotoUrl, setBeforePhotoUrl] = useState(
-    'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80'
-  );
-  const [afterPhotoUrl, setAfterPhotoUrl] = useState(
-    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'
-  );
-  const [blockReason, setBlockReason] = useState('');
-  const [workSummary, setWorkSummary] = useState('');
+  // Active top navigation tab
+  const [activeTab, setActiveTab] = useState<WorkerTab>('assigned');
 
-  // Tasks assigned to engineers
-  const assignedTasks = complaints.filter(
+  // Device layout mode ('desktop' vs 'mobile' vs 'auto')
+  const [deviceMode, setDeviceMode] = useState<'auto' | 'desktop' | 'mobile'>('auto');
+  const [isScreenDesktop, setIsScreenDesktop] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsScreenDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const effectiveLayout = deviceMode === 'auto' ? (isScreenDesktop ? 'desktop' : 'mobile') : deviceMode;
+
+  // Selected task state
+  const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
+
+  // Decision sub-view for assigned tasks
+  const [decisionSubView, setDecisionSubView] = useState<DecisionSubView>('overview');
+
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'sla24' | 'nearby'>('all');
+
+  // Enlarged photo preview modal
+  const [enlargedPhoto, setEnlargedPhoto] = useState<{ url: string; title: string } | null>(null);
+
+  // Emergency site stuck modal
+  const [showStuckModal, setShowStuckModal] = useState(false);
+  const [stuckReason, setStuckReason] = useState('');
+
+  // Map expanded modal
+  const [showMapModal, setShowMapModal] = useState(false);
+
+  // Decision Timer (Count down from 3h 45m 08s)
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(3 * 3600 + 45 * 60 + 8);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsRemaining((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (totalSecs: number) => {
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  // Audio Speech Synthesis
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speakText = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    if (isSpeaking) {
+      setIsSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Decline Reason Form State
+  const declineReasons = [
+    { id: 'leave', label: 'I am on leave or unavailable', icon: '🏖️' },
+    { id: 'type', label: 'This is not my type of work (e.g. need masonry, I do desilting)', icon: '⚙️' },
+    { id: 'distance', label: 'Too far from me (more than 20 km)', icon: '🚗' },
+    { id: 'overload', label: 'I already have too many tasks right now', icon: '⏳' },
+    { id: 'voice', label: 'Other reason (Tap to record voice note)', icon: '🎤' },
+  ];
+  const [selectedDeclineReason, setSelectedDeclineReason] = useState<string>(declineReasons[0].label);
+  const [isRecordingDeclineVoice, setIsRecordingDeclineVoice] = useState(false);
+  const [declineVoiceSeconds, setDeclineVoiceSeconds] = useState(14);
+
+  // Active Remediation Execution State
+  const [checklist, setChecklist] = useState<{ [key: string]: boolean }>({
+    silt: true,
+    weeds: true,
+    spindle: false,
+  });
+  const [workerCount, setWorkerCount] = useState<number>(4);
+  const [beforePhotoUrl, setBeforePhotoUrl] = useState<string>(
+    'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=800&q=80'
+  );
+  const [afterPhotoUrl, setAfterPhotoUrl] = useState<string>(
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'
+  );
+  const [afterPhotoUploaded, setAfterPhotoUploaded] = useState<boolean>(false);
+  const [beforePhotoUploaded, setBeforePhotoUploaded] = useState<boolean>(true);
+  const [isVoiceNotePlaying, setIsVoiceNotePlaying] = useState<boolean>(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const beforeFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dynamic Task Categorization
+  const urgentTasks = complaints.filter(
     (c) =>
-      c.status === 'INSPECTION_COMPLETED' ||
+      c.status === 'ACTION_ASSIGNED' ||
+      (c.workExecution && c.workExecution.status === 'PENDING_ACCEPTANCE')
+  );
+
+  const inProgressTasks = complaints.filter(
+    (c) =>
+      c.status === 'WORKER_IN_PROGRESS' &&
+      c.workExecution?.status === 'ACCEPTED'
+  );
+
+  const waitingReviewTasks = complaints.filter(
+    (c) =>
+      c.status === 'VERIFICATION_PENDING' ||
+      (c.workExecution && c.workExecution.status === 'COMPLETED' && c.status !== 'RESOLVED')
+  );
+
+  const completedTasks = complaints.filter(
+    (c) =>
+      c.status === 'RESOLVED' ||
+      (c.workExecution !== undefined && c.workExecution.status === 'COMPLETED')
+  );
+
+  const allRemediationTasks = complaints.filter(
+    (c) =>
       c.status === 'ACTION_ASSIGNED' ||
       c.status === 'WORKER_IN_PROGRESS' ||
       c.status === 'VERIFICATION_PENDING' ||
+      c.status === 'RESOLVED' ||
       c.workExecution !== undefined
   );
 
-  const handleConfirmAccept = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTaskToAccept) return;
-    onAcceptTask(selectedTaskToAccept.id, beforePhotoUrl);
-    confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-    setSelectedTaskToAccept(null);
+  // Active complaint determination
+  const activeComplaint =
+    complaints.find((c) => c.id === selectedComplaintId) ||
+    urgentTasks[0] ||
+    inProgressTasks[0] ||
+    complaints[0];
+
+  // Auto-select first task if none selected
+  useEffect(() => {
+    if (!selectedComplaintId && urgentTasks.length > 0) {
+      setSelectedComplaintId(urgentTasks[0].id);
+    }
+  }, [urgentTasks, selectedComplaintId]);
+
+  // Handlers
+  const handleOpenTaskForReview = (complaint: CitizenComplaint) => {
+    setSelectedComplaintId(complaint.id);
+    setDecisionSubView('review');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleConfirmBlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTaskToBlock) return;
-    onBlockTask(selectedTaskToBlock.id, blockReason || 'Engineer on emergency medical leave.');
-    setSelectedTaskToBlock(null);
+  const handleOpenAcceptGuidance = () => {
+    setDecisionSubView('accept_guidance');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleConfirmComplete = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTaskToComplete) return;
-    onCompleteTask(
-      selectedTaskToComplete.id,
-      afterPhotoUrl,
-      workSummary || 'Cleaned inlet, removed 2.4 tonnes of plastic & silt debris, restored normal flow.'
-    );
-    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
-    setSelectedTaskToComplete(null);
+  const handleOpenDeclineReason = () => {
+    setDecisionSubView('decline_reason');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handleConfirmAcceptTask = () => {
+    if (!activeComplaint) return;
+    const photoToUse =
+      beforePhotoUrl ||
+      activeComplaint.inspectionReport?.sitePhotoUrl ||
+      activeComplaint.photoUrl ||
+      'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?w=800&auto=format&fit=crop';
+    
+    onAcceptTask(activeComplaint.id, photoToUse);
+    confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+    setActiveTab('in_progress');
+    setDecisionSubView('overview');
+  };
+
+  const handleSendDeclineToOfficer = () => {
+    if (!activeComplaint) return;
+    const finalReason =
+      selectedDeclineReason.includes('voice note')
+        ? 'Declined with attached voice note memo. Reassignment requested by crew lead.'
+        : selectedDeclineReason;
+    
+    onBlockTask(activeComplaint.id, finalReason);
+    setDecisionSubView('overview');
+    alert(`Notice sent to Nodal Officer: Task declined. Reason: "${finalReason}". The officer will reassign this to an available crew.`);
+  };
+
+  const handleSubmitToInspectorForVerification = () => {
+    if (!activeComplaint) return;
+    const summary = `Remediation completed on site by 4-worker excavation unit. Conduits and sluice aprons de-silted, floating debris removed, gate spindle greased and tested. Restored flow verified on camera.`;
+    onCompleteTask(activeComplaint.id, afterPhotoUrl, summary);
+    confetti({ particleCount: 120, spread: 85, origin: { y: 0.5 } });
+    setActiveTab('completed');
+  };
+
+  const handleAfterPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setAfterPhotoUrl(event.target.result as string);
+          setAfterPhotoUploaded(true);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBeforePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setBeforePhotoUrl(event.target.result as string);
+          setBeforePhotoUploaded(true);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleChecklistItem = (key: string) => {
+    setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const targetLat = activeComplaint?.coordinates?.lat || 18.5721;
+  const targetLng = activeComplaint?.coordinates?.lng || 83.3644;
+  const targetTitle = activeComplaint?.locationLandmark || "Pedda Cheruvu Sluice Gate Complex";
 
   return (
-    <div className="space-y-6">
-      {/* Action Worker Hero */}
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950 to-[#1b2a4a] text-white rounded-2xl p-5 sm:p-6 shadow-md flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-xs font-mono text-amber-300 border border-white/10">
-            <Wrench className="w-3.5 h-3.5" />
-            <span>ACTION WORKER & REMEDIAL ENGINEERING ENGINE</span>
+    <div className="w-full font-['Plus_Jakarta_Sans',sans-serif] text-slate-800 space-y-5 pb-16">
+      
+      {/* ============================================================== */}
+      {/* 1. EXECUTIVE TOP HEADER CARD (GOVTECH SPECIFICATION)           */}
+      {/* ============================================================== */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+        {/* Meta Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            {/* GPS Accuracy Badge */}
+            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl text-emerald-800 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>DGPS ±1.8m (RTK Fixed)</span>
+            </div>
+
+            {/* Sync Badge */}
+            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1 rounded-xl text-[#0077B6] font-semibold">
+              <Database className="w-3.5 h-3.5 text-[#0077B6]" />
+              <span>Supabase Synchronized • Offline Ready</span>
+            </div>
+
+            {/* AP-WRIMS Sync */}
+            <div className="hidden md:flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-xl text-slate-700 font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+              <span>AP-WRIMS Verified</span>
+            </div>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-1">
-            {language === 'hi' ? 'एक्शन इंजीनियर मोबाइल कार्यक्षेत्र' : language === 'te' ? 'ఫీల్డ్ ఇంజనీరింగ్ వర్క్‌స్పేస్' : 'Action Engineer Mobile Workspace'}
-          </h2>
-          <p className="text-xs sm:text-sm text-amber-100">
-            Field execution protocol: Review tasks, inspect strict deadlines, accept with "Before-Work" condition photograph, or block with reason. Upload "After-Work" proof to submit for re-inspection.
-          </p>
+
+          {/* Right Side: Device Switcher & Audio Briefing */}
+          <div className="flex items-center gap-2">
+            {/* Device Switcher Toggle */}
+            <div className="bg-slate-100 border border-slate-200 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
+              <button
+                onClick={() => setDeviceMode('desktop')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  effectiveLayout === 'desktop'
+                    ? 'bg-white text-[#03045E] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Laptop & Workstation View"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Laptop Console</span>
+              </button>
+              <button
+                onClick={() => setDeviceMode('mobile')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  effectiveLayout === 'mobile'
+                    ? 'bg-white text-[#03045E] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Mobile Field Handheld View"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Mobile Field</span>
+              </button>
+            </div>
+
+            {/* Audio Voice Briefing */}
+            <button
+              onClick={() =>
+                speakText(
+                  `Nir-ikshan Action Worker Portal. You have ${urgentTasks.length} urgent work orders awaiting decision, ${inProgressTasks.length} active remediation sites, and ${waitingReviewTasks.length} sites submitted for inspector verification.`
+                )
+              }
+              className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            >
+              <Volume2 className="w-3.5 h-3.5 text-[#0077B6]" />
+              <span className="hidden sm:inline">Listen to Tasks</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl text-center">
-            <span className="text-[10px] text-amber-300 font-bold block">ASSIGNED JOBS</span>
-            <span className="text-lg font-bold text-white">{assignedTasks.length}</span>
+        {/* Executive Profile Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-13 h-13 rounded-2xl bg-[#03045E] text-white flex items-center justify-center font-black text-xl shadow-xs">
+              VR
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  Executive Engineer Er. T. Venkata Ramana
+                </h1>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0077B6] border border-blue-200 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-rose-500" />
+                  <span>Vizianagaram Remediation Division • Bobbili Sub-Division</span>
+                </span>
+                <span className="font-mono text-xs font-bold bg-[#0077B6]/10 text-[#0077B6] border border-[#0077B6]/20 px-2 py-0.5 rounded-md">
+                  AEE-VZM-004
+                </span>
+                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>On-Field Duty</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500 mt-1">
+                <span>Desilting & Canal Remediation Wing</span>
+                <span className="text-slate-300">•</span>
+                <div className="flex items-center gap-1 text-slate-700 font-semibold">
+                  <Users className="w-3.5 h-3.5 text-[#0077B6]" />
+                  <span>Crew: 4 Field Operatives On-Site</span>
+                </div>
+                <span className="text-slate-300">•</span>
+                <span>Phone: +91 94402 33445</span>
+              </div>
+            </div>
           </div>
-          <div className="bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl text-center">
-            <span className="text-[10px] text-emerald-300 font-bold block">ACTIVE IN PROGRESS</span>
-            <span className="text-lg font-bold text-white">
-              {assignedTasks.filter((t) => t.status === 'WORKER_IN_PROGRESS').length}
+        </div>
+
+        {/* Clean Top Navigation Tabs (Exact 4 Tabs - No Redundant Tabs!) */}
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto">
+          {/* Tab 1: Assigned Work Orders */}
+          <button
+            onClick={() => {
+              setActiveTab('assigned');
+              setDecisionSubView('overview');
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'assigned'
+                ? 'bg-[#03045E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>1. Assigned Work Orders</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                activeTab === 'assigned' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {urgentTasks.length}
             </span>
-          </div>
+          </button>
+
+          {/* Tab 2: In-Progress Remediation */}
+          <button
+            onClick={() => setActiveTab('in_progress')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'in_progress'
+                ? 'bg-[#03045E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Wrench className="w-4 h-4" />
+            <span>2. In-Progress Remediation</span>
+            {inProgressTasks.length > 0 && (
+              <span className="bg-sky-500 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono">
+                {inProgressTasks.length} Active
+              </span>
+            )}
+          </button>
+
+          {/* Tab 3: Completed & Verification */}
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'completed'
+                ? 'bg-[#03045E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>3. Completed & Verification</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                activeTab === 'completed' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {waitingReviewTasks.length + completedTasks.length}
+            </span>
+          </button>
+
+          {/* Tab 4: GIS Cadastral Map */}
+          <button
+            onClick={() => setActiveTab('map')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'map'
+                ? 'bg-[#03045E] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>4. GIS Cadastral Map</span>
+          </button>
         </div>
       </div>
 
-      {/* Geospatial Map for Action Worker */}
-      <InteractiveAndhraMap
-        waterBodies={waterBodies}
-        complaints={assignedTasks}
-        currentRole="engineer"
-      />
+      {/* ============================================================== */}
+      {/* 2. TAB 1: ASSIGNED WORK ORDERS (DECISION & REVIEW FLOW)         */}
+      {/* ============================================================== */}
+      {activeTab === 'assigned' && (
+        <div className="space-y-4">
+          
+          {/* Subview: Overview List of Work Orders */}
+          {decisionSubView === 'overview' && (
+            <div className="space-y-4">
+              {/* Urgency Alert Banner */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-900 flex items-center justify-center font-bold">
+                    <Clock className="w-5 h-5 text-amber-700" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-amber-950">
+                      DECISION REQUIRED: Response Needed for Assigned Remediation Orders
+                    </h3>
+                    <p className="text-xs text-amber-800">
+                      Review site evidence, accept to commence works, or submit a reasoned decline for Nodal Officer reassignment.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-xs font-extrabold bg-white border border-amber-300 px-3 py-1.5 rounded-xl text-amber-900 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  <span>SLA Countdown: {formatCountdown(secondsRemaining)}</span>
+                </div>
+              </div>
 
-      {/* Task Queue Cards */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-amber-100 text-amber-800">
-                <Wrench className="w-4 h-4" />
+              {/* Task Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {urgentTasks.map((task) => {
+                  return (
+                    <div
+                      key={task.id}
+                      className="bg-white border-2 border-slate-200 hover:border-[#0077B6] rounded-3xl p-5 shadow-xs transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group"
+                    >
+                      {/* Left colored urgency accent */}
+                      <div className="absolute top-0 left-0 bottom-0 w-2 bg-rose-500" />
+
+                      <div className="pl-1 space-y-3">
+                        {/* Header Badge */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+                            Late / Urgent
+                          </span>
+                          <span className="text-[11px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md">
+                            Reply in: {formatCountdown(secondsRemaining)}
+                          </span>
+                        </div>
+
+                        {/* Title & Description */}
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0077B6]">
+                            Desilting & Silt Clear
+                          </span>
+                          <h3 className="text-base font-black text-slate-900 leading-snug mt-0.5">
+                            {task.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex'}
+                          </h3>
+                          <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+                            {task.shortDescription || 'Mud and weed blocking water gate. Backhoe digger needed.'}
+                          </p>
+                        </div>
+
+                        {/* Evidence Photo Preview */}
+                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video group/photo">
+                          <img
+                            src={task.photoUrl || task.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80'}
+                            alt="Field Evidence"
+                            className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-lg border border-white/20">
+                            Water Level: 1.8m High
+                          </div>
+                          <div className="absolute bottom-2 left-2 bg-rose-600/90 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-lg">
+                            Field Audit Evidence
+                          </div>
+                        </div>
+
+                        {/* Location & Time */}
+                        <div className="space-y-1 text-xs text-slate-500 font-semibold pt-1">
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                            <span>{task.mandal || 'Bobbili'} Mandal • 1.4 km away</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-700">
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Complete by Today, 5:00 PM</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 pl-1">
+                        <button
+                          onClick={() =>
+                            speakText(
+                              `Work Order: ${task.locationLandmark}. Clear heavy silt and tree branches blocking the sluice gate. Estimated team: 3 to 4 workers.`
+                            )
+                          }
+                          className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Volume2 className="w-3.5 h-3.5 text-slate-600" />
+                          <span>Listen</span>
+                        </button>
+                        <button
+                          onClick={() => handleOpenTaskForReview(task)}
+                          className="px-3 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <span>Open Task</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {urgentTasks.length === 0 && (
+                  <div className="col-span-full bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-black text-slate-900">No Pending Work Orders Waiting</h3>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      All remediation tasks have been accepted and moved to Tab 2 (In-Progress Remediation) or completed.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Subview: Task Review & Decision Screen (Matching image_014a0f3d.png) */}
+          {decisionSubView === 'review' && activeComplaint && (
+            <div className="max-w-2xl mx-auto bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-7 shadow-sm space-y-5">
+              
+              {/* Back Button & Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <button
+                  onClick={() => setDecisionSubView('overview')}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to Orders List</span>
+                </button>
+                <span className="text-xs font-bold bg-blue-50 text-[#0077B6] border border-blue-200 px-2.5 py-1 rounded-xl">
+                  Saved on Phone
+                </span>
+              </div>
+
+              {/* Decision Required Alert Header */}
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-rose-600 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-black text-rose-900 uppercase tracking-wide">
+                      Decision Required
+                    </h4>
+                    <p className="text-[11px] text-rose-700">Please reply within 3h 45m</p>
+                  </div>
+                </div>
+                <span className="font-mono text-xs font-black text-rose-700 bg-white border border-rose-200 px-2.5 py-1 rounded-xl shadow-2xs">
+                  {formatCountdown(secondsRemaining)}
+                </span>
+              </div>
+
+              {/* Field Audit Evidence Card */}
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-2xs">
+                <img
+                  src={activeComplaint.photoUrl || activeComplaint.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=800&q=80'}
+                  alt="Worksite Evidence"
+                  className="w-full h-64 object-cover"
+                />
+                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-slate-900 text-xs font-bold px-3 py-1 rounded-xl border border-white/40 flex items-center gap-1.5 shadow-2xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Field Audit Evidence</span>
+                </div>
+                <div className="absolute bottom-3 left-3 bg-rose-600 text-white text-xs font-extrabold px-3 py-1 rounded-xl shadow-2xs">
+                  Severe Blockage
+                </div>
+                <div className="absolute bottom-3 right-3 bg-black/75 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-xl">
+                  Captured today, 8:40 AM
+                </div>
+              </div>
+
+              {/* Inspector Reporter Info */}
+              <div className="flex items-center justify-between text-xs text-slate-600 font-semibold px-1">
+                <span>Reported by Inspector R. Venkat (Vizianagaram Circle)</span>
+                <button
+                  onClick={() =>
+                    setEnlargedPhoto({
+                      url: activeComplaint.photoUrl || activeComplaint.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=800&q=80',
+                      title: activeComplaint.locationLandmark || 'Worksite Evidence',
+                    })
+                  }
+                  className="text-[#0077B6] font-bold hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Enlarge</span>
+                </button>
+              </div>
+
+              {/* What to Fix Section */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-[#0077B6]" />
+                    <h4 className="text-sm font-black text-slate-900">What to fix:</h4>
+                  </div>
+                  <button
+                    onClick={() =>
+                      speakText(
+                        `What to fix: Clear heavy silt and tree branches blocking the sluice gate so water can enter the farm canal. Water flow is completely halted. Estimated team: 3 to 4 workers.`
+                      )
+                    }
+                    className="px-3 py-1 bg-sky-100 hover:bg-sky-200 text-[#0077B6] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>Listen (Eng)</span>
+                  </button>
+                </div>
+
+                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                  Clear heavy silt and tree branches blocking the sluice gate so water can enter the farm canal. Remove submerged weed mats and ensure apron masonry is free of packed debris.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="bg-white border border-slate-200 p-2.5 rounded-xl flex items-center gap-2">
+                    <Droplets className="w-4 h-4 text-blue-500 shrink-0" />
+                    <div>
+                      <div className="text-[10px] text-slate-500 font-bold uppercase">Water Flow</div>
+                      <div className="text-xs font-black text-slate-900">Completely Halted</div>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-slate-200 p-2.5 rounded-xl flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#0077B6] shrink-0" />
+                    <div>
+                      <div className="text-[10px] text-slate-500 font-bold uppercase">Estimated Team</div>
+                      <div className="text-xs font-black text-slate-900">3 - 4 Workers</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Work Site Cadastral & Map Section */}
+              <div className="border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      Work Site Location
+                    </span>
+                    <h4 className="text-base font-black text-slate-900 mt-0.5">
+                      {activeComplaint.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex, Bobbili'}
+                    </h4>
+                    <span className="text-xs text-slate-500 font-mono">
+                      Asset Code: AP-VZ-BOB-042 • Cadastral Parcel #89/2
+                    </span>
+                  </div>
+                </div>
+
+                {/* Embedded Real Satellite Leaflet Map with Google Hybrid English Tiles */}
+                <div className="rounded-2xl overflow-hidden border border-slate-200">
+                  <EngineerRealSatelliteMap
+                    lat={targetLat}
+                    lng={targetLng}
+                    title={targetTitle}
+                    assetCode="AP-VZ-BOB-042"
+                    mandal={activeComplaint.mandal || 'Bobbili'}
+                    heightClass="h-44"
+                  />
+                </div>
+              </div>
+
+              {/* Schedule Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-slate-600" />
+                    <span className="text-xs font-bold text-slate-600">Statutory Schedule</span>
+                    <span className="bg-rose-100 text-rose-700 text-[10px] font-extrabold px-2 py-0.2 rounded-full">
+                      Due soon
+                    </span>
+                  </div>
+                  <div className="text-sm font-black text-slate-900">
+                    Finish by: Friday, 24 May, 5:00 PM
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 text-[#0077B6] flex items-center justify-center font-bold text-xs">
+                    PK
+                  </div>
+                  <div className="text-left">
+                    <div className="text-[9px] text-slate-400 font-bold uppercase">Assigned by</div>
+                    <div className="text-xs font-bold text-slate-800">Nodal Officer P. Kalyani</div>
+                  </div>
+                  <a
+                    href="tel:+919440188776"
+                    className="p-1.5 bg-blue-50 hover:bg-blue-100 text-[#0077B6] rounded-lg ml-1"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* THE TWO MAIN DECISION BUTTONS */}
+              <div className="space-y-2.5 pt-2">
+                {/* Accept Button */}
+                <button
+                  onClick={handleOpenAcceptGuidance}
+                  className="w-full py-3.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-2xl text-sm font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Accept Task</span>
+                </button>
+
+                {/* Decline Button */}
+                <button
+                  onClick={handleOpenDeclineReason}
+                  className="w-full py-3.5 bg-white hover:bg-rose-50 text-rose-600 border-2 border-rose-200 hover:border-rose-300 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <XCircle className="w-5 h-5 text-rose-500" />
+                  <span>I cannot take this task</span>
+                </button>
+
+                <p className="text-center text-[11px] text-slate-500 font-medium">
+                  Your officer will be told immediately. No penalty for declining with a reason.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Subview: Decline Reason Screen (Matching image_25e66427.png) */}
+          {decisionSubView === 'decline_reason' && activeComplaint && (
+            <div className="max-w-xl mx-auto bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+              
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <button
+                  onClick={() => setDecisionSubView('review')}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to Task</span>
+                </button>
+                <span className="text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-xl">
+                  Decline Reason Flow
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-slate-900">
+                  Why can't you take this task?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                  Tell us why so your officer can give this work to someone nearby. You will not lose other work.
+                </p>
+              </div>
+
+              {/* Audio Listen Button */}
+              <button
+                onClick={() =>
+                  speakText(
+                    `Why cannot you take this task? Select: I am on leave, not my type of work, too far from me more than 20 kilometers, or too many tasks right now.`
+                  )
+                }
+                className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-[#0077B6] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-sky-200"
+              >
+                <Volume2 className="w-3.5 h-3.5 text-[#0077B6]" />
+                <span>Listen to question</span>
+              </button>
+
+              {/* Radio Options List */}
+              <div className="space-y-2.5">
+                {declineReasons.map((reason) => {
+                  const isSelected = selectedDeclineReason === reason.label;
+                  return (
+                    <div
+                      key={reason.id}
+                      onClick={() => setSelectedDeclineReason(reason.label)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-blue-50/80 border-2 border-[#0077B6] shadow-2xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{reason.icon}</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-800">
+                          {reason.label}
+                        </span>
+                      </div>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          isSelected
+                            ? 'border-[#0077B6] bg-[#0077B6] text-white'
+                            : 'border-slate-300'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Simulated Voice Note Recorder */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
+                    <span className="text-xs font-black text-rose-900">
+                      Recording voice note...
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs font-black text-slate-700">0:14</span>
+                </div>
+
+                {/* Animated Waveform */}
+                <div className="flex items-center justify-center gap-1.5 py-3 h-12 bg-white rounded-xl border border-slate-200">
+                  {[24, 40, 16, 48, 20, 36, 12, 44, 28, 52, 18, 32, 40, 16].map((h, i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 bg-rose-500 rounded-full animate-pulse"
+                      style={{ height: `${h}px`, animationDelay: `${i * 0.1}s` }}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>Tap check to attach voice note</span>
+                  <button
+                    onClick={() => setDeclineVoiceSeconds(14)}
+                    className="text-xs font-bold text-slate-700 hover:text-slate-900 underline cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              {/* Fair Work Guarantee Card */}
+              <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-900 flex items-center justify-center shrink-0">
+                  🤝
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-amber-950">Fair Work Guarantee</h4>
+                  <p className="text-[11px] text-amber-900/80 leading-relaxed mt-0.5">
+                    Valid declines with a reason are never counted against you. Your Nodal Officer will reassign this task to an available crew.
+                  </p>
+                </div>
+              </div>
+
+              {/* Submit to Officer Button */}
+              <button
+                onClick={handleSendDeclineToOfficer}
+                className="w-full py-3.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-2xl text-sm font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              >
+                <Send className="w-4 h-4" />
+                <span>Send to Officer</span>
+              </button>
+            </div>
+          )}
+
+          {/* Subview: Task Accepted & Field Guidance Screen (Matching image_c15f495e.png) */}
+          {decisionSubView === 'accept_guidance' && activeComplaint && (
+            <div className="max-w-2xl mx-auto bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+              
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <button
+                  onClick={() => setDecisionSubView('review')}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl">
+                    Task Accepted • Ready to start work
+                  </span>
+                </div>
+              </div>
+
+              {/* Water Recharge Asset Title Card */}
+              <div className="flex items-start justify-between gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0077B6] flex items-center gap-1">
+                    <Building className="w-3.5 h-3.5" />
+                    Water Recharge Asset
+                  </span>
+                  <h3 className="text-base font-black text-slate-900 mt-0.5">
+                    {activeComplaint.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex'}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Bobbili Mandal • Cadastral Parcel #89/2
+                  </p>
+                </div>
+                <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-center shadow-2xs">
+                  <div className="text-base font-black text-[#0077B6]">12</div>
+                  <div className="text-[10px] text-slate-500 font-bold">Ayacut Ha</div>
+                </div>
+              </div>
+
+              {/* Mandatory Before Photo Proof Requirement */}
+              <div className="border-2 border-dashed border-sky-300 bg-sky-50/50 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-[#0077B6]" />
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                      Step 1: Mandatory BEFORE Photo Capture
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-bold bg-sky-200 text-sky-900 px-2 py-0.5 rounded-md">
+                    Geo-Stamped Proof
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600">
+                  Government regulation requires a geo-tagged baseline photo before digging or clearing starts.
+                </p>
+
+                <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video">
+                  <img
+                    src={beforePhotoUrl}
+                    alt="Before State"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-2 left-2 right-2 bg-black/75 backdrop-blur-md text-white text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center justify-between">
+                    <span>18.5721° N, 83.3644° E</span>
+                    <span>Baseline: 65% silt occlusion recorded</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={beforeFileInputRef}
+                    onChange={handleBeforePhotoUpload}
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => beforeFileInputRef.current?.click()}
+                    className="w-full py-2.5 bg-white hover:bg-slate-50 text-[#0077B6] border border-sky-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-2xs"
+                  >
+                    <Camera className="w-4 h-4 text-[#0077B6]" />
+                    <span>Take / Replace Before Photo</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Field Instructions Steps */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Field Instructions: What needs to be done:
+                  </h4>
+                  <button
+                    onClick={() =>
+                      speakText(
+                        `Step 1: Remove weeds and tree branches. Step 2: Excavate silt 1 meter deep. Step 3: Oil and grease gate wheel spindle.`
+                      )
+                    }
+                    className="px-2.5 py-1 bg-sky-50 text-[#0077B6] rounded-xl text-xs font-bold flex items-center gap-1 border border-sky-200 cursor-pointer"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>Listen to steps</span>
+                  </button>
+                </div>
+
+                {/* Step 1 */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#0077B6] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    1
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-xs sm:text-sm font-black text-slate-900">
+                      Remove weeds and tree branches
+                    </h5>
+                    <p className="text-xs text-slate-600">
+                      Clear all floating debris, thorny brush, and timber blocking the upper weir gate track.
+                    </p>
+                    <span className="inline-block text-[10px] font-bold text-sky-800 bg-sky-100 px-2 py-0.5 rounded-md">
+                      Tools needed: Sickle, Branch Cutter, Rope
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#0077B6] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    2
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-xs sm:text-sm font-black text-slate-900">
+                      Excavate silt 1 meter deep
+                    </h5>
+                    <p className="text-xs text-slate-600">
+                      Dig out packed mud and gravel around the front apron masonry to restore free pool depth.
+                    </p>
+                    <span className="inline-block text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
+                      Check depth marker notch on concrete pillar
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#0077B6] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    3
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-xs sm:text-sm font-black text-slate-900">
+                      Oil and grease the gate wheel spindle
+                    </h5>
+                    <p className="text-xs text-slate-600">
+                      Coat both threaded hoist rods with heavy gear grease until turning wheel rotates smoothly by hand.
+                    </p>
+                    <span className="inline-block text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+                      Turn clockwise 3 full cycles to test
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Start Work Button */}
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={handleConfirmAcceptTask}
+                  className="w-full py-3.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-2xl text-sm font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                >
+                  <span>Start Work ➔</span>
+                </button>
+
+                <button
+                  onClick={() => setShowStuckModal(true)}
+                  className="w-full py-2.5 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                  <span>I am stuck / Need help</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 3. TAB 2: IN-PROGRESS REMEDIATION (ACTIVE EXECUTION SCREEN)    */}
+      {/* ============================================================== */}
+      {activeTab === 'in_progress' && (
+        <div className="max-w-2xl mx-auto space-y-4">
+          
+          {/* Active Work Order Card (Matching image_92871c93.png) */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+            
+            {/* Header Stage */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0077B6]">
+                  Active Task Execution
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                  {activeComplaint?.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex'}
+                </h3>
+              </div>
+              <span className="text-xs font-bold bg-blue-50 text-[#0077B6] border border-blue-200 px-3 py-1 rounded-xl">
+                Step 2 of 3
               </span>
-              <span>Assigned Work Orders & Strict Deadlines ({assignedTasks.length})</span>
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              Accept jobs before work start, attach photographic evidence, or declare reason if blocked.
-            </p>
+            </div>
+
+            {/* GPS Confirmed On-Site Banner */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-800 flex items-center justify-center shrink-0">
+                <Navigation className="w-4 h-4 text-emerald-700" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-emerald-950">
+                  GPS Confirmed On-Site
+                </h4>
+                <p className="text-[11px] text-emerald-800">
+                  You are at the water gate (accuracy ±1.8m RTK calibrated)
+                </p>
+              </div>
+            </div>
+
+            {/* Step 1: Geo-Stamped BEFORE Photo */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                    1. Take BEFORE Photo
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                  Completed at 10:14 AM
+                </span>
+              </div>
+
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video">
+                <img
+                  src={beforePhotoUrl}
+                  alt="Before Excavation"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Geo-stamped Proof</span>
+                </div>
+                <div className="absolute bottom-2 left-2 right-2 bg-black/75 backdrop-blur-md text-white text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center justify-between">
+                  <span>18.5721° N, 83.3644° E</span>
+                  <span>Baseline: 65% silt occlusion recorded</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2: Interactive Checklist */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#0077B6]" />
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                    2. Do the Work
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold text-[#0077B6] bg-sky-100 px-2 py-0.5 rounded-md">
+                  In Progress right now
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {/* Item 1 */}
+                <div
+                  onClick={() => toggleChecklistItem('silt')}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    checklist.silt
+                      ? 'bg-blue-50/60 border-blue-200'
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                        checklist.silt
+                          ? 'bg-[#0077B6] border-[#0077B6] text-white'
+                          : 'border-slate-300'
+                      }`}
+                    >
+                      {checklist.silt && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">
+                      Silt excavated from apron (400 m³)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Item 2 */}
+                <div
+                  onClick={() => toggleChecklistItem('weeds')}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    checklist.weeds
+                      ? 'bg-blue-50/60 border-blue-200'
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                        checklist.weeds
+                          ? 'bg-[#0077B6] border-[#0077B6] text-white'
+                          : 'border-slate-300'
+                      }`}
+                    >
+                      {checklist.weeds && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">
+                      Weeds and brush cleared from conduit
+                    </span>
+                  </div>
+                </div>
+
+                {/* Item 3 */}
+                <div
+                  onClick={() => toggleChecklistItem('spindle')}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    checklist.spindle
+                      ? 'bg-blue-50/60 border-blue-200'
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                        checklist.spindle
+                          ? 'bg-[#0077B6] border-[#0077B6] text-white'
+                          : 'border-slate-300'
+                      }`}
+                    >
+                      {checklist.spindle && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">
+                        Oil applied to spindle wheel
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Turn crank gear 3 full rotations after lubrication
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Take AFTER Photo Upload Box */}
+            <div className="border-2 border-dashed border-sky-300 bg-sky-50/50 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-[#0077B6]" />
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                    3. Take AFTER Photo
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold text-sky-800 bg-sky-200 px-2 py-0.5 rounded-md">
+                  Step 3 Proof
+                </span>
+              </div>
+
+              {afterPhotoUploaded ? (
+                <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video">
+                  <img
+                    src={afterPhotoUrl}
+                    alt="Restored State"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Restored Water Flow Captured</span>
+                  </div>
+                  <div className="absolute bottom-2 left-2 right-2 bg-black/75 backdrop-blur-md text-white text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center justify-between">
+                    <span>18.5721° N, 83.3644° E</span>
+                    <span>Clean Gate Verified</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-sky-200 rounded-2xl p-6 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-sky-100 text-[#0077B6] flex items-center justify-center mx-auto">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-black text-slate-900">Capture Restored State</h5>
+                    <p className="text-xs text-slate-500 max-w-xs mx-auto mt-0.5">
+                      Take clear photo of clean gate and restored water flow. (Camera only, verified GPS geotag).
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAfterPhotoUpload}
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 mx-auto shadow-xs"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Open Camera & Take After Photo</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Field Audit Details: Laborers Counter & Voice Note */}
+            <div className="space-y-3 pt-1">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                Field Audit Details
+              </h4>
+
+              {/* Workers Counter */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <h5 className="text-xs font-black text-slate-900">
+                    How many people worked today?
+                  </h5>
+                  <p className="text-[11px] text-slate-500">Field excavation crew</p>
+                </div>
+                <div className="flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                  <button
+                    onClick={() => setWorkerCount((c) => Math.max(1, c - 1))}
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-sm flex items-center justify-center cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="text-sm font-black text-slate-900 font-mono w-4 text-center">
+                    {workerCount}
+                  </span>
+                  <button
+                    onClick={() => setWorkerCount((c) => c + 1)}
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-sm flex items-center justify-center cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Voice Memo Widget */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5 text-[#0077B6]" />
+                    Record voice note about work (Optional)
+                  </span>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600" />
+                    <div>
+                      <div className="text-xs font-black text-slate-900">0:24 Voice note recorded</div>
+                      <button
+                        onClick={() => {
+                          setIsVoiceNotePlaying(!isVoiceNotePlaying);
+                          speakText("Voice note recorded on site: Apron excavated, heavy silt cleared, gate running freely.");
+                        }}
+                        className="text-[10px] text-[#0077B6] font-bold hover:underline cursor-pointer flex items-center gap-1 mt-0.5"
+                      >
+                        <Volume2 className="w-3 h-3" />
+                        <span>Tap to replay audio 🔊</span>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => alert("Voice note reset.")}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SUBMIT BUTTON: Next: Review & Send for Checking */}
+            <button
+              onClick={handleSubmitToInspectorForVerification}
+              className="w-full py-4 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-2xl text-sm font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+            >
+              <span>Next: Review & Send for Checking ➔</span>
+            </button>
           </div>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {assignedTasks.map((t) => {
-            const isBlocked = t.workExecution?.status === 'BLOCKED';
-            const isInProgress = t.status === 'WORKER_IN_PROGRESS';
-            const isCompleted = t.workExecution?.status === 'COMPLETED' || t.status === 'VERIFICATION_PENDING';
-            const isPendingAccept = !t.workExecution || t.workExecution.status === 'PENDING_ACCEPTANCE';
-            const deadline = t.workExecution?.deadline || '2026-10-06';
+      {/* ============================================================== */}
+      {/* 4. TAB 3: COMPLETED & VERIFICATION (INSPECTOR SIGN-OFF TRACKING)*/}
+      {/* ============================================================== */}
+      {activeTab === 'completed' && (
+        <div className="space-y-6">
+          
+          {/* Section A: Pending Inspector Physical Verification */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <span>Awaiting Field Inspector Physical Verification ({waitingReviewTasks.length})</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Tasks submitted by worker, currently waiting for inspector on-site re-inspection and statutory sign-off.
+                </p>
+              </div>
+            </div>
 
-            return (
-              <div
-                key={t.id}
-                className={`bg-white border rounded-xl overflow-hidden shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between ${
-                  isBlocked ? 'border-rose-300 bg-rose-50/20' : 'border-slate-200'
-                }`}
-              >
-                <div className="p-4 space-y-3">
-                  {/* Top Bar with Deadline Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono font-bold bg-[#1b2a4a] text-white px-2 py-0.5 rounded">
-                      TASK #{t.id}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {waitingReviewTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      Pending Inspector Sign-off
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-rose-600" />
-                      <span>DEADLINE: {deadline}</span>
+                    <span className="text-xs font-mono text-slate-400">
+                      {task.mandal} Circle
                     </span>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 leading-snug">{t.locationLandmark}</h4>
-                    <p className="text-xs text-slate-500">{t.district} • {t.mandal}</p>
+                    <h4 className="text-base font-black text-slate-900">
+                      {task.locationLandmark}
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1">
+                      {task.shortDescription}
+                    </p>
                   </div>
 
-                  {/* Inspector Diagnostic Snippet */}
-                  {t.inspectionReport && (
-                    <div className="bg-sky-50 border border-sky-200 p-2.5 rounded-lg text-[11px] text-sky-950 space-y-1">
-                      <div className="flex items-center justify-between font-bold">
-                        <span>Inspector Findings:</span>
-                        <span className="text-blue-700">TDS: {t.inspectionReport.tdsReadingPpm} ppm</span>
-                      </div>
-                      <div>
-                        <strong>Hazard:</strong> {t.inspectionReport.wasteLevel} {t.inspectionReport.wasteType}
-                      </div>
-                      <div>
-                        <strong>Source:</strong> {t.inspectionReport.sourcePinDescription}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Photos Grid if present */}
-                  {t.workExecution && (
-                    <div className="grid grid-cols-2 gap-2 text-[10px] text-center">
-                      <div>
-                        <span className="font-bold text-slate-500 block mb-0.5">BEFORE WORK PHOTO</span>
+                  {/* Before vs After Side-by-Side Comparison */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <div className="text-[10px] font-bold text-rose-700 uppercase">BEFORE (Blocked)</div>
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video">
                         <img
-                          src={t.workExecution.beforePhotoUrl || t.photoUrl}
-                          alt="Before Work"
-                          className="w-full h-24 rounded object-cover border border-slate-200"
+                          src={task.workExecution?.beforePhotoUrl || task.photoUrl}
+                          alt="Before"
+                          className="w-full h-full object-cover"
                         />
                       </div>
-                      {t.workExecution.afterPhotoUrl && (
-                        <div>
-                          <span className="font-bold text-emerald-700 block mb-0.5">AFTER WORK PHOTO</span>
-                          <img
-                            src={t.workExecution.afterPhotoUrl}
-                            alt="After Work"
-                            className="w-full h-24 rounded object-cover border border-emerald-300"
-                          />
-                        </div>
-                      )}
                     </div>
-                  )}
-
-                  {/* Blocked message if blocked */}
-                  {isBlocked && (
-                    <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-[11px] text-rose-900">
-                      <strong>Task Blocked by Worker:</strong> {t.workExecution?.blockReason}
+                    <div className="space-y-1">
+                      <div className="text-[10px] font-bold text-emerald-700 uppercase">AFTER (Cleaned)</div>
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video">
+                        <img
+                          src={task.workExecution?.afterPhotoUrl || afterPhotoUrl}
+                          alt="After"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Footer Buttons */}
-                <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {/* Option A: Pending Acceptance */}
-                  {isPendingAccept && (
-                    <div className="flex items-center gap-2 w-full">
-                      <button
-                        onClick={() => setSelectedTaskToBlock(t)}
-                        className="flex-1 py-2 bg-slate-200 hover:bg-rose-100 hover:text-rose-700 text-slate-700 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1"
-                      >
-                        <Ban className="w-3.5 h-3.5" />
-                        <span>Block Task</span>
-                      </button>
-                      <button
-                        onClick={() => setSelectedTaskToAccept(t)}
-                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-xs transition-colors flex items-center justify-center gap-1"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Accept & Start Work</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Option B: In Progress -> Upload After Photo */}
-                  {isInProgress && (
-                    <button
-                      onClick={() => setSelectedTaskToComplete(t)}
-                      className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>
-                        {language === 'hi' ? 'कार्य समाप्ति का फोटो अपलोड करें एवं कार्य पूरा करें' : language === 'te' ? 'పని పూర్తయిన ఫోటోను అప్‌లోడ్ చేసి పూర్తి చేయండి' : 'Upload "After Work Photo" & Finish Job'}
+                  {/* Assigned Inspector Info Notice */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 flex items-start gap-2.5">
+                    <ShieldCheck className="w-4 h-4 text-[#0077B6] shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      <span className="font-bold text-slate-900">
+                        Dispatched to Inspector Sri K. Rama Krishna
                       </span>
-                    </button>
-                  )}
-
-                  {/* Option C: Completed awaiting Inspector Re-Verification */}
-                  {isCompleted && (
-                    <div className="w-full py-2 bg-blue-50 text-blue-800 text-xs font-semibold rounded-lg text-center border border-blue-200 flex items-center justify-center gap-1">
-                      <Clock className="w-3.5 h-3.5 animate-spin" />
-                      <span>Sent to Inspector for Site Re-Verification</span>
+                      <p className="text-slate-600 text-[11px] mt-0.5">
+                        Inspector will verify site in Tab 2 'Repair Verifications' of their portal and statutorily close the case.
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              ))}
 
-      {/* Modal 1: Accept Task with Before Photo */}
-      {selectedTaskToAccept && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/65 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden">
-            <div className="bg-emerald-700 text-white p-4 flex items-center justify-between">
-              <h4 className="font-bold text-sm flex items-center gap-2">
-                <Check className="w-4 h-4" />
-                <span>Accept Job & Upload Before-Work Photo</span>
-              </h4>
-              <button onClick={() => setSelectedTaskToAccept(null)}>
-                <X className="w-5 h-5 text-white/80 hover:text-white" />
-              </button>
+              {waitingReviewTasks.length === 0 && (
+                <div className="col-span-full bg-slate-50 border border-slate-200 rounded-3xl p-6 text-center text-xs text-slate-500">
+                  No tasks currently awaiting inspector sign-off.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section B: Statutorily Closed & Resolved */}
+          <div className="space-y-3 pt-4 border-t border-slate-200">
+            <div>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Statutorily Verified & Closed Cases ({completedTasks.length})</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Water recharge assets with completed remediation and approved inspector sign-off.
+              </p>
             </div>
 
-            <form onSubmit={handleConfirmAccept} className="p-5 space-y-4 text-xs">
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                <span className="font-bold text-slate-800 block">{selectedTaskToAccept.locationLandmark}</span>
-                <span className="text-[11px] text-slate-500">Task #{selectedTaskToAccept.id}</span>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {completedTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white border-2 border-emerald-200 rounded-3xl p-5 shadow-xs space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Statutorily Closed (RESOLVED)
+                    </span>
+                    <span className="text-xs font-bold text-emerald-700">
+                      100% Water Flow Restored
+                    </span>
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 block">
-                  Kaam Shuru Karne Se Pehle Ka Photo (Before Work Condition Photo)
-                </label>
-                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-slate-300">
-                  <img src={beforePhotoUrl} alt="Before Work" className="w-full h-full object-cover" />
-                  <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-mono px-2 py-0.5 rounded">
-                    INITIAL SITE STATE
-                  </span>
+                  <div>
+                    <h4 className="text-base font-black text-slate-900">
+                      {task.locationLandmark}
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1">
+                      {task.shortDescription}
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3 text-xs text-emerald-950 font-medium">
+                    "Physical site inspected. Water flow fully restored. Apron and weir free of packed silt. Zero obstruction remaining."
+                  </div>
                 </div>
-              </div>
+              ))}
 
-              <div className="p-2.5 bg-emerald-50 text-emerald-900 rounded-lg border border-emerald-200">
-                Accepting this task will officially start the work in progress timer. You must complete remedial action before the assigned deadline.
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTaskToAccept(null)}
-                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Confirm Acceptance</span>
-                </button>
-              </div>
-            </form>
+              {completedTasks.length === 0 && (
+                <div className="col-span-full bg-slate-50 border border-slate-200 rounded-3xl p-6 text-center text-xs text-slate-500">
+                  No closed cases yet in this session.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Modal 2: Block Task Reason */}
-      {selectedTaskToBlock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/65 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden">
-            <div className="bg-rose-700 text-white p-4 flex items-center justify-between">
-              <h4 className="font-bold text-sm flex items-center gap-2">
-                <Ban className="w-4 h-4" />
-                <span>{language === 'hi' ? 'कार्य रोकने / असमर्थता का कारण दर्ज करें' : language === 'te' ? 'పని నిలిపివేతకు కారణాన్ని తెలపండి' : 'Declare Block Reason'}</span>
-              </h4>
-              <button onClick={() => setSelectedTaskToBlock(null)}>
-                <X className="w-5 h-5 text-white/80 hover:text-white" />
-              </button>
+      {/* ============================================================== */}
+      {/* 5. TAB 4: GIS CADASTRAL MAP (FULL ENGLISH SATELLITE TILES)     */}
+      {/* ============================================================== */}
+      {activeTab === 'map' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-black text-slate-900">
+                Cadastral & Satellite Remediation Asset Map
+              </h3>
+              <p className="text-xs text-slate-500">
+                Google Hybrid Satellite tiles with place names, road labels, and district coordinates in English.
+              </p>
             </div>
+            <button
+              onClick={() => setShowMapModal(true)}
+              className="px-3 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span>Full Screen</span>
+            </button>
+          </div>
 
-            <form onSubmit={handleConfirmBlock} className="p-5 space-y-4 text-xs">
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                <span className="font-bold text-slate-800 block">{selectedTaskToBlock.locationLandmark}</span>
-                <span className="text-[11px] text-slate-500">Task #{selectedTaskToBlock.id}</span>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  {language === 'hi' ? 'असमर्थता अथवा देरी का कारण' : language === 'te' ? 'ఆలస్యానికి లేదా నిలిపివేతకు కారణం' : 'Reason for Inability / Delay'}
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={blockReason}
-                  onChange={(e) => setBlockReason(e.target.value)}
-                  placeholder="State reason: e.g. on sanctioned medical leave / flood alert prevents safe excavation..."
-                  className="w-full p-2 border border-slate-300 rounded-lg"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTaskToBlock(null)}
-                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-1.5"
-                >
-                  <Ban className="w-3.5 h-3.5" />
-                  <span>Submit Block Notice to Nodal Officer</span>
-                </button>
-              </div>
-            </form>
+          <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+            <EngineerRealSatelliteMap
+              lat={targetLat}
+              lng={targetLng}
+              title={targetTitle}
+              assetCode="AP-VZ-BOB-042"
+              mandal={activeComplaint?.mandal || 'Bobbili'}
+              heightClass="h-[520px]"
+              onExpand={() => setShowMapModal(true)}
+            />
           </div>
         </div>
       )}
 
-      {/* Modal 3: Complete Work with After Photo */}
-      {selectedTaskToComplete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/65 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden">
-            <div className="bg-[#0047ab] text-white p-4 flex items-center justify-between">
-              <h4 className="font-bold text-sm flex items-center gap-2">
-                <Camera className="w-4 h-4" />
-                <span>{language === 'hi' ? 'कार्य समाप्ति का फोटो प्रमाण अपलोड करें' : language === 'te' ? 'పని పూర్తయిన ఫోటో సాక్ష్యాన్ని అప్‌లోడ్ చేయండి' : 'Upload After-Work Photo Proof'}</span>
-              </h4>
-              <button onClick={() => setSelectedTaskToComplete(null)}>
-                <X className="w-5 h-5 text-white/80 hover:text-white" />
+      {/* ============================================================== */}
+      {/* 6. MODALS: ENLARGED PHOTO, STUCK HAZARD ALERT, MAP EXPAND      */}
+      {/* ============================================================== */}
+
+      {/* Photo Enlarge Modal */}
+      {enlargedPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setEnlargedPhoto(null)}
+        >
+          <div
+            className="max-w-3xl w-full bg-slate-900 rounded-3xl overflow-hidden border border-white/20 p-2 space-y-2 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-3 py-1 text-white">
+              <span className="text-xs font-bold">{enlargedPhoto.title}</span>
+              <button
+                onClick={() => setEnlargedPhoto(null)}
+                className="p-1 text-white/70 hover:text-white"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
+            <img
+              src={enlargedPhoto.url}
+              alt="Enlarged Preview"
+              className="w-full max-h-[75vh] object-contain rounded-2xl"
+            />
+          </div>
+        </div>
+      )}
 
-            <form onSubmit={handleConfirmComplete} className="p-5 space-y-4 text-xs">
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                <span className="font-bold text-slate-800 block">{selectedTaskToComplete.locationLandmark}</span>
-                <span className="text-[11px] text-slate-500">Task #{selectedTaskToComplete.id}</span>
+      {/* Stuck Hazard Alert Modal */}
+      {showStuckModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setShowStuckModal(false)}
+        >
+          <div
+            className="max-w-md w-full bg-white rounded-3xl p-6 shadow-xl space-y-4 border border-rose-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5" />
               </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 block">
-                  Kaam Khatam Hone Ke Baad Ka Image Proof (After Work Photo)
-                </label>
-                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-slate-300">
-                  <img src={afterPhotoUrl} alt="After Work" className="w-full h-full object-cover" />
-                  <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-mono px-2 py-0.5 rounded">
-                    COMPLETED REMEDIATION PROOF
-                  </span>
-                </div>
-              </div>
-
               <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  Summary of Physical Work Executed
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  value={workSummary}
-                  onChange={(e) => setWorkSummary(e.target.value)}
-                  placeholder="e.g. Silt cleared, damaged masonry apron patched with M25 concrete, flow restored."
-                  className="w-full p-2 border border-slate-300 rounded-lg"
-                />
+                <h3 className="text-base font-black text-rose-950">Site Breakdown or Stuck?</h3>
+                <p className="text-xs text-rose-700">Send emergency statutory alert to Nodal Officer</p>
               </div>
+            </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTaskToComplete(null)}
-                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-[#0047ab] hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send for Inspector Verification</span>
-                </button>
+            <textarea
+              value={stuckReason}
+              onChange={(e) => setStuckReason(e.target.value)}
+              placeholder="Describe obstacle (e.g. Backhoe arm jammed, flood surge over weir, masonry collapse risk)..."
+              className="w-full p-3 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-hidden min-h-24"
+            />
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowStuckModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (activeComplaint) {
+                    onBlockTask(activeComplaint.id, `EMERGENCY ALERT: ${stuckReason || 'Equipment jammed on-site'}`);
+                  }
+                  setShowStuckModal(false);
+                  alert("Emergency alert dispatched to Nodal Officer dispatch cell!");
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-xs"
+              >
+                Dispatch Emergency Alert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Screen Map Modal */}
+      {showMapModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setShowMapModal(false)}
+        >
+          <div
+            className="max-w-5xl w-full h-[85vh] bg-slate-900 rounded-3xl overflow-hidden border border-white/20 p-3 flex flex-col space-y-2 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between text-white px-2">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-sky-400" />
+                <span className="text-sm font-black">Full Satellite Cadastral Map (English Labels)</span>
               </div>
-            </form>
+              <button
+                onClick={() => setShowMapModal(false)}
+                className="p-1 text-white/70 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 rounded-2xl overflow-hidden">
+              <EngineerRealSatelliteMap
+                lat={targetLat}
+                lng={targetLng}
+                title={targetTitle}
+                assetCode="AP-VZ-BOB-042"
+                mandal={activeComplaint?.mandal || 'Bobbili'}
+                heightClass="h-full"
+              />
+            </div>
           </div>
         </div>
       )}

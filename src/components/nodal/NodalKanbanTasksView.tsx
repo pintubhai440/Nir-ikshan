@@ -180,7 +180,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
     // Also include operational roster inspectors if not present
     AP_FIELD_INSPECTORS_ROSTER.forEach((r) => {
       if (isDistrictMatch(r.district, district)) {
-        if (!list.some((existing) => isInspectorNameMatch(existing.full_name, { full_name: r.name, inspector_id: r.id } as any))) {
+        if (!list.some((existing) => existing.inspector_id.toLowerCase() === r.id.toLowerCase() || isInspectorNameMatch(existing.full_name, { full_name: r.name, inspector_id: r.id } as any))) {
           list.push({
             inspector_id: r.id,
             full_name: r.name,
@@ -200,7 +200,17 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
         }
       }
     });
-    return list.length > 0 ? list : COMPLETE_AP_FIELD_INSPECTORS.slice(0, 5);
+
+    const seenIds = new Set<string>();
+    const finalList: SupabaseFieldInspectorRow[] = [];
+    for (const item of list) {
+      const key = item.inspector_id.toLowerCase();
+      if (!seenIds.has(key)) {
+        seenIds.add(key);
+        finalList.push(item);
+      }
+    }
+    return finalList.length > 0 ? finalList : COMPLETE_AP_FIELD_INSPECTORS.slice(0, 5);
   }, [district]);
 
   // Dynamically obtain Action Workers / Remediation Crews for this district
@@ -1680,8 +1690,8 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                   className="w-full p-2.5 border border-sky-300 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-[#0077b6] outline-none text-slate-800"
                   required
                 >
-                  {districtInspectors.map((insp) => (
-                    <option key={insp.inspector_id} value={insp.inspector_id}>
+                  {districtInspectors.map((insp, idx) => (
+                    <option key={`${insp.inspector_id}-${idx}`} value={insp.inspector_id}>
                       {insp.full_name} ({insp.meter_id || 'TDS Probes'} • {insp.mandal} • {insp.open_inspections} active)
                     </option>
                   ))}

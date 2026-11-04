@@ -4,7 +4,22 @@
 /* Leaflet GIS Custom Styles for Nir-ikshan */
 .leaflet-container {
   font-family: 'Plus Jakarta Sans', sans-serif !important;
-  background-color: #0a0f1d !important;
+  background-color: #1e293b !important;
+  outline: none;
+}
+
+.leaflet-tile {
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mandal-marker-pill {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+}
+
+.mandal-marker-pill:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
 }
 
 .ap-district-center-badge,

@@ -76,7 +76,7 @@ interface InspectorDashboardProps {
   onViewChange?: (view: { isDirectory: boolean; inspector: SupabaseFieldInspectorRow | null }) => void;
 }
 
-export type InspectorTabType = 'today' | 'map' | 'verify' | 'quick' | 'profile';
+export type InspectorTabType = 'today' | 'map' | 'verify';
 
 export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   complaints,
@@ -133,7 +133,11 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       }
     });
 
-    return Array.from(new Set(map.values()));
+    const byUniqueId = new Map<string, SupabaseFieldInspectorRow>();
+    map.forEach((insp) => {
+      byUniqueId.set(insp.inspector_id.toLowerCase(), insp);
+    });
+    return Array.from(byUniqueId.values());
   }, [allInspectors, complaints]);
 
   // Authenticated Inspector State (Email & Password Login)
@@ -1108,37 +1112,6 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             <MapIcon className="w-4 h-4" />
             <span>3. GIS Cadastral Map</span>
           </button>
-
-          {/* Tab 4: Quick Audit */}
-          <button
-            onClick={() => setActiveTab('quick')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'quick'
-                ? 'bg-[#0077B6] text-white shadow-xs'
-                : 'text-[#0077B6] hover:bg-blue-50'
-            }`}
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>4. Quick Spot Audit</span>
-          </button>
-
-          {/* Tab 5: Profile & Vault */}
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'profile'
-                ? 'bg-[#03045E] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>5. Hardware Kit &amp; Vault</span>
-            {queuedVaultCount > 0 && (
-              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full font-mono">
-                {queuedVaultCount}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
@@ -1186,30 +1159,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         />
       )}
 
-      {activeTab === 'quick' && (
-        <InspectorQuickAuditView
-          inspector={selectedInspector}
-          waterBodies={waterBodies}
-          onRegisterAndLaunch={handleRegisterAndLaunch}
-          onQuickSelectNearby={(name) => {
-            const match = mapAssets.find((a) => a.name.includes(name.split(' ')[0]));
-            if (match) handleLaunchFromMap(match);
-            else if (dynamicScheduledTasks[0]) handleStartInspection(dynamicScheduledTasks[0]);
-          }}
-        />
-      )}
 
-      {activeTab === 'profile' && (
-        <InspectorProfileVaultView
-          inspector={selectedInspector}
-          devices={devices}
-          vaultQueue={vaultQueue}
-          onTriggerSync={handleTriggerSync}
-          isSyncing={isSyncing}
-          sunlightMode={sunlightMode}
-          onToggleSunlightMode={() => setSunlightMode(!sunlightMode)}
-        />
-      )}
 
       {/* 6-Step Statutory Pre-Monsoon Inspection Wizard Modal */}
       {activeWizardTask && (

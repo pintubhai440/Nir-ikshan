@@ -214,7 +214,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
 
       {/* Grid of Inspector Station Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredInspectors.map((inspector) => {
+        {filteredInspectors.map((inspector, idx) => {
           const isSelected = inspector.inspector_id === selectedInspectorId;
           const initials = inspector.full_name
             .split(' ')
@@ -303,7 +303,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
 
           return (
             <div
-              key={inspector.inspector_id}
+              key={`${inspector.inspector_id}-${idx}`}
               className={`bg-white rounded-3xl border transition-all duration-200 flex flex-col justify-between overflow-hidden group hover:shadow-md ${
                 isSelected
                   ? 'border-[#0077B6] ring-2 ring-[#0077B6]/20 shadow-sm'
