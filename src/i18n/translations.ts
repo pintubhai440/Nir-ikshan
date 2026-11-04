@@ -160,13 +160,14 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // Breadcrumb
     breadcrumbPortalHome: 'Portal Home',
-    breadcrumbCitizen: 'Normal User (Citizen Surveillance Portal)',
+    breadcrumbCitizen: 'Normal User (Citizen Portal)',
     breadcrumbAdmin: 'State Administrator (AP Apex Command)',
     breadcrumbNodalVzm: 'Nodal Officer (Vizianagaram District)',
     breadcrumbNodalPvm: 'Nodal Officer (Parvathipuram Manyam District)',
     breadcrumbNodalVskp: 'Nodal Officer (Visakhapatnam District)',
-    breadcrumbInspector: 'Field Inspector (On-Site Verification - No Map)',
-    breadcrumbEngineer: 'Action Worker (Field Engineering - Full Map)',
+    breadcrumbInspector: 'Field Inspector',
+    breadcrumbInspectorDirectory: 'Field Inspector Directory',
+    breadcrumbEngineer: 'Action Worker',
 
     // Footer
     footerTitle: 'Nir-ikshan — National & Andhra Pradesh Water Surveillance',
@@ -345,8 +346,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     breadcrumbNodalVzm: 'नोडल अधिकारी (विजयनगरम सर्कल)',
     breadcrumbNodalPvm: 'नोडल अधिकारी (पार्वतीपुरम मान्यम सर्कल)',
     breadcrumbNodalVskp: 'नोडल अधिकारी (विशाखापट्टनम सर्कल)',
-    breadcrumbInspector: 'फील्ड इंस्पेक्टर (ऑन-साइट सत्यापन - बिना मानचित्र)',
-    breadcrumbEngineer: 'एक्शन वर्कर (फील्ड इंजीनियरिंग - पूर्ण मानचित्र)',
+    breadcrumbInspector: 'फील्ड इंस्पेक्टर',
+    breadcrumbInspectorDirectory: 'फील्ड इंस्पेक्टर डायरेक्टरी',
+    breadcrumbEngineer: 'एक्शन वर्कर',
 
     // Footer
     footerTitle: 'नीर-ईक्षण — राष्ट्रीय एवं आंध्र प्रदेश जल निगरानी',
@@ -525,8 +527,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     breadcrumbNodalVzm: 'నోడల్ అధికారి (విజయనగరం సర్కిల్)',
     breadcrumbNodalPvm: 'నోడల్ అధికారి (పార్వతీపురం మన్యం సర్కిల్)',
     breadcrumbNodalVskp: 'నోడల్ అధికారి (విశాఖపట్నం సర్కిల్)',
-    breadcrumbInspector: 'ఫీల్డ్ ఇన్స్పెక్టర్ (ఆన్-సైట్ ధృవీకరణ - మ్యాప్ లేదు)',
-    breadcrumbEngineer: 'యాక్షన్ వర్కర్ (ఫీల్డ్ ఇంజనీరింగ్ - పూర్తి మ్యాప్)',
+    breadcrumbInspector: 'ఫీల్డ్ ఇన్స్పెక్టర్',
+    breadcrumbInspectorDirectory: 'ఫీల్డ్ ఇన్స్పెక్టర్ డైరెక్టరీ',
+    breadcrumbEngineer: 'యాక్షన్ వర్కర్',
 
     // Footer
     footerTitle: 'నీర్-ఈక్షణ్ — జాతీయ & ఆంధ్రప్రదేశ్ జల పర్యవేక్షణ',

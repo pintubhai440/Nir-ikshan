@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import confetti from 'canvas-confetti';
 import { SupabaseFieldInspectorRow } from '../../data/allDistrictsTeamData';
 import { ANDHRA_PRADESH_26_DISTRICTS } from '../../data/andhraDistrictsData';
 import { 
@@ -32,12 +33,17 @@ import {
   ChevronRight,
   Sparkles,
   Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
+  LogIn,
+  X,
   Radio,
   ArrowLeft
 } from 'lucide-react';
 
 import { CitizenComplaint } from '../../types/nirikshan';
-import { isComplaintAssignedToInspector, isComplaintSlaOverdue } from '../../utils/inspectorFilter';
+import { isComplaintAssignedToInspector, isComplaintSlaOverdue, isInspectorNameMatch } from '../../utils/inspectorFilter';
 
 interface InspectorDirectoryHubProps {
   inspectors: SupabaseFieldInspectorRow[];
@@ -58,17 +64,14 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
-  const [selectedRegion, setSelectedRegion] = useState<'all' | 'North Coastal' | 'Coastal Andhra' | 'Rayalaseema'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'On leave' | 'Standby'>('all');
 
-  // Map district to region
-  const districtRegionMap = useMemo(() => {
-    const map = new Map<string, string>();
-    ANDHRA_PRADESH_26_DISTRICTS.forEach((d) => {
-      map.set(d.name.toLowerCase(), d.region);
-    });
-    return map;
-  }, []);
+  // Individual Field Inspector Authentication & Data Isolation State
+  const [pendingAuthInspector, setPendingAuthInspector] = useState<SupabaseFieldInspectorRow | null>(null);
+  const [authEmail, setAuthEmail] = useState<string>('');
+  const [authPin, setAuthPin] = useState<string>('1234');
+  const [showAuthPin, setShowAuthPin] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string>('');
 
   // Filter inspectors
   const filteredInspectors = useMemo(() => {
@@ -93,14 +96,6 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
         }
       }
 
-      // Region filter
-      if (selectedRegion !== 'all') {
-        const region = districtRegionMap.get(insp.district?.toLowerCase() || '');
-        if (region !== selectedRegion) {
-          return false;
-        }
-      }
-
       // Status filter
       if (statusFilter !== 'all') {
         if (insp.status?.toLowerCase() !== statusFilter.toLowerCase()) {
@@ -110,7 +105,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
 
       return true;
     });
-  }, [inspectors, searchQuery, selectedDistrict, selectedRegion, statusFilter, districtRegionMap]);
+  }, [inspectors, searchQuery, selectedDistrict, statusFilter]);
 
   // Summary Metrics
   const totalCount = inspectors.length;
@@ -121,57 +116,48 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
   return (
     <div className="space-y-6">
       {/* Executive Command Header */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
-          <div className="space-y-1">
-            {onBack && (
-              <div className="mb-2">
-                <button
-                  type="button"
-                  onClick={onBack}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-[#0077B6] hover:text-white text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs group"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 text-[#0077B6] group-hover:text-white" />
-                  <span>Return to Active Workstation</span>
-                </button>
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#0077B6] font-mono font-bold text-xs flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#0077B6]" />
-                <span>Statutory Field Cadre • 26 Districts Roster</span>
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-1">
-                <Database className="w-3 h-3 text-emerald-600" />
-                <span>{isSupabaseLive ? 'Live Supabase Connected' : 'Authoritative APWRIMS Roster'}</span>
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Field Hydrology &amp; Cadastral Inspection Directory
-            </h1>
-            <p className="text-sm text-slate-600 max-w-3xl leading-relaxed">
-              Select an authorized Field Inspector to launch their personalized field tablet workstation.
-              Every inspector operates with calibrated digital multi-parameter sensors and strict jurisdictional data isolation.
-            </p>
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
+        {/* Title & Description in clean single-line flow */}
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            Field Hydrology &amp; Cadastral Inspection Directory
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            Select an authorized Field Inspector to launch their personalized field tablet workstation. Every inspector operates with calibrated digital multi-parameter sensors and strict jurisdictional data isolation.
+          </p>
+        </div>
+
+        {/* 3 Metric Cards Underneath (Total Field Officers / Active On Duty / Calibrated Kits) */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-xl pt-1">
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-center">
+            <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block">
+              Total Field Officers
+            </span>
+            <span className="text-2xl sm:text-3xl font-black text-[#03045E] mt-0.5 block">
+              {totalCount}
+            </span>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-4 text-xs font-medium text-slate-700">
-            <div>
-              <span className="text-[11px] text-slate-500 block uppercase font-mono">Total Field Officers</span>
-              <span className="text-2xl font-black text-[#03045E]">{totalCount}</span>
-            </div>
-            <div className="h-8 w-px bg-slate-200" />
-            <div>
-              <span className="text-[11px] text-slate-500 block uppercase font-mono">Active On Duty</span>
-              <span className="text-2xl font-black text-emerald-600">{activeCount}</span>
-            </div>
-            <div className="h-8 w-px bg-slate-200" />
-            <div>
-              <span className="text-[11px] text-slate-500 block uppercase font-mono">Calibrated Kits</span>
-              <span className="text-2xl font-black text-[#0077B6]">{calibratedCount}</span>
-            </div>
+          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 text-center">
+            <span className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wider block">
+              Active On Duty
+            </span>
+            <span className="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5 block">
+              {activeCount}
+            </span>
+          </div>
+
+          <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3 text-center">
+            <span className="text-[11px] text-[#0077B6] font-semibold uppercase tracking-wider block">
+              Calibrated Kits
+            </span>
+            <span className="text-2xl sm:text-3xl font-black text-[#0077B6] mt-0.5 block">
+              {calibratedCount}
+            </span>
           </div>
         </div>
+
+        <div className="border-b border-slate-100 pt-1" />
 
         {/* Filter and Search Bar */}
         <div className="mt-5 space-y-4">
@@ -223,27 +209,6 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
               </select>
             </div>
           </div>
-
-          {/* Region Tabs */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-            <span className="text-slate-500 font-semibold mr-1">Geographic Region:</span>
-            {(['all', 'North Coastal', 'Coastal Andhra', 'Rayalaseema'] as const).map((region) => (
-              <button
-                key={region}
-                onClick={() => setSelectedRegion(region)}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                  selectedRegion === region
-                    ? 'bg-[#03045E] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {region === 'all' ? 'All Regions' : region}
-              </button>
-            ))}
-            <span className="ml-auto text-slate-500 font-mono text-[11px]">
-              Showing <strong className="text-slate-900">{filteredInspectors.length}</strong> of {totalCount} Inspectors
-            </span>
-          </div>
         </div>
       </div>
 
@@ -261,12 +226,58 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
           const isActive = inspector.status?.toLowerCase() === 'active';
 
           // Live assigned complaints for this specific inspector (strictly isolated)
-          const inspectorComplaints = complaints.filter((c) =>
+          let mergedComplaints = [...complaints];
+          try {
+            const cachedStr = localStorage.getItem('nir_complaints');
+            if (cachedStr) {
+              const cached = JSON.parse(cachedStr);
+              if (Array.isArray(cached)) {
+                const map = new Map<string, CitizenComplaint>();
+                mergedComplaints.forEach((c) => map.set(c.id, c));
+                cached.forEach((c) => {
+                  if (c && c.id) {
+                    if (!map.has(c.id) || (c.assignedInspector && !map.get(c.id)?.assignedInspector)) {
+                      map.set(c.id, c);
+                    }
+                  }
+                });
+                mergedComplaints = Array.from(map.values());
+              }
+            }
+          } catch {}
+
+          const inspectorComplaints = mergedComplaints.filter((c) =>
             isComplaintAssignedToInspector(c, inspector)
           );
-          const activeAssignedCount = inspectorComplaints.filter(
+          let activeAssignedCount = inspectorComplaints.filter(
             (c) => c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED'
           ).length;
+
+          // Check nodal tasks cache as well
+          try {
+            const storedTasksStr = localStorage.getItem('nir_nodal_tasks');
+            if (storedTasksStr) {
+              const storedTasks = JSON.parse(storedTasksStr);
+              if (Array.isArray(storedTasks)) {
+                storedTasks.forEach((t) => {
+                  if (
+                    t &&
+                    (t.stage === 'assigned' || t.stage === 'in_progress') &&
+                    t.verificationInspectorName &&
+                    isInspectorNameMatch(t.verificationInspectorName, inspector)
+                  ) {
+                    const alreadyFound = inspectorComplaints.some(
+                      (c) => c.id === t.id || c.id === t.sourceRefId
+                    );
+                    if (!alreadyFound) {
+                      activeAssignedCount += 1;
+                    }
+                  }
+                });
+              }
+            }
+          } catch {}
+
           const openInspections = activeAssignedCount;
           const overdueInspections = inspectorComplaints.filter(
             (c) => isComplaintSlaOverdue(c) && (c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED')
@@ -391,15 +402,33 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="p-4 bg-slate-50 border-t border-slate-100">
+              {/* Action Button & Security Lock */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 px-0.5">
+                  <span className="flex items-center gap-1 font-semibold text-slate-600">
+                    <Lock className="w-3 h-3 text-amber-500" />
+                    1-to-1 Cadre Lock
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    PIN: 1234
+                  </span>
+                </div>
                 <button
-                  onClick={() => onSelectInspector(inspector)}
+                  onClick={() => {
+                    setPendingAuthInspector(inspector);
+                    setAuthEmail(
+                      inspector.email ||
+                      `${inspector.full_name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@water.ap.gov.in`
+                    );
+                    setAuthPin('1234');
+                    setShowAuthPin(false);
+                    setAuthError('');
+                  }}
                   className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer bg-[#0077B6] hover:bg-[#03045E] text-white shadow-xs active:scale-98"
                 >
-                  <UserCheck className="w-4 h-4 text-sky-200" />
-                  <span>Launch Inspection Tablet</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  <Lock className="w-3.5 h-3.5 text-sky-200" />
+                  <span>Authenticate &amp; Launch Tablet</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
                 </button>
               </div>
             </div>
@@ -420,13 +449,183 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
             onClick={() => {
               setSearchQuery('');
               setSelectedDistrict('all');
-              setSelectedRegion('all');
               setStatusFilter('all');
             }}
             className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
           >
             Reset All Filters
           </button>
+        </div>
+      )}
+
+      {/* Individual Field Inspector Authentication Modal (1-to-1 Data Isolation) */}
+      {pendingAuthInspector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden relative animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-[#03045E] via-[#023E8A] to-[#0077B6] p-6 text-white relative">
+              <button
+                type="button"
+                onClick={() => setPendingAuthInspector(null)}
+                className="absolute right-4 top-4 p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[10px] font-mono font-bold text-sky-200 border border-white/20">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>STATUTORY FIELD CADRE ACCESS</span>
+                </span>
+                <span className="text-[10px] font-mono font-semibold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-300/30">
+                  Dummy Auth
+                </span>
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                {pendingAuthInspector.full_name} Workstation Login
+              </h3>
+              <p className="text-xs text-sky-100 font-medium mt-1">
+                Enter officer credentials to unlock the calibrated inspection workstation &amp; assigned queue.
+              </p>
+            </div>
+
+            {/* Officer Profile Summary */}
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-start gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#03045E] to-[#0077B6] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
+                  {pendingAuthInspector.full_name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase() || 'IN'}
+                </div>
+                <div className="min-w-0 flex-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">
+                      Authorized Field Cadre
+                    </span>
+                    <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Cadre Verified
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-slate-900 text-sm mt-0.5">
+                    {pendingAuthInspector.full_name}
+                  </h4>
+                  <p className="text-slate-500 font-medium text-[11px]">
+                    Field Hydrologist &amp; Cadastral Auditor • ID: <span className="font-mono font-bold text-slate-700">{pendingAuthInspector.inspector_id}</span>
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-slate-600 font-medium">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-[#0077B6]" />
+                      {pendingAuthInspector.mandal ? `${pendingAuthInspector.mandal} Mandal` : 'Central'}, {pendingAuthInspector.district} District
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Cpu className="w-3 h-3 text-[#0077B6]" />
+                      Kit: <span className="font-mono font-bold">{pendingAuthInspector.meter_id || 'TDS Multi-Param'}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Login Form */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!authPin.trim()) {
+                    setAuthError('Please enter the security PIN (Default: 1234)');
+                    return;
+                  }
+                  // Trigger celebration & authenticate into personalized tablet
+                  confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+                  const selected = pendingAuthInspector;
+                  setPendingAuthInspector(null);
+                  onSelectInspector(selected);
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Official Officer Email / Employee ID:
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="officer@water.ap.gov.in"
+                      className="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0077b6]/30 focus:border-[#0077b6] outline-none font-medium text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700">
+                      Security PIN / Cadre Password:
+                    </label>
+                    <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      Default: 1234
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showAuthPin ? 'text' : 'password'}
+                      value={authPin}
+                      onChange={(e) => {
+                        setAuthPin(e.target.value);
+                        setAuthError('');
+                      }}
+                      placeholder="Enter 4-digit PIN or password"
+                      className="w-full pl-9 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0077b6]/30 focus:border-[#0077b6] outline-none font-mono font-bold text-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthPin(!showAuthPin)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showAuthPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {authError ? (
+                    <p className="text-[11px] text-rose-600 font-medium mt-1">{authError}</p>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      * Dummy authentication active: enter 1234 or any credentials to sign in.
+                    </p>
+                  )}
+                </div>
+
+                <div className="p-3 bg-amber-50/70 border border-amber-200/60 rounded-xl flex items-center gap-2 text-xs text-amber-800 font-medium">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    Strict Data Isolation: Authenticating locks operational portals strictly to {pendingAuthInspector.full_name}&apos;s assigned queue &amp; jurisdiction.
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPendingAuthInspector(null)}
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0077b6] to-[#023e8a] hover:from-[#023e8a] hover:to-[#03045e] text-white font-extrabold text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 active:scale-98"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Authenticate &amp; Access Tablet</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>

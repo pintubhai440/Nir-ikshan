@@ -109,7 +109,13 @@ interface NodalOfficerDashboardProps {
   complaints: CitizenComplaint[];
   waterBodies: WaterBody[];
   officers: OfficerContact[];
-  onAssignInspector: (complaintId: string, inspectorName: string, inspectorPhone: string) => void;
+  onAssignInspector: (
+    complaintId: string, 
+    inspectorName: string, 
+    inspectorPhone: string,
+    inspectorId?: string,
+    inspectorEmail?: string
+  ) => void;
   onAssignEngineer: (complaintId: string, engineerName: string, engineerPhone: string, deadline: string) => void;
   onUpdateComplaint?: (updated: CitizenComplaint) => void;
   onBackToHome?: () => void;
@@ -175,8 +181,8 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
 
   // STRICT DATA ISOLATION: Complaints strictly belonging to this district
   const districtComplaints = useMemo(() => {
-    return complaints.filter(
-      (c) => c.district.toLowerCase() === currentDistrict.toLowerCase()
+    return complaints.filter((c) =>
+      isDistrictMatch(c.district, currentDistrict)
     );
   }, [complaints, currentDistrict]);
 
@@ -567,7 +573,9 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
       onAssignInspector(
         selectedComplaintForInspector.id,
         inspector.name,
-        inspector.phone
+        inspector.phone,
+        inspector.id,
+        inspector.email
       );
 
       if (onUpdateComplaint) {
@@ -1744,6 +1752,9 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
       {activeTab === 'issues_and_tasks' && (
         <NodalKanbanTasksView
           district={currentDistrict}
+          complaints={complaints}
+          onAssignInspectorToComplaint={onAssignInspector}
+          onUpdateComplaint={onUpdateComplaint}
         />
       )}
 

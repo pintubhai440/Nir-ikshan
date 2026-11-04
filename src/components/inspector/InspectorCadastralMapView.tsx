@@ -17,12 +17,16 @@ import {
   Maximize2
 } from 'lucide-react';
 
+import { SupabaseFieldInspectorRow } from '../../data/allDistrictsTeamData';
+
 interface InspectorCadastralMapViewProps {
+  inspector?: SupabaseFieldInspectorRow;
   assets: CadastralMapAssetItem[];
   onLaunchInspection: (asset: CadastralMapAssetItem) => void;
 }
 
 export const InspectorCadastralMapView: React.FC<InspectorCadastralMapViewProps> = ({
+  inspector,
   assets,
   onLaunchInspection,
 }) => {
@@ -180,7 +184,7 @@ export const InspectorCadastralMapView: React.FC<InspectorCadastralMapViewProps>
             <circle r="12" fill="#0284c7" fillOpacity="0.5" />
             <circle r="6" fill="#38bdf8" />
             <text x="14" y="4" fill="#bae6fd" fontSize="11" fontWeight="bold">
-              YOU (Pooja Reddy)
+              YOU ({inspector?.full_name || 'Active Officer'})
             </text>
           </g>
 

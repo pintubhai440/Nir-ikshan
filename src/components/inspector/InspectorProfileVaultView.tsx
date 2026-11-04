@@ -41,17 +41,17 @@ export const InspectorProfileVaultView: React.FC<InspectorProfileVaultViewProps>
 }) => {
   const [exported, setExported] = useState(false);
 
-  const inspectorName = inspector?.full_name || 'Smt. Pooja Reddy';
-  const inspectorId = inspector?.inspector_id || 'INSP-1104';
+  const inspectorName = inspector?.full_name || 'Field Inspector';
+  const inspectorId = inspector?.inspector_id || 'INSP-101';
   const districtName = inspector?.district || 'Vizianagaram';
-  const mandalName = inspector?.mandal || 'Bobbili Mandal';
+  const mandalName = inspector?.mandal || 'Central Sector';
 
   const initials = inspectorName
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
     .join('')
-    .toUpperCase() || 'PR';
+    .toUpperCase() || 'FI';
 
   const handleExportDump = () => {
     setExported(true);
@@ -208,7 +208,7 @@ export const InspectorProfileVaultView: React.FC<InspectorProfileVaultViewProps>
                 <span>Hydrological Field Sensor Register</span>
               </h4>
               <p className="text-xs text-slate-400 mt-0.5">
-                Calibrated hardware assigned to Inspector Pooja Reddy
+                Calibrated hardware assigned to Inspector {inspectorName}
               </p>
             </div>
           </div>

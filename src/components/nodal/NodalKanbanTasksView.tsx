@@ -7,11 +7,29 @@
  * Scalable for 100+ tasks with Stage Flashcards, scroll-bounded board, and dynamic Status Progression Timeline.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   NodalKanbanTask, 
-  INITIAL_NODAL_TASKS 
+  INITIAL_NODAL_TASKS,
+  getDistrictInitialKanbanTasks
 } from '../../data/nodalOfficerData';
+import { 
+  COMPLETE_AP_FIELD_INSPECTORS, 
+  COMPLETE_AP_ACTION_WORKERS, 
+  SupabaseFieldInspectorRow 
+} from '../../data/allDistrictsTeamData';
+import { 
+  AP_FIELD_INSPECTORS_ROSTER 
+} from '../../data/operationalRosterData';
+import { 
+  AP_26_DISTRICTS_MANDALS 
+} from '../../data/districtMandalsData';
+import { 
+  isDistrictMatch, 
+  isInspectorNameMatch 
+} from '../../utils/inspectorFilter';
+import { CitizenComplaint } from '../../types/nirikshan';
+import { saveComplaintToSupabase } from '../../lib/supabase';
 import { 
   CheckCircle2, 
   Clock, 
@@ -53,13 +71,23 @@ import {
   Copy,
   CheckCheck,
   ShieldCheck,
-  Activity
+  Activity,
+  UserCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface NodalKanbanTasksViewProps {
   district: string;
   onUpdateTaskCount?: (openCount: number) => void;
+  complaints?: CitizenComplaint[];
+  onAssignInspectorToComplaint?: (
+    complaintId: string,
+    inspectorName: string,
+    inspectorPhone: string,
+    inspectorId?: string,
+    inspectorEmail?: string
+  ) => void;
+  onUpdateComplaint?: (updated: CitizenComplaint) => void;
 }
 
 type StageKey = 'all' | 'unassigned' | 'assigned' | 'in_progress' | 'under_verification' | 'verified_closed';
@@ -67,8 +95,57 @@ type StageKey = 'all' | 'unassigned' | 'assigned' | 'in_progress' | 'under_verif
 export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
   district,
   onUpdateTaskCount,
+  complaints = [],
+  onAssignInspectorToComplaint,
+  onUpdateComplaint,
 }) => {
-  const [tasks, setTasks] = useState<NodalKanbanTask[]>(INITIAL_NODAL_TASKS);
+  const [tasks, setTasks] = useState<NodalKanbanTask[]>(() => {
+    try {
+      const saved = localStorage.getItem('nir_nodal_tasks');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Sanitize & stamp district on legacy un-stamped tasks
+          const sanitized = parsed.map((t: NodalKanbanTask) => {
+            if (!t.district) {
+              const m = (t.mandal || '').toLowerCase();
+              if (m.includes('salur') || m.includes('kurupam') || m.includes('parvathipuram') || m.includes('palakonda') || m.includes('garugubilli') || m.includes('komarada')) {
+                return { ...t, district: 'Parvathipuram Manyam' };
+              }
+              return { ...t, district: 'Vizianagaram' };
+            }
+            if (t.district === 'Parvathipuram Manyam' && t.mandal.toLowerCase().includes('bobb')) {
+              return { ...t, mandal: 'Garugubilli', village: 'Thotapalli Barrage' };
+            }
+            return t;
+          });
+          return sanitized;
+        }
+      }
+    } catch {}
+    return INITIAL_NODAL_TASKS;
+  });
+
+  // Ensure current district tasks exist in state; if not, generate & append
+  useEffect(() => {
+    setTasks((prev) => {
+      const hasDistrict = prev.some((t) => isDistrictMatch(t.district || '', district));
+      if (hasDistrict) return prev;
+      const initialDistrictTasks = getDistrictInitialKanbanTasks(district);
+      const updated = [...prev, ...initialDistrictTasks];
+      try {
+        localStorage.setItem('nir_nodal_tasks', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, [district]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nir_nodal_tasks', JSON.stringify(tasks));
+    } catch {}
+  }, [tasks]);
+
   const [viewMode, setViewMode] = useState<'queue' | 'board' | 'table'>('queue');
   const [selectedStage, setSelectedStage] = useState<StageKey>('all');
   const [selectedMandal, setSelectedMandal] = useState<string>('all');
@@ -79,28 +156,109 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 8;
 
+  // Reset filters immediately whenever switching district
+  useEffect(() => {
+    setSelectedMandal('all');
+    setSelectedStage('all');
+    setSelectedSource('all');
+    setSelectedPriority('all');
+    setSearchQuery('');
+    setOnlyOverdue(false);
+    setCurrentPage(1);
+  }, [district]);
+
   // Modal States
   const [assigningTask, setAssigningTask] = useState<NodalKanbanTask | null>(null);
   const [inspectingTask, setInspectingTask] = useState<NodalKanbanTask | null>(null);
   const [copiedCoords, setCopiedCoords] = useState<boolean>(false);
 
+  // Dynamically obtain all registered Field Inspectors for this district
+  const districtInspectors = useMemo<SupabaseFieldInspectorRow[]>(() => {
+    const list: SupabaseFieldInspectorRow[] = COMPLETE_AP_FIELD_INSPECTORS.filter((insp) =>
+      isDistrictMatch(insp.district, district)
+    );
+    // Also include operational roster inspectors if not present
+    AP_FIELD_INSPECTORS_ROSTER.forEach((r) => {
+      if (isDistrictMatch(r.district, district)) {
+        if (!list.some((existing) => isInspectorNameMatch(existing.full_name, { full_name: r.name, inspector_id: r.id } as any))) {
+          list.push({
+            inspector_id: r.id,
+            full_name: r.name,
+            phone: r.phone,
+            email: r.email,
+            district: r.district,
+            mandal: r.assignedMandals[0] || 'Central',
+            nodal_officer_id: `NO-${district.slice(0, 3).toUpperCase()}-01`,
+            languages: 'Telugu/English',
+            status: 'Active',
+            meter_id: `TDS-${district.slice(0, 3).toUpperCase()}-101`,
+            meter_last_calibrated: '2026-04-10',
+            open_inspections: r.activeInspectionsCount || 2,
+            overdue_inspections: 0,
+            joined_on: '2025-10-01',
+          });
+        }
+      }
+    });
+    return list.length > 0 ? list : COMPLETE_AP_FIELD_INSPECTORS.slice(0, 5);
+  }, [district]);
+
+  // Dynamically obtain Action Workers / Remediation Crews for this district
+  const districtActionWorkers = useMemo(() => {
+    const list = COMPLETE_AP_ACTION_WORKERS.filter((w) =>
+      isDistrictMatch(w.district, district)
+    );
+    if (list.length > 0) return list;
+    return COMPLETE_AP_ACTION_WORKERS.slice(0, 5);
+  }, [district]);
+
   // Assign Modal Form Inputs
   const [priorityOverride, setPriorityOverride] = useState<string>('Critical (Priority 1) - Mandated 48h SLA');
   const [overrideReason, setOverrideReason] = useState<string>('');
-  const [selectedWorker, setSelectedWorker] = useState<string>('T. Anandhan (Action Worker - Bobbili / Salur) • 2 active tasks');
+  const [selectedInspectorId, setSelectedInspectorId] = useState<string>('');
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string>('');
+  const [nodalInstructions, setNodalInstructions] = useState<string>('');
 
-  // Dynamically extract mandals from available tasks
+  // Auto-initialize selections whenever assigningTask changes
+  useEffect(() => {
+    if (assigningTask) {
+      const defaultInsp = districtInspectors[0];
+      setSelectedInspectorId(defaultInsp ? defaultInsp.inspector_id : '');
+      const defaultWorker = districtActionWorkers[0];
+      setSelectedWorkerId(defaultWorker ? defaultWorker.worker_id : '');
+      setPriorityOverride(
+        assigningTask.priority.includes('Critical') 
+          ? 'Critical (Priority 1) - Mandated 48h SLA' 
+          : 'High Priority (Level 2) - Mandated 72h SLA'
+      );
+      setNodalInstructions('Urgent physical site verification ordered under 24h statutory APWRIMS directive. Perform GPS cross-check, capture 4 guided angle photos, and measure TDS water quality before authorizing civil work.');
+    }
+  }, [assigningTask, districtInspectors, districtActionWorkers]);
+
+  // STRICT DATA ISOLATION: Current district's tasks only
+  const currentDistrictTasks = useMemo(() => {
+    return tasks.filter((t) => isDistrictMatch(t.district || 'Vizianagaram', district));
+  }, [tasks, district]);
+
+  // Dynamically extract mandals strictly for THIS district
   const availableMandals = useMemo(() => {
-    const set = new Set<string>();
-    tasks.forEach((t) => {
-      if (t.mandal) set.add(t.mandal);
-    });
-    return Array.from(set).sort();
-  }, [tasks]);
+    const officialMandals = AP_26_DISTRICTS_MANDALS[district] || [];
+    const fromTasks = currentDistrictTasks.map((t) => t.mandal).filter(Boolean);
+    const combined = Array.from(new Set([...officialMandals, ...fromTasks]))
+      .filter((m) => {
+        // Strict boundary: Bobbili ONLY belongs to Vizianagaram
+        if (m.toLowerCase() === 'bobbili' && !isDistrictMatch(district, 'Vizianagaram')) return false;
+        // Salur / Kurupam ONLY belongs to Parvathipuram Manyam
+        if ((m.toLowerCase() === 'salur' || m.toLowerCase() === 'kurupam') && isDistrictMatch(district, 'Vizianagaram')) return false;
+        return true;
+      })
+      .sort();
+    return combined;
+  }, [district, currentDistrictTasks]);
 
-  // Filtered Tasks (Global query, mandal, source, priority, overdue)
+  // Filtered Tasks (Global query, mandal, source, priority, overdue) scoped strictly to this district
   const baseFilteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
+    return currentDistrictTasks.filter((t) => {
       const q = searchQuery.trim().toLowerCase();
       const matchesSearch =
         !q ||
@@ -119,7 +277,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
 
       return matchesSearch && matchesMandal && matchesSource && matchesPriority && matchesOverdue;
     });
-  }, [tasks, selectedMandal, selectedSource, selectedPriority, onlyOverdue, searchQuery]);
+  }, [currentDistrictTasks, selectedMandal, selectedSource, selectedPriority, onlyOverdue, searchQuery]);
 
   // Derived Stage Subsets
   const unassignedTasks = useMemo(() => baseFilteredTasks.filter((t) => t.stage === 'unassigned'), [baseFilteredTasks]);
@@ -172,29 +330,129 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
     setCurrentPage(1);
   };
 
-  // Handle Assign Work Order Submit
-  const handleConfirmAssignWorkOrder = (e: React.FormEvent) => {
+  // Handle Assign Work Order Submit (Synchronized directly with Field Inspector Workstation)
+  const handleConfirmAssignWorkOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningTask) return;
 
-    const workerName = selectedWorker.split(' (')[0];
+    const chosenInspector = districtInspectors.find((i) => i.inspector_id === selectedInspectorId) || districtInspectors[0];
+    const chosenWorker = districtActionWorkers.find((w) => w.worker_id === selectedWorkerId) || districtActionWorkers[0];
+
+    const inspectorName = chosenInspector ? chosenInspector.full_name : 'Designated Field Inspector';
+    const inspectorPhone = chosenInspector ? chosenInspector.phone : '+91 94405 66778';
+    const inspectorId = chosenInspector?.inspector_id;
+    const inspectorEmail = chosenInspector?.email;
+
+    const workerName = chosenWorker ? (chosenWorker.name_or_crew || chosenWorker.contact_person) : 'Action Remediation Unit';
+    const workerPhone = chosenWorker ? chosenWorker.phone : '+91 95400 11223';
+    const workerRole = chosenWorker ? `${chosenWorker.type} Lead` : 'Action Worker / Crew Lead';
+
+    // 1. Update internal task in Nodal Kanban board
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === assigningTask.id) {
           return {
             ...t,
             stage: 'assigned',
+            verificationInspectorName: inspectorName,
             assignedWorkerName: workerName,
-            assignedWorkerPhone: '+91 95400 11223',
-            assignedWorkerRole: 'Action Worker / Crew Lead',
-            slaTimerText: 'Due in 48 hours',
+            assignedWorkerPhone: workerPhone,
+            assignedWorkerRole: workerRole,
+            slaTimerText: 'Due in 24 hours (Inspector Site Verification Active)',
+            remedialNotes: nodalInstructions || t.remedialNotes,
           };
         }
         return t;
       })
     );
 
-    confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+    const nextTasks = tasks.map((t) => {
+      if (t.id === assigningTask.id) {
+        return {
+          ...t,
+          stage: 'assigned' as const,
+          verificationInspectorName: inspectorName,
+          assignedWorkerName: workerName,
+          assignedWorkerPhone: workerPhone,
+          assignedWorkerRole: workerRole,
+          slaTimerText: 'Due in 24 hours (Inspector Site Verification Active)',
+          remedialNotes: nodalInstructions || t.remedialNotes,
+        };
+      }
+      return t;
+    });
+
+    setTasks(nextTasks);
+    try {
+      localStorage.setItem('nir_nodal_tasks', JSON.stringify(nextTasks));
+    } catch {}
+
+    // 2. Sync to citizen complaints & Field Inspector Workstation
+    const targetComplaintId = assigningTask.sourceRefId || assigningTask.id;
+    const existingComplaint = complaints?.find(
+      (c) => c.id === assigningTask.sourceRefId || c.id === assigningTask.id
+    );
+
+    const updatedComplaint: CitizenComplaint = existingComplaint
+      ? {
+          ...existingComplaint,
+          status: 'INSPECTOR_ASSIGNED',
+          district: chosenInspector?.district || existingComplaint.district || district,
+          assignedInspector: inspectorName,
+          assignedInspectorId: inspectorId,
+          assignedInspectorPhone: inspectorPhone,
+          assignedInspectorEmail: inspectorEmail,
+          assignedInspectorAt: new Date().toISOString(),
+          assignedEngineer: workerName,
+          assignedEngineerPhone: workerPhone,
+        }
+      : {
+          id: targetComplaintId,
+          district: chosenInspector?.district || district,
+          mandal: assigningTask.mandal,
+          village: assigningTask.village || assigningTask.mandal,
+          locationLandmark: assigningTask.title,
+          shortDescription: assigningTask.description,
+          coordinates: assigningTask.coordinates,
+          submittedAt: new Date().toISOString(),
+          citizenName: 'Nodal Hydrology Assessment Cell',
+          citizenAge: 42,
+          citizenGender: 'Other',
+          citizenPhone: '+91 94400 00000',
+          assignedNodalOfficer: `District Nodal Officer (${district})`,
+          status: 'INSPECTOR_ASSIGNED',
+          wasteType: assigningTask.title,
+          photoUrl: assigningTask.beforePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
+          assignedInspector: inspectorName,
+          assignedInspectorId: inspectorId,
+          assignedInspectorPhone: inspectorPhone,
+          assignedInspectorEmail: inspectorEmail,
+          assignedInspectorAt: new Date().toISOString(),
+          assignedEngineer: workerName,
+          assignedEngineerPhone: workerPhone,
+        };
+
+    if (onUpdateComplaint) {
+      onUpdateComplaint(updatedComplaint);
+    }
+
+    if (onAssignInspectorToComplaint) {
+      onAssignInspectorToComplaint(
+        targetComplaintId,
+        inspectorName,
+        inspectorPhone,
+        inspectorId,
+        inspectorEmail
+      );
+    }
+
+    try {
+      await saveComplaintToSupabase(updatedComplaint);
+    } catch (err) {
+      console.warn('Could not sync to Supabase:', err);
+    }
+
+    confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
     setAssigningTask(null);
   };
 
@@ -665,7 +923,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
           {/* Result Count and Clear Filters */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="font-mono text-[11px] text-slate-500">
-              Showing <strong>{stageFilteredTasks.length}</strong> of {tasks.length} items
+              Showing <strong>{stageFilteredTasks.length}</strong> of {currentDistrictTasks.length} items ({district})
             </span>
             {(searchQuery || selectedMandal !== 'all' || selectedSource !== 'all' || selectedPriority !== 'all' || onlyOverdue || selectedStage !== 'all') && (
               <button
@@ -1400,27 +1658,99 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                 </div>
               </div>
 
-              {/* Assignee Field Worker */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="font-bold text-slate-700">Assignee Field Worker</label>
-                  <span className="text-[10px] text-[#0077b6] font-bold">3 Eligible in Zone</span>
+              {/* 1. MANDATORY: Designated Field Inspector */}
+              <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-3.5 space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <label className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-[#0077b6]" />
+                    <span>Designated Field Inspector (Statutory Verifier)</span>
+                  </label>
+                  <span className="text-[10px] font-mono font-bold bg-[#0077b6] text-white px-2 py-0.5 rounded-full">
+                    {districtInspectors.length} in {district}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600 leading-tight">
+                  Selected officer receives this assignment immediately on their <strong>Field Inspector Workstation</strong> for physical GPS ground audit & TDS test.
+                </p>
+
+                <select
+                  value={selectedInspectorId}
+                  onChange={(e) => setSelectedInspectorId(e.target.value)}
+                  className="w-full p-2.5 border border-sky-300 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-[#0077b6] outline-none text-slate-800"
+                  required
+                >
+                  {districtInspectors.map((insp) => (
+                    <option key={insp.inspector_id} value={insp.inspector_id}>
+                      {insp.full_name} ({insp.meter_id || 'TDS Probes'} • {insp.mandal} • {insp.open_inspections} active)
+                    </option>
+                  ))}
+                </select>
+
+                {/* Selected Inspector Badge Card */}
+                {(() => {
+                  const activeInsp = districtInspectors.find((i) => i.inspector_id === selectedInspectorId) || districtInspectors[0];
+                  if (!activeInsp) return null;
+                  return (
+                    <div className="p-2.5 bg-white rounded-xl border border-sky-200/90 flex items-center justify-between gap-2 text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-sky-100 text-[#0077b6] font-bold text-xs flex items-center justify-center shrink-0">
+                          {activeInsp.full_name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <strong className="text-slate-900 block leading-tight">{activeInsp.full_name}</strong>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {activeInsp.inspector_id} • {activeInsp.phone}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                        Workstation Active
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* 2. Assignee Action Worker / Contractor Crew */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Assignee Remediation Crew / Contractor Lead</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {districtActionWorkers.length} available
+                  </span>
                 </div>
                 <select
-                  value={selectedWorker}
-                  onChange={(e) => setSelectedWorker(e.target.value)}
+                  value={selectedWorkerId}
+                  onChange={(e) => setSelectedWorkerId(e.target.value)}
                   className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold bg-slate-50 focus:bg-white outline-none focus:ring-1 focus:ring-blue-500"
                 >
-                  <option value="T. Anandhan (Action Worker - Bobbili / Salur) • 2 active tasks">
-                    T. Anandhan (Action Worker - Bobbili / Salur) • 2 active tasks
-                  </option>
-                  <option value="S. Muralidhar (Bund Maintenance Lead) • 4 active tasks">
-                    S. Muralidhar (Bund Maintenance Lead) • 4 active tasks
-                  </option>
-                  <option value="K. Satyanarayana (Sanitation Specialist) • 1 active task">
-                    K. Satyanarayana (Sanitation Specialist) • 1 active task
-                  </option>
+                  {districtActionWorkers.map((w) => {
+                    const name = w.name_or_crew || w.contact_person;
+                    return (
+                      <option key={w.worker_id} value={w.worker_id}>
+                        {name} ({w.type} • {w.service_areas || w.district})
+                      </option>
+                    );
+                  })}
                 </select>
+              </div>
+
+              {/* 3. Nodal Official Instructions / SLA Directive */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">
+                  Nodal Officer SLA Directive / Instructions:
+                </label>
+                <textarea
+                  rows={2}
+                  value={nodalInstructions}
+                  onChange={(e) => setNodalInstructions(e.target.value)}
+                  placeholder="Official instructions for the field inspector..."
+                  className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white outline-none focus:ring-1 focus:ring-blue-500 resize-none font-medium text-slate-700"
+                />
               </div>
 
               {/* Modal Buttons */}
@@ -1434,10 +1764,10 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#0077b6] hover:bg-[#023e8a] text-white font-bold rounded-xl shadow-xs flex items-center gap-2 cursor-pointer active:scale-95"
+                  className="px-5 py-2.5 bg-[#0077b6] hover:bg-[#023e8a] text-white font-bold rounded-xl shadow-xs flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Assign & Dispatch via SMS</span>
+                  <ShieldCheck className="w-4 h-4 text-emerald-300" />
+                  <span>Assign & Dispatch to Field Inspector</span>
                 </button>
               </div>
             </form>

@@ -18,6 +18,10 @@ export interface ScheduledInspectionTask {
   photoPromptRequired?: string;
   citizenComplaintId?: string;
   coordinates: { lat: number; lng: number };
+  mandal?: string;
+  district?: string;
+  citizenName?: string;
+  citizenPhone?: string;
 }
 
 export interface VerificationReadingMetric {

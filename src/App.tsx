@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   UserRoleType, 
   WaterBody, 
@@ -18,6 +18,7 @@ import {
   INITIAL_CITIZEN_COMPLAINTS,
   SAMPLE_CITIZEN_COMPLAINTS
 } from './data/nirikshanData';
+import { SupabaseFieldInspectorRow } from './data/allDistrictsTeamData';
 import { NirikshanHeader } from './components/NirikshanHeader';
 import { NirikshanSlideDrawer } from './components/NirikshanSlideDrawer';
 import { OtpLoginModal } from './components/OtpLoginModal';
@@ -75,7 +76,9 @@ export default function App() {
           ]);
           const cleaned = parsed.filter(c => c && c.id && !legacyMockIds.has(c.id));
           if (cleaned.length > 0) {
-            return cleaned;
+            const existingIds = new Set(cleaned.map(c => c.id));
+            const missing = SAMPLE_CITIZEN_COMPLAINTS.filter(s => !existingIds.has(s.id));
+            return [...cleaned, ...missing];
           }
         }
       }
@@ -200,6 +203,27 @@ export default function App() {
     };
   }, []);
 
+  const [inspectorNavKey, setInspectorNavKey] = useState<number>(0);
+  const [inspectorViewInfo, setInspectorViewInfo] = useState<{
+    isDirectory: boolean;
+    inspector: SupabaseFieldInspectorRow | null;
+  }>({ isDirectory: true, inspector: null });
+
+  const handleInspectorViewChange = useCallback(
+    (view: { isDirectory: boolean; inspector: SupabaseFieldInspectorRow | null }) => {
+      setInspectorViewInfo((prev) => {
+        if (
+          prev.isDirectory === view.isDirectory &&
+          prev.inspector?.inspector_id === view.inspector?.inspector_id
+        ) {
+          return prev;
+        }
+        return view;
+      });
+    },
+    []
+  );
+
   // Role selection logic with auth gate
   const handleSelectRole = (role: UserRoleType) => {
     // If not logged in and choosing any protected dashboard, prompt OTP login modal
@@ -211,7 +235,16 @@ export default function App() {
     if (role === 'nodal') {
       setSelectedNodalDistrict('');
     }
+    if (role === 'inspector') {
+      setInspectorNavKey((prev) => prev + 1);
+      setInspectorViewInfo({ isDirectory: true, inspector: null });
+    }
     setCurrentRole(role);
+  };
+
+  const handleReturnToInspectorDirectory = () => {
+    setInspectorNavKey((prev) => prev + 1);
+    setInspectorViewInfo({ isDirectory: true, inspector: null });
   };
 
   const handleOtpLoginSuccess = (userData: { name: string; phone: string }) => {
@@ -283,24 +316,65 @@ export default function App() {
   const handleAssignInspector = (
     complaintId: string,
     inspectorName: string,
-    inspectorPhone: string
+    inspectorPhone: string,
+    inspectorId?: string,
+    inspectorEmail?: string
   ) => {
     let targetComplaint: CitizenComplaint | null = null;
-    setComplaints((prev) =>
-      prev.map((c) => {
-        if (c.id === complaintId) {
-          const updated: CitizenComplaint = {
-            ...c,
-            status: 'INSPECTOR_ASSIGNED',
-            assignedInspector: inspectorName,
-            assignedInspectorPhone: inspectorPhone,
-          };
-          targetComplaint = updated;
-          return updated;
-        }
-        return c;
-      })
-    );
+    setComplaints((prev) => {
+      const exists = prev.some((c) => c.id === complaintId);
+      let next: CitizenComplaint[];
+      if (exists) {
+        next = prev.map((c) => {
+          if (c.id === complaintId) {
+            const updated: CitizenComplaint = {
+              ...c,
+              status: 'INSPECTOR_ASSIGNED',
+              assignedInspector: inspectorName,
+              assignedInspectorPhone: inspectorPhone,
+              assignedInspectorId: inspectorId || c.assignedInspectorId,
+              assignedInspectorEmail: inspectorEmail || c.assignedInspectorEmail,
+              assignedInspectorAt: new Date().toISOString(),
+            };
+            targetComplaint = updated;
+            return updated;
+          }
+          return c;
+        });
+      } else {
+        const created: CitizenComplaint = {
+          id: complaintId,
+          district: 'Vizianagaram',
+          mandal: 'Central',
+          village: 'Assigned Work Order',
+          locationLandmark: `Water Asset (${complaintId})`,
+          shortDescription: `Task assigned by Nodal Officer to Field Inspector ${inspectorName}`,
+          coordinates: { lat: 18.1124, lng: 83.3956 },
+          submittedAt: new Date().toISOString(),
+          citizenName: 'Nodal Officer Dispatch Cell',
+          citizenAge: 40,
+          citizenGender: 'Other',
+          citizenPhone: '+91 94400 00000',
+          assignedNodalOfficer: 'District Nodal Officer',
+          status: 'INSPECTOR_ASSIGNED',
+          wasteType: 'Field Inspection Required',
+          photoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
+          assignedInspector: inspectorName,
+          assignedInspectorId: inspectorId,
+          assignedInspectorPhone: inspectorPhone,
+          assignedInspectorEmail: inspectorEmail,
+          assignedInspectorAt: new Date().toISOString(),
+        };
+        targetComplaint = created;
+        next = [created, ...prev];
+      }
+      try {
+        localStorage.setItem('nir_complaints', JSON.stringify(next));
+      } catch (e) {
+        console.error('Failed to sync updated complaints', e);
+      }
+      return next;
+    });
     if (targetComplaint) {
       saveComplaintToSupabase(targetComplaint);
     }
@@ -476,10 +550,11 @@ export default function App() {
     }
   };
 
-  // State Admin updates complaint / appends directive memo
+  // State Admin & Nodal updates complaint / appends directive memo
   const handleUpdateComplaint = (updated: CitizenComplaint) => {
     setComplaints((prev) => {
-      const next = prev.map((c) => (c.id === updated.id ? updated : c));
+      const exists = prev.some((c) => c.id === updated.id);
+      const next = exists ? prev.map((c) => (c.id === updated.id ? updated : c)) : [updated, ...prev];
       try {
         localStorage.setItem('nir_complaints', JSON.stringify(next));
       } catch (e) {
@@ -512,24 +587,63 @@ export default function App() {
             <div className="flex items-center gap-2 text-xs flex-wrap">
               <button 
                 onClick={() => setCurrentRole('overview')}
-                className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+                className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1.5 cursor-pointer transition-colors"
+                title={t('breadcrumbPortalHome')}
               >
-                <Globe className="w-3.5 h-3.5" />
+                <Globe className="w-3.5 h-3.5 text-[#0077B6]" />
                 <span>{t('breadcrumbPortalHome')}</span>
               </button>
               <span className="text-slate-300">/</span>
-              <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>
-                  {currentRole === 'inspector' ? t('breadcrumbInspector') : t('breadcrumbEngineer')}
+
+              {currentRole === 'inspector' ? (
+                inspectorViewInfo.isDirectory || !inspectorViewInfo.inspector ? (
+                  // Level 1: Field Inspector Directory
+                  <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>{t('breadcrumbInspectorDirectory', 'Field Inspector Directory')}</span>
+                  </span>
+                ) : (
+                  // Level 2: Inside Workstation for a specific inspector
+                  <>
+                    <button
+                      onClick={handleReturnToInspectorDirectory}
+                      className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Back to Field Inspector Directory"
+                    >
+                      <span>{t('breadcrumbInspectorDirectory', 'Field Inspector Directory')}</span>
+                    </button>
+                    <span className="text-slate-300">/</span>
+                    <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>
+                        Inspector {inspectorViewInfo.inspector.full_name} ({inspectorViewInfo.inspector.inspector_id})
+                      </span>
+                    </span>
+                  </>
+                )
+              ) : (
+                <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>{t('breadcrumbEngineer')}</span>
                 </span>
-              </span>
+              )}
             </div>
 
+            {/* Smart Back Button */}
             <button
-              onClick={() => setCurrentRole('overview')}
+              onClick={() => {
+                if (currentRole === 'inspector' && !inspectorViewInfo.isDirectory && inspectorViewInfo.inspector) {
+                  handleReturnToInspectorDirectory();
+                } else {
+                  setCurrentRole('overview');
+                }
+              }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
-              title="Back to Portal Home"
+              title={
+                currentRole === 'inspector' && !inspectorViewInfo.isDirectory && inspectorViewInfo.inspector
+                  ? 'Back to Field Inspector Directory'
+                  : 'Back to Portal Home'
+              }
             >
               <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
               <span>Back</span>
@@ -606,11 +720,13 @@ export default function App() {
         {/* 6. FIELD INSPECTOR MOBILE WORKSTATION */}
         {currentRole === 'inspector' && (
           <InspectorDashboard
+            key={`inspector-nav-${inspectorNavKey}`}
             complaints={complaints}
             waterBodies={waterBodies}
             onSubmitInspectionReport={handleSubmitInspectionReport}
             onSubmitPostWorkVerification={handleSubmitPostWorkVerification}
             onRegisterNewInspection={handleComplaintSubmitted}
+            onViewChange={handleInspectorViewChange}
           />
         )}
 
