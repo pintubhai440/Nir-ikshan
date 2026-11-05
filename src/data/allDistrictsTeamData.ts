@@ -1411,7 +1411,7 @@ export const COMPLETE_AP_ACTION_WORKERS: SupabaseActionWorkerRow[] = [
     availability: 'Busy',
     languages: 'Telugu;English',
     status: 'Active',
-    open_tasks: 5,
+    open_tasks: 1,
     tasks_declined: 0,
     no_response: 1,
     added_on: '2025-11-20',

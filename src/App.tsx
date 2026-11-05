@@ -526,15 +526,21 @@ export default function App() {
     let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
-        if (c.id !== complaintId || !c.workExecution) return c;
+        if (c.id !== complaintId) return c;
         const updated: CitizenComplaint = {
           ...c,
           status: 'WORKER_IN_PROGRESS',
           workExecution: {
-            ...c.workExecution,
+            id: c.workExecution?.id || `WE-${c.id.replace('CMP-AP-2026-', '')}`,
+            engineerName: c.workExecution?.engineerName || c.assignedEngineer || 'Action Worker',
+            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '+91 94402 33445',
+            assignedAt: c.workExecution?.assignedAt || c.assignedEngineerAt || new Date().toISOString(),
+            deadline: c.workExecution?.deadline || 'Today, 6:00 PM',
+            ...(c.workExecution || {}),
             status: 'ACCEPTED',
             beforePhotoUrl,
             startedAt: new Date().toISOString().slice(0, 10),
+            workSummary: c.workExecution?.workSummary || `Active on-site remediation commenced for ${c.locationLandmark}`,
           },
         };
         targetComplaint = updated;
@@ -546,16 +552,27 @@ export default function App() {
     }
   };
 
-  // 6. Engineer blocks task with reason
+  // 6. Engineer blocks / declines task with reason (returns to Nodal Officer pool for reassignment)
   const handleBlockTask = (complaintId: string, reason: string) => {
     let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
-        if (c.id !== complaintId || !c.workExecution) return c;
+        if (c.id !== complaintId) return c;
+        const previousWorker = c.assignedEngineer || c.workExecution?.engineerName || 'Action Worker';
         const updated: CitizenComplaint = {
           ...c,
+          status: 'INSPECTION_COMPLETED', // Returned to Nodal Officer queue for reassignment
+          assignedEngineer: undefined,
+          assignedEngineerId: undefined,
+          assignedEngineerPhone: undefined,
+          assignedEngineerAt: undefined,
           workExecution: {
-            ...c.workExecution,
+            id: c.workExecution?.id || `WE-${c.id.replace('CMP-AP-2026-', '')}`,
+            engineerName: `[Declined by ${previousWorker}]`,
+            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '+91 94402 33445',
+            assignedAt: c.workExecution?.assignedAt || c.assignedEngineerAt || new Date().toISOString(),
+            deadline: 'Reassignment Needed',
+            ...(c.workExecution || {}),
             status: 'BLOCKED',
             blockReason: reason,
           },
@@ -574,12 +591,17 @@ export default function App() {
     let targetComplaint: CitizenComplaint | null = null;
     setComplaints((prev) =>
       prev.map((c) => {
-        if (c.id !== complaintId || !c.workExecution) return c;
+        if (c.id !== complaintId) return c;
         const updated: CitizenComplaint = {
           ...c,
           status: 'VERIFICATION_PENDING',
           workExecution: {
-            ...c.workExecution,
+            id: c.workExecution?.id || `WE-${c.id.replace('CMP-AP-2026-', '')}`,
+            engineerName: c.workExecution?.engineerName || c.assignedEngineer || 'Action Worker',
+            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '+91 94402 33445',
+            assignedAt: c.workExecution?.assignedAt || c.assignedEngineerAt || new Date().toISOString(),
+            deadline: c.workExecution?.deadline || 'Completed',
+            ...(c.workExecution || {}),
             status: 'COMPLETED',
             afterPhotoUrl,
             workSummary,

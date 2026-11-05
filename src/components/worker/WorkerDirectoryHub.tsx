@@ -141,7 +141,13 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
   const busyCount = uniqueWorkers.filter((w) => (w.availability || '').toLowerCase() === 'busy').length;
   const engineerCount = uniqueWorkers.filter((w) => w.type === 'Engineer').length;
   const contractorCount = uniqueWorkers.filter((w) => w.type === 'Contractor').length;
-  const totalOpenTasks = uniqueWorkers.reduce((sum, w) => sum + (Number(w.open_tasks) || 0), 0);
+  const totalOpenTasks = complaints.filter(
+    (c) =>
+      c.status === 'ACTION_ASSIGNED' ||
+      c.status === 'WORKER_IN_PROGRESS' ||
+      c.workExecution?.status === 'PENDING_ACCEPTANCE' ||
+      c.workExecution?.status === 'ACCEPTED'
+  ).length;
 
   const getWorkerInitials = (worker: SupabaseActionWorkerRow): string => {
     const raw = worker.name_or_crew || worker.name_or_crew_type || worker.contact_person || 'WK';
@@ -328,7 +334,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
           const isAvailable = (worker.availability || 'Available').toLowerCase() === 'available';
           const isBusy = (worker.availability || '').toLowerCase() === 'busy';
 
-          // Live assigned complaints count for this specific worker
+          // Live assigned complaints count for this specific worker (100% real data)
           const assignedComplaints = complaints.filter((c) => isComplaintAssignedToWorker(c, worker));
           const urgentWorkCount = assignedComplaints.filter(
             (c) => c.status === 'ACTION_ASSIGNED' || c.workExecution?.status === 'PENDING_ACCEPTANCE'
@@ -336,7 +342,9 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
           const inProgressWorkCount = assignedComplaints.filter(
             (c) => c.status === 'WORKER_IN_PROGRESS' || c.workExecution?.status === 'ACCEPTED'
           ).length;
-          const totalAssignedOrCatalog = Math.max(worker.open_tasks || 0, assignedComplaints.length);
+          const completedWorkCount = assignedComplaints.filter(
+            (c) => c.status === 'VERIFICATION_PENDING' || c.status === 'RESOLVED' || c.workExecution?.status === 'COMPLETED'
+          ).length;
 
           return (
             <div
@@ -429,27 +437,27 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
 
                 {/* Workload Telemetry */}
                 <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                  <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-2.5">
+                  <div className={`border rounded-xl p-2.5 ${urgentWorkCount > 0 ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-50/80 border-slate-200/80'}`}>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 block">
                       Assigned Orders
                     </span>
                     <span className="text-lg font-black text-[#03045E]">
-                      {totalAssignedOrCatalog}
+                      {urgentWorkCount}
                     </span>
-                    <span className="text-[10px] text-blue-600 block">
-                      {urgentWorkCount > 0 ? `${urgentWorkCount} Awaiting Decision` : 'Queue Ready'}
+                    <span className="text-[10px] text-blue-600 block font-medium">
+                      {urgentWorkCount > 0 ? `${urgentWorkCount} Awaiting Decision` : 'Queue Empty'}
                     </span>
                   </div>
 
-                  <div className="bg-emerald-50/60 border border-emerald-100 text-emerald-700 rounded-xl p-2.5">
+                  <div className={`border rounded-xl p-2.5 ${inProgressWorkCount > 0 ? 'bg-emerald-50/80 border-emerald-200 text-emerald-700' : 'bg-slate-50/80 border-slate-200/80 text-slate-600'}`}>
                     <span className="text-[10px] uppercase font-bold tracking-wider block">
                       In-Progress Sites
                     </span>
                     <span className="text-lg font-black text-emerald-800">
                       {inProgressWorkCount}
                     </span>
-                    <span className="text-[10px] block">
-                      {inProgressWorkCount > 0 ? 'Active On-Field' : 'Ready For Dispatch'}
+                    <span className="text-[10px] block font-medium">
+                      {inProgressWorkCount > 0 ? `${inProgressWorkCount} Active On-Field` : 'Ready For Dispatch'}
                     </span>
                   </div>
                 </div>
