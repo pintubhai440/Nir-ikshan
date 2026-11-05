@@ -14,6 +14,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CitizenComplaint, WaterBody } from '../types/nirikshan';
 import { EngineerRealSatelliteMap } from './EngineerRealSatelliteMap';
+import { DistrictNodalSatelliteMap } from './nodal/DistrictNodalSatelliteMap';
 import { 
   Wrench, 
   MapPin, 
@@ -33,6 +34,7 @@ import {
   ArrowLeft, 
   ArrowRight, 
   ShieldCheck, 
+  ShieldAlert,
   ChevronRight, 
   Navigation, 
   HardHat, 
@@ -161,7 +163,13 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
         if (found) return found;
       }
     } catch {}
-    return COMPLETE_AP_ACTION_WORKERS[0];
+    const venkata = COMPLETE_AP_ACTION_WORKERS.find(
+      (w) =>
+        w.worker_id === 'wrk-vzm-01' ||
+        w.name_or_crew?.includes('Venkata Ramana') ||
+        w.contact_person?.includes('Venkata Ramana')
+    );
+    return venkata || COMPLETE_AP_ACTION_WORKERS[0];
   });
 
   // Sync selectedWorker if refreshed from live Supabase table
@@ -312,36 +320,11 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const beforeFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter complaints strictly isolated to this worker or their district (Zero fake data, zero duplicates)
+  // Strict 1-to-1 Worker Task Isolation (Zero Cross-Worker Leakage)
+  // Ek worker dusre worker ka koi bhi kaam nahi dekh sakta hai.
+  // Only complaints officially assigned to this specific worker by the Nodal Officer are visible.
   const workerComplaints = useMemo<CitizenComplaint[]>(() => {
-    // 1. Direct assignments to this worker
-    const directlyAssigned = complaints.filter((c: CitizenComplaint) => isComplaintAssignedToWorker(c, selectedWorker));
-    if (directlyAssigned.length > 0) {
-      return directlyAssigned;
-    }
-
-    // 2. District & Mandal matching complaints that need remediation
-    const districtTasks = complaints.filter(
-      (c: CitizenComplaint) =>
-        isDistrictMatch(c.district, selectedWorker.district) &&
-        (c.status === 'ACTION_ASSIGNED' ||
-         c.status === 'WORKER_IN_PROGRESS' ||
-         c.status === 'VERIFICATION_PENDING' ||
-         c.status === 'RESOLVED' ||
-         c.workExecution !== undefined)
-    );
-    if (districtTasks.length > 0) {
-      return districtTasks;
-    }
-
-    // 3. Fallback to all complaints that have remediation tasks, so worker can take action
-    return complaints.filter(
-      (c: CitizenComplaint) =>
-        c.status === 'ACTION_ASSIGNED' ||
-        c.status === 'WORKER_IN_PROGRESS' ||
-        c.status === 'VERIFICATION_PENDING' ||
-        c.workExecution !== undefined
-    );
+    return complaints.filter((c: CitizenComplaint) => isComplaintAssignedToWorker(c, selectedWorker));
   }, [complaints, selectedWorker]);
 
   // Dynamic Task Categorization
@@ -384,6 +367,14 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
     urgentTasks[0] ||
     inProgressTasks[0] ||
     workerComplaints[0];
+
+  const hasActiveRemediation =
+    inProgressTasks.length > 0 ||
+    Boolean(
+      activeComplaint &&
+        (activeComplaint.status === 'WORKER_IN_PROGRESS' ||
+          activeComplaint.workExecution?.status === 'ACCEPTED')
+    );
 
   // Auto-select first task if none selected
   useEffect(() => {
@@ -475,9 +466,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const targetLat = activeComplaint?.coordinates?.lat || 18.5721;
-  const targetLng = activeComplaint?.coordinates?.lng || 83.3644;
-  const targetTitle = activeComplaint?.locationLandmark || "Pedda Cheruvu Sluice Gate Complex";
+  const targetLat = activeComplaint?.coordinates?.lat ?? 18.1109;
+  const targetLng = activeComplaint?.coordinates?.lng ?? 83.4268;
+  const targetTitle = activeComplaint?.locationLandmark || "Champavathi River Basin Weir";
 
   const workerInitials = useMemo(() => {
     const raw = selectedWorker.name_or_crew || selectedWorker.name_or_crew_type || selectedWorker.contact_person || 'WK';
@@ -500,6 +491,81 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
       ? 'from-teal-600 to-cyan-800'
       : 'from-indigo-600 to-blue-800';
 
+  // Render Strict Task Isolation Shield when a worker has 0 orders assigned to them
+  const renderIsolationShield = () => (
+    <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-10 shadow-xs text-center space-y-5 max-w-2xl mx-auto my-4 animate-in fade-in duration-300">
+      <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto shadow-2xs">
+        <ShieldAlert className="w-8 h-8 text-amber-600" />
+      </div>
+
+      <div className="space-y-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300 text-xs font-black uppercase tracking-wider">
+          <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+          <span>Statutory 1-to-1 Worker Task Isolation (कार्य पृथक्करण नियम)</span>
+        </div>
+        <h2 className="text-lg sm:text-xl font-black text-slate-900">
+          No Work Orders Assigned to {selectedWorkerDisplayName}
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
+          <strong>सरकारी सुरक्षा नियम:</strong> एक वर्कर दूसरे वर्कर का कोई भी काम नहीं देख सकता ताकि फील्ड पर काम में कोई हस्तक्षेप या लापरवाही न हो। जिसे जिला नोडल अधिकारी (Nodal Officer) द्वारा आधिकारिक वर्क ऑर्डर जारी किया जाएगा, केवल उसी को अपने ऑर्डर्स दिखाई देंगे।
+        </p>
+      </div>
+
+      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2.5 text-xs">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <span className="text-slate-500 font-semibold">Logged-in Action Worker:</span>
+          <span className="font-mono font-bold text-slate-900">{selectedWorkerDisplayName}</span>
+        </div>
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <span className="text-slate-500 font-semibold">Worker Badge ID:</span>
+          <span className="font-mono font-bold text-[#0077B6] bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+            {selectedWorker.worker_id}
+          </span>
+        </div>
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <span className="text-slate-500 font-semibold">Assigned Jurisdiction:</span>
+          <span className="font-bold text-slate-800">{selectedWorker.district} Remediation Division</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-slate-500 font-semibold">Assigned Work Orders:</span>
+          <span className="font-mono font-bold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200">
+            0 Active Orders (Strictly Isolated &amp; Shielded)
+          </span>
+        </div>
+      </div>
+
+      <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button
+          onClick={() => {
+            const venkata = allWorkers.find(
+              (w) =>
+                w.worker_id === 'wrk-vzm-01' ||
+                w.name_or_crew?.includes('Venkata Ramana') ||
+                w.contact_person?.includes('Venkata Ramana')
+            );
+            if (venkata) {
+              setSelectedWorker(venkata);
+              try {
+                localStorage.setItem('nir_current_worker_id', venkata.worker_id);
+              } catch {}
+            }
+          }}
+          className="w-full sm:w-auto px-5 py-3 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 active:scale-98"
+        >
+          <Wrench className="w-4 h-4 text-sky-200" />
+          <span>Switch to Er. T. Venkata Ramana (Active Remediation Orders)</span>
+        </button>
+        <button
+          onClick={() => setIsSelectingWorker(true)}
+          className="w-full sm:w-auto px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-300 flex items-center justify-center gap-2"
+        >
+          <Users className="w-4 h-4 text-slate-600" />
+          <span>Open Full Worker Directory</span>
+        </button>
+      </div>
+    </div>
+  );
+
   // If in Directory selection mode, show the Directory Hub with flashcards for all workers across AP
   if (isSelectingWorker) {
     return (
@@ -508,6 +574,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
         complaints={complaints}
         selectedWorkerId={selectedWorker.worker_id}
         isSupabaseLive={isSupabaseLive}
+        onBack={() => setIsSelectingWorker(false)}
         onSelectWorker={(worker) => {
           setSelectedWorker(worker);
           setIsSelectingWorker(false);
@@ -554,6 +621,52 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
 
           {/* Right Side: Switch Worker, Device Switcher & Audio Briefing */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Quick 1-to-1 Worker Isolation Test Selector */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+              <button
+                onClick={() => {
+                  const venkata = allWorkers.find(
+                    (w) =>
+                      w.worker_id === 'wrk-vzm-01' ||
+                      w.name_or_crew?.includes('Venkata Ramana') ||
+                      w.contact_person?.includes('Venkata Ramana')
+                  );
+                  if (venkata) {
+                    setSelectedWorker(venkata);
+                    try { localStorage.setItem('nir_current_worker_id', venkata.worker_id); } catch {}
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedWorker.worker_id === 'wrk-vzm-01'
+                    ? 'bg-[#0077B6] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Er. T. Venkata Ramana (Has assigned remediation work orders)"
+              >
+                <Wrench className="w-3 h-3" />
+                <span>Er. T. Venkata Ramana (Active Orders)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const mw01 = allWorkers.find((w) => w.worker_id === 'MW-001') || allWorkers[1];
+                  if (mw01) {
+                    setSelectedWorker(mw01);
+                    try { localStorage.setItem('nir_current_worker_id', mw01.worker_id); } catch {}
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedWorker.worker_id !== 'wrk-vzm-01'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Crew MW-001 (0 Tasks - Demonstrates 1-to-1 Worker Task Isolation Shield)"
+              >
+                <ShieldCheck className="w-3 h-3" />
+                <span>Crew MW-001 (0 Orders - Shielded)</span>
+              </button>
+            </div>
+
             {/* Switch Worker Button */}
             <button
               onClick={() => setIsSelectingWorker(true)}
@@ -561,7 +674,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
               title="Return to Action Worker Directory Hub"
             >
               <Users className="w-3.5 h-3.5 text-slate-600" />
-              <span>Switch Worker ({selectedWorker.worker_id})</span>
+              <span>Full Directory ({selectedWorker.worker_id})</span>
             </button>
 
             {/* Device Switcher Toggle */}
@@ -742,6 +855,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
       {/* 2. TAB 1: ASSIGNED WORK ORDERS (DECISION & REVIEW FLOW)         */}
       {/* ============================================================== */}
       {activeTab === 'assigned' && (
+        workerComplaints.length === 0 ? (
+          renderIsolationShield()
+        ) : (
         <div className="space-y-4">
           
           {/* Subview: Overview List of Work Orders */}
@@ -768,90 +884,156 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Task Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Task Cards Container - Full Width & Zero Gaps */}
+              <div className={urgentTasks.length === 1 ? 'w-full' : 'grid grid-cols-1 lg:grid-cols-2 gap-5'}>
                 {urgentTasks.map((task) => {
+                  const isSingle = urgentTasks.length === 1;
+                  const photoSrc = task.photoUrl || task.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=800&auto=format&fit=crop';
+
                   return (
                     <div
                       key={task.id}
-                      className="bg-white border-2 border-slate-200 hover:border-[#0077B6] rounded-3xl p-5 shadow-xs transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group"
+                      className="bg-white border-2 border-slate-200 hover:border-[#0077B6] rounded-3xl p-6 sm:p-7 shadow-xs hover:shadow-md transition-all relative overflow-hidden group w-full"
                     >
                       {/* Left colored urgency accent */}
-                      <div className="absolute top-0 left-0 bottom-0 w-2 bg-rose-500" />
+                      <div className="absolute top-0 left-0 bottom-0 w-2.5 bg-rose-500" />
 
-                      <div className="pl-1 space-y-3">
-                        {/* Header Badge */}
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
-                            Late / Urgent
-                          </span>
-                          <span className="text-[11px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md">
-                            Reply in: {formatCountdown(secondsRemaining)}
-                          </span>
+                      <div className={isSingle ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 pl-1 sm:pl-2' : 'space-y-4 pl-1'}>
+                        {/* Dossier Left Section */}
+                        <div className={isSingle ? 'lg:col-span-7 space-y-4' : 'space-y-3'}>
+                          {/* Header Badge Bar */}
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+                                <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                                <span>High Priority • Urgent Action</span>
+                              </span>
+                              <span className="text-[11px] font-mono font-bold text-[#0077B6] bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                                {task.id}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-mono font-extrabold text-amber-900 bg-amber-50 border border-amber-300 px-3 py-1 rounded-xl shadow-2xs">
+                              <Clock className="w-3.5 h-3.5 text-amber-700" />
+                              <span>SLA Window: {formatCountdown(secondsRemaining)}</span>
+                            </div>
+                          </div>
+
+                          {/* Title & Description */}
+                          <div>
+                            <span className="text-[11px] font-black uppercase tracking-wider text-[#0077B6] block">
+                              {task.wasteType || 'Micro-Watershed Desilting & Channel Restoration'}
+                            </span>
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight mt-1">
+                              {task.locationLandmark || 'Champavathi River Basin Weir'}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-semibold mt-1.5">
+                              <span className="flex items-center gap-1 text-slate-700">
+                                <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                <span>{task.village ? `${task.village}, ` : ''}{task.mandal || 'Bhogapuram'} Mandal ({task.district || 'Vizianagaram'})</span>
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-mono text-slate-600">
+                                GPS: {task.coordinates?.lat?.toFixed(4) || '18.1109'}° N, {task.coordinates?.lng?.toFixed(4) || '83.4268'}° E
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Citizen Grievance Quote Box */}
+                          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                                Citizen Complainant (आम नागरिक)
+                              </span>
+                              <span className="font-bold text-slate-800">
+                                {task.citizenName || 'Anjana'} (Age {task.citizenAge || 32}) • <a href={`tel:${task.citizenPhone || '9440512345'}`} className="text-[#0077B6] font-mono hover:underline">{task.citizenPhone || '9440512345'}</a>
+                              </span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-slate-800 font-medium italic leading-relaxed bg-white p-3 rounded-xl border border-slate-200/80">
+                              "{task.shortDescription || 'Plastic bottles aur domestic runoff se weir channel choke ho raha hai. Water flow completely blocked near agricultural weir.'}"
+                            </p>
+                          </div>
+
+                          {/* 4-Role Chain of Custody Summary */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                            <div className="bg-sky-50/70 border border-sky-200/80 rounded-xl p-2.5 space-y-0.5">
+                              <span className="text-[10px] uppercase font-bold text-sky-700 block">Nodal Officer</span>
+                              <span className="font-bold text-slate-900 block truncate">{task.assignedNodalOfficer || 'Dr. N. Subba Rao'}</span>
+                              <span className="text-[10px] text-emerald-700 font-semibold block">Triage: 2.4h</span>
+                            </div>
+                            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 space-y-0.5">
+                              <span className="text-[10px] uppercase font-bold text-amber-800 block">Field Inspector</span>
+                              <span className="font-bold text-slate-900 block truncate">{task.assignedInspector || 'Sri K. Rama Krishna'}</span>
+                              <span className="text-[10px] text-amber-700 font-semibold block">Verified</span>
+                            </div>
+                            <div className="col-span-2 sm:col-span-1 bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5 space-y-0.5">
+                              <span className="text-[10px] uppercase font-bold text-emerald-800 block">Assigned Crew</span>
+                              <span className="font-bold text-slate-900 block truncate">{selectedWorkerDisplayName}</span>
+                              <span className="text-[10px] text-emerald-700 font-semibold block">1x JCB &amp; 4 Workers</span>
+                            </div>
+                          </div>
                         </div>
 
-                        {/* Title & Description */}
-                        <div>
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0077B6]">
-                            Desilting & Silt Clear
-                          </span>
-                          <h3 className="text-base font-black text-slate-900 leading-snug mt-0.5">
-                            {task.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex'}
-                          </h3>
-                          <p className="text-xs text-slate-600 mt-1 line-clamp-2">
-                            {task.shortDescription || 'Mud and weed blocking water gate. Backhoe digger needed.'}
-                          </p>
-                        </div>
+                        {/* Dossier Right Section */}
+                        <div className={isSingle ? 'lg:col-span-5 flex flex-col justify-between space-y-4' : 'space-y-3 pt-2 border-t border-slate-100'}>
+                          {/* Evidence Photo Preview */}
+                          <div
+                            onClick={() => setEnlargedPhoto({ url: photoSrc, title: `Field Evidence: ${task.locationLandmark}` })}
+                            className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video group/photo cursor-pointer shadow-xs bg-slate-900"
+                          >
+                            <img
+                              src={photoSrc}
+                              alt="Field Evidence"
+                              className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1 shadow-2xs">
+                              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                              <span>Field Audit Evidence</span>
+                            </div>
+                            <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-black/80 backdrop-blur-md text-white text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center justify-between">
+                              <span>GPS: {task.coordinates?.lat?.toFixed(4) || '18.1109'}, {task.coordinates?.lng?.toFixed(4) || '83.4268'}</span>
+                              <span className="text-sky-300 font-bold flex items-center gap-1">
+                                <Maximize2 className="w-3 h-3" />
+                                Inspect
+                              </span>
+                            </div>
+                          </div>
 
-                        {/* Evidence Photo Preview */}
-                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video group/photo">
-                          <img
-                            src={task.photoUrl || task.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80'}
-                            alt="Field Evidence"
-                            className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-lg border border-white/20">
-                            Water Level: 1.8m High
-                          </div>
-                          <div className="absolute bottom-2 left-2 bg-rose-600/90 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-lg">
-                            Field Audit Evidence
+                          {/* Audio Briefing */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              speakText(
+                                `Work Order for ${selectedWorkerDisplayName}. Location: ${task.locationLandmark || 'Champavathi River Basin Weir'}. Problem: ${task.shortDescription}. Assigned team: 1 JCB and 4 workers. Deadline: Today 5 PM.`
+                              )
+                            }
+                            className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <Volume2 className="w-4 h-4 text-[#0077B6]" />
+                            <span>Listen to Work Order (Audio Memo)</span>
+                          </button>
+
+                          {/* Decision Action Buttons */}
+                          <div className="space-y-2 pt-1">
+                            <button
+                              onClick={() => handleOpenTaskForReview(task)}
+                              className="w-full py-3.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-98"
+                            >
+                              <span>Open Task &amp; Accept Work Order</span>
+                              <ArrowRight className="w-4 h-4 text-sky-200" />
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setSelectedComplaintId(task.id);
+                                handleOpenDeclineReason();
+                              }}
+                              className="w-full py-2.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                              <span>Decline with Reason (Reassign)</span>
+                            </button>
                           </div>
                         </div>
-
-                        {/* Location & Time */}
-                        <div className="space-y-1 text-xs text-slate-500 font-semibold pt-1">
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                            <span>{task.mandal || 'Bobbili'} Mandal • 1.4 km away</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-slate-700">
-                            <Clock className="w-3.5 h-3.5 text-amber-600" />
-                            <span>Complete by Today, 5:00 PM</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 pl-1">
-                        <button
-                          onClick={() =>
-                            speakText(
-                              `Work Order: ${task.locationLandmark}. Clear heavy silt and tree branches blocking the sluice gate. Estimated team: 3 to 4 workers.`
-                            )
-                          }
-                          className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Volume2 className="w-3.5 h-3.5 text-slate-600" />
-                          <span>Listen</span>
-                        </button>
-                        <button
-                          onClick={() => handleOpenTaskForReview(task)}
-                          className="px-3 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
-                        >
-                          <span>Open Task</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     </div>
                   );
@@ -993,10 +1175,10 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                       Work Site Location
                     </span>
                     <h4 className="text-base font-black text-slate-900 mt-0.5">
-                      {activeComplaint.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex, Bobbili'}
+                      {activeComplaint.locationLandmark || 'Champavathi River Basin Weir'}
                     </h4>
                     <span className="text-xs text-slate-500 font-mono">
-                      Asset Code: AP-VZ-BOB-042 • Cadastral Parcel #89/2
+                      Asset Code: {activeComplaint.id || 'AP-VZ-CHAMP-001'} • {activeComplaint.mandal || 'Bhogapuram'} Sector
                     </span>
                   </div>
                 </div>
@@ -1007,8 +1189,8 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                     lat={targetLat}
                     lng={targetLng}
                     title={targetTitle}
-                    assetCode="AP-VZ-BOB-042"
-                    mandal={activeComplaint.mandal || 'Bobbili'}
+                    assetCode={activeComplaint.id || "AP-VZ-CHAMP-001"}
+                    mandal={activeComplaint.mandal || 'Bhogapuram'}
                     heightClass="h-44"
                   />
                 </div>
@@ -1233,10 +1415,10 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                     Water Recharge Asset
                   </span>
                   <h3 className="text-base font-black text-slate-900 mt-0.5">
-                    {activeComplaint.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex'}
+                    {activeComplaint.locationLandmark || 'Champavathi River Basin Weir'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Bobbili Mandal • Cadastral Parcel #89/2
+                    {activeComplaint.mandal || 'Bhogapuram'} Mandal • {activeComplaint.village || 'Champavathi Basin'}
                   </p>
                 </div>
                 <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-center shadow-2xs">
@@ -1388,12 +1570,158 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             </div>
           )}
         </div>
+        )
       )}
 
       {/* ============================================================== */}
       {/* 3. TAB 2: IN-PROGRESS REMEDIATION (ACTIVE EXECUTION SCREEN)    */}
       {/* ============================================================== */}
       {activeTab === 'in_progress' && (
+        !hasActiveRemediation ? (
+          <div className="max-w-3xl mx-auto space-y-5 animate-in fade-in duration-200">
+            {/* Remediation Crew Standby Terminal */}
+            <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 text-[#0077B6] flex items-center justify-center">
+                    <Wrench className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base sm:text-lg font-black text-slate-900">
+                        Remediation Operations Readiness &amp; Standby
+                      </h3>
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live Field Ready
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {selectedWorkerDisplayName} • {selectedWorker.district} Remediation Circle
+                    </p>
+                  </div>
+                </div>
+                <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200">
+                  Unit: {selectedWorker.worker_id}
+                </span>
+              </div>
+
+              {/* Status explanation */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-[#0077B6]" />
+                  <span>Current Operational Status: Awaiting Active Remediation Trigger</span>
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  No statutory work order is currently actively undergoing physical excavation by this crew. 
+                  {urgentTasks.length > 0 
+                    ? ` You have ${urgentTasks.length} assigned work order(s) waiting for acceptance in Tab 1.`
+                    : ` When the ${selectedWorker.district} District Nodal Officer assigns an emergency or desilting order to ${selectedWorker.name_or_crew}, it will appear directly in Tab 1.`}
+                </p>
+              </div>
+
+              {/* Equipment Roster Grid */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                  Remediation Equipment &amp; Crew Readiness Roster
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                        <HardHat className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900">Excavator / JCB 3DX</div>
+                        <div className="text-[11px] text-slate-500">Hydraulics Checked • Fuel 94%</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Operational
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold">
+                        <Droplets className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900">Slurry Suction Pump</div>
+                        <div className="text-[11px] text-slate-500">15 HP 3-Phase Submersible</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Mounted
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900">Trained Field Personnel</div>
+                        <div className="text-[11px] text-slate-500">{workerCount} Operatives + 1 Supervisor</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      On Standby
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <ShieldCheck className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900">Safety PPE &amp; Harnesses</div>
+                        <div className="text-[11px] text-slate-500">High-Vis Vests, Waders, First Aid</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Certified
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                {urgentTasks.length > 0 ? (
+                  <button
+                    onClick={() => {
+                      setActiveTab('assigned');
+                      setDecisionSubView('overview');
+                    }}
+                    className="w-full sm:w-auto px-5 py-3 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Clock className="w-4 h-4" />
+                    <span>Review &amp; Accept Assigned Task in Tab 1 ➔</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setActiveTab('map')}
+                    className="w-full sm:w-auto px-5 py-3 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>Open {selectedWorker.district} GIS Cadastral Map (Tab 4) ➔</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setIsSelectingWorker(true)}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-200 flex items-center justify-center gap-2"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Switch Action Worker</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
         <div className="max-w-2xl mx-auto space-y-4">
           
           {/* Active Work Order Card (Matching image_92871c93.png) */}
@@ -1406,7 +1734,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                   Active Task Execution
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
-                  {activeComplaint?.locationLandmark || 'Pedda Cheruvu Sluice Gate Complex'}
+                  {activeComplaint?.locationLandmark || 'Champavathi River Basin Weir'}
                 </h3>
               </div>
               <span className="text-xs font-bold bg-blue-50 text-[#0077B6] border border-blue-200 px-3 py-1 rounded-xl">
@@ -1415,17 +1743,46 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             </div>
 
             {/* GPS Confirmed On-Site Banner */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-800 flex items-center justify-center shrink-0">
-                <Navigation className="w-4 h-4 text-emerald-700" />
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-800 flex items-center justify-center shrink-0">
+                  <Navigation className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-emerald-950">
+                    GPS Confirmed On-Site ({targetLat.toFixed(4)}° N, {targetLng.toFixed(4)}° E)
+                  </h4>
+                  <p className="text-[11px] text-emerald-800">
+                    You are at {activeComplaint?.locationLandmark || 'Champavathi River Basin Weir'} (accuracy ±1.8m RTK calibrated)
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-xs font-black text-emerald-950">
-                  GPS Confirmed On-Site
-                </h4>
-                <p className="text-[11px] text-emerald-800">
-                  You are at the water gate (accuracy ±1.8m RTK calibrated)
-                </p>
+              <span className="hidden sm:inline-block font-mono text-xs font-bold text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300">
+                Live Field Dispatch
+              </span>
+            </div>
+
+            {/* Statutory 4-Role Accountability Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl text-[11px]">
+              <div className="space-y-0.5 border-r border-slate-200/80 pr-2">
+                <span className="text-[10px] uppercase font-black text-slate-400 block">1. Citizen (Aam Nagrik)</span>
+                <span className="font-bold text-slate-900 block truncate">{activeComplaint?.citizenName || 'Anjana'} (Age {activeComplaint?.citizenAge || 32})</span>
+                <span className="text-slate-500 font-mono text-[10px] block truncate">{activeComplaint?.citizenPhone || '+91 94405 12345'}</span>
+              </div>
+              <div className="space-y-0.5 border-r border-slate-200/80 pr-2">
+                <span className="text-[10px] uppercase font-black text-sky-600 block">2. Nodal Officer (IAS)</span>
+                <span className="font-bold text-slate-900 block truncate">{activeComplaint?.assignedNodalOfficer || 'Dr. N. Subba Rao'}</span>
+                <span className="text-emerald-700 font-semibold text-[10px] block">Triage 2.4h • Diligent</span>
+              </div>
+              <div className="space-y-0.5 border-r border-slate-200/80 pr-2">
+                <span className="text-[10px] uppercase font-black text-amber-600 block">3. Inspector</span>
+                <span className="font-bold text-slate-900 block truncate">{activeComplaint?.assignedInspector || 'Sri K. Rama Krishna'}</span>
+                <span className="text-amber-800 font-semibold text-[10px] block">En-route / Verified</span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-black text-emerald-600 block">4. Action Worker (EE)</span>
+                <span className="font-bold text-slate-900 block truncate">{selectedWorkerDisplayName}</span>
+                <span className="text-emerald-700 font-semibold text-[10px] block">1x JCB + 4 Crew</span>
               </div>
             </div>
 
@@ -1454,7 +1811,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                   <span>Geo-stamped Proof</span>
                 </div>
                 <div className="absolute bottom-2 left-2 right-2 bg-black/75 backdrop-blur-md text-white text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center justify-between">
-                  <span>18.5721° N, 83.3644° E</span>
+                  <span>{targetLat.toFixed(4)}° N, {targetLng.toFixed(4)}° E</span>
                   <span>Baseline: 65% silt occlusion recorded</span>
                 </div>
               </div>
@@ -1694,12 +2051,68 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             </button>
           </div>
         </div>
+        )
       )}
 
       {/* ============================================================== */}
       {/* 4. TAB 3: COMPLETED & VERIFICATION (INSPECTOR SIGN-OFF TRACKING)*/}
       {/* ============================================================== */}
       {activeTab === 'completed' && (
+        waitingReviewTasks.length === 0 && completedTasks.length === 0 ? (
+          <div className="max-w-3xl mx-auto bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs text-center space-y-5 animate-in fade-in duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                Statutory Verification &amp; Remediation Audit Ledger
+              </h3>
+              <p className="text-xs text-slate-500 max-w-lg mx-auto">
+                All physical works completed by <strong>{selectedWorkerDisplayName}</strong> undergo two-stage statutory verification: 1. Field Inspector physical on-site audit with DGPS coordinates and probe testing. 2. District Nodal Officer closure.
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2 text-xs max-w-md mx-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-semibold">Active Action Worker:</span>
+                <span className="font-bold text-slate-900">{selectedWorkerDisplayName}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-semibold">Pending Inspector Sign-offs:</span>
+                <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  0 Records
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-semibold">Completed &amp; Closed Works:</span>
+                <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  0 Records in Current Cycle
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setActiveTab('assigned');
+                  setDecisionSubView('overview');
+                }}
+                className="px-4 py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Go to Assigned Orders (Tab 1)</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('map')}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Open Cadastral Map (Tab 4)</span>
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6">
           
           {/* Section A: Pending Inspector Physical Verification */}
@@ -1839,40 +2252,42 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* ============================================================== */}
-      {/* 5. TAB 4: GIS CADASTRAL MAP (FULL ENGLISH SATELLITE TILES)     */}
+      {/* 5. TAB 4: GIS CADASTRAL MAP (DISTRICT NODAL SATELLITE MAP)     */}
       {/* ============================================================== */}
       {activeTab === 'map' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs">
             <div>
-              <h3 className="text-base font-black text-slate-900">
-                Cadastral & Satellite Remediation Asset Map
-              </h3>
-              <p className="text-xs text-slate-500">
-                Google Hybrid Satellite tiles with place names, road labels, and district coordinates in English.
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-base sm:text-lg font-black text-slate-900">
+                  {selectedWorker.district} District Hydrological &amp; Remediation Satellite Map
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Authoritative District Nodal Officer surveillance map: Esri World Satellite, ISRO Bhuvan telemetry, district reservoirs, river gauges, piezometers, and work orders.
               </p>
             </div>
-            <button
-              onClick={() => setShowMapModal(true)}
-              className="px-3 py-1.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span>Full Screen</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-[#0077B6] bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200">
+                {selectedWorker.district} Circle
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
-            <EngineerRealSatelliteMap
-              lat={targetLat}
-              lng={targetLng}
-              title={targetTitle}
-              assetCode="AP-VZ-BOB-042"
-              mandal={activeComplaint?.mandal || 'Bobbili'}
-              heightClass="h-[520px]"
-              onExpand={() => setShowMapModal(true)}
+          <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-sm min-h-[580px]">
+            <DistrictNodalSatelliteMap
+              district={selectedWorker.district || 'Vizianagaram'}
+              complaints={complaints}
+              waterBodies={waterBodies}
+              onSelectComplaint={(c) => {
+                setSelectedComplaintId(c.id);
+                setActiveTab('assigned');
+              }}
             />
           </div>
         </div>
@@ -1988,8 +2403,8 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                 lat={targetLat}
                 lng={targetLng}
                 title={targetTitle}
-                assetCode="AP-VZ-BOB-042"
-                mandal={activeComplaint?.mandal || 'Bobbili'}
+                assetCode={activeComplaint?.id || "AP-VZ-CHAMP-001"}
+                mandal={activeComplaint?.mandal || 'Bhogapuram'}
                 heightClass="h-full"
               />
             </div>

@@ -79,8 +79,20 @@ export default function App() {
             const sampleMap = new Map(SAMPLE_CITIZEN_COMPLAINTS.map(s => [s.id, s]));
             const merged = cleaned.map(c => {
               const sample = sampleMap.get(c.id);
-              if (sample && sample.workExecution && (!c.workExecution || c.status === 'INSPECTOR_ASSIGNED')) {
-                return { ...c, ...sample };
+              if (sample) {
+                return {
+                  ...c,
+                  assignedEngineer: sample.assignedEngineer,
+                  assignedEngineerId: sample.assignedEngineerId,
+                  assignedEngineerPhone: sample.assignedEngineerPhone,
+                  assignedNodalOfficer: sample.assignedNodalOfficer,
+                  assignedInspector: sample.assignedInspector,
+                  locationLandmark: sample.locationLandmark,
+                  mandal: sample.mandal,
+                  village: sample.village,
+                  coordinates: sample.coordinates,
+                  workExecution: sample.workExecution ? { ...c.workExecution, ...sample.workExecution } : c.workExecution,
+                };
               }
               return c;
             });

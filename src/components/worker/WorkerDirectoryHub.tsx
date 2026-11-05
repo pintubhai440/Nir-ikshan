@@ -478,19 +478,34 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                     PIN: 1234
                   </span>
                 </div>
-                <button
-                  onClick={() => {
-                    setPendingAuthWorker(worker);
-                    setAuthPin('1234');
-                    setShowAuthPin(false);
-                    setAuthError('');
-                  }}
-                  className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer bg-[#0077B6] hover:bg-[#03045E] text-white shadow-xs active:scale-98"
-                >
-                  <Lock className="w-3.5 h-3.5 text-sky-200" />
-                  <span>Authenticate &amp; Launch Workstation</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+                      onSelectWorker(worker);
+                    }}
+                    className="py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-[#0077B6] hover:bg-[#03045E] text-white shadow-xs active:scale-98"
+                    title="Directly launch this worker's remediation workstation"
+                  >
+                    <Wrench className="w-3.5 h-3.5 text-sky-200" />
+                    <span>Launch</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPendingAuthWorker(worker);
+                      setAuthPin('1234');
+                      setShowAuthPin(false);
+                      setAuthError('');
+                    }}
+                    className="py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 active:scale-98"
+                    title="Enter Security PIN (1234)"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>PIN Auth</span>
+                  </button>
+                </div>
               </div>
             </div>
           );

@@ -109,6 +109,7 @@ export function isDistrictMatch(
 
 /**
  * Checks if a citizen complaint is assigned to a specific worker.
+ * Strictly checks 1-to-1 assignment by ID, name, or phone number.
  */
 export function isComplaintAssignedToWorker(
   complaint: CitizenComplaint,
@@ -116,22 +117,46 @@ export function isComplaintAssignedToWorker(
 ): boolean {
   if (!complaint || !worker) return false;
 
-  // Direct match on assignedEngineer or assignedEngineerId
+  const wId = (worker.worker_id || '').toLowerCase().trim();
+
+  // 1. If assignedEngineerId is explicitly set, strict ID matching takes absolute priority:
+  if ((complaint as any).assignedEngineerId) {
+    const cId = String((complaint as any).assignedEngineerId).toLowerCase().trim();
+    if (cId === wId) return true;
+    // If assignedEngineerId is set and does not match, it belongs to another worker strictly
+    return false;
+  }
+
+  // 2. Direct match on assignedEngineer name/crew
   if (complaint.assignedEngineer) {
     if (isWorkerNameMatch(complaint.assignedEngineer, worker)) {
+      // Must also match district if both are present
+      if (complaint.district && worker.district && !isDistrictMatch(complaint.district, worker.district)) {
+        return false;
+      }
       return true;
     }
   }
 
-  if ((complaint as any).assignedEngineerId) {
-    const cId = String((complaint as any).assignedEngineerId).toLowerCase().trim();
-    const wId = worker.worker_id.toLowerCase().trim();
-    if (cId === wId) return true;
-  }
-
-  // Match on workExecution.engineerName
+  // 3. Match on workExecution.engineerName
   if (complaint.workExecution?.engineerName) {
     if (isWorkerNameMatch(complaint.workExecution.engineerName, worker)) {
+      if (complaint.district && worker.district && !isDistrictMatch(complaint.district, worker.district)) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  // 4. Match on verified registered phone number
+  const workerPhoneDigits = (worker.phone || '').replace(/\D/g, '');
+  if (workerPhoneDigits.length >= 8) {
+    const assignedPhoneDigits = (complaint.assignedEngineerPhone || '').replace(/\D/g, '');
+    const execPhoneDigits = (complaint.workExecution?.engineerPhone || '').replace(/\D/g, '');
+    if (assignedPhoneDigits.length >= 8 && (assignedPhoneDigits.endsWith(workerPhoneDigits.slice(-8)) || workerPhoneDigits.endsWith(assignedPhoneDigits.slice(-8)))) {
+      return true;
+    }
+    if (execPhoneDigits.length >= 8 && (execPhoneDigits.endsWith(workerPhoneDigits.slice(-8)) || workerPhoneDigits.endsWith(execPhoneDigits.slice(-8)))) {
       return true;
     }
   }

@@ -1339,7 +1339,26 @@ export const COMPLETE_AP_ACTION_WORKERS: SupabaseActionWorkerRow[] = [
     added_on: '2026-03-12',
   },
 
-  // 3. Vizianagaram (Authoritative Supabase records MW-001 to MW-007)
+  // 3. Vizianagaram (Authoritative Supabase records MW-001 to MW-007 + Lead Field Engineers)
+  {
+    worker_id: 'wrk-vzm-01',
+    name_or_crew: 'Er. T. Venkata Ramana',
+    name_or_crew_type: 'Er. T. Venkata Ramana',
+    type: 'Engineer',
+    contact_person: 'Er. T. Venkata Ramana',
+    phone: '+91 94402 33445',
+    skills: 'desilting;heavy earthmoving;sluice gate repair;weir channel clearing',
+    service_areas: 'Bhogapuram;Denkada;Bobbili;Vizianagaram',
+    district: 'Vizianagaram',
+    nodal_officer_id: 'NO-VZM-01',
+    availability: 'Available',
+    languages: 'Telugu;English',
+    status: 'Active',
+    open_tasks: 2,
+    tasks_declined: 0,
+    no_response: 0,
+    added_on: '2025-11-10',
+  },
   {
     worker_id: 'MW-001',
     name_or_crew: 'Sri Sai Cleaning Crew',

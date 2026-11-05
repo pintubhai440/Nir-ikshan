@@ -111,6 +111,7 @@ export interface CitizenComplaint {
   assignedInspectorPhone?: string;
   assignedInspectorAt?: string;
   assignedEngineer?: string;
+  assignedEngineerId?: string;
   assignedEngineerPhone?: string;
   assignedEngineerAt?: string;
   machineryDeployed?: string;
