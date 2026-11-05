@@ -161,6 +161,7 @@ export interface EngineerWorkExecution {
   workSummary?: string;
   startedAt?: string;
   completedAt?: string;
+  acceptedAt?: string;
 }
 
 export interface OfficerContact {

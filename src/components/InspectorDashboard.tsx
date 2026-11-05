@@ -63,6 +63,7 @@ import {
 import confetti from 'canvas-confetti';
 
 interface InspectorDashboardProps {
+  district?: string;
   complaints: CitizenComplaint[];
   waterBodies: WaterBody[];
   onSubmitInspectionReport: (complaintId: string, report: InspectorReport) => void;
@@ -79,6 +80,7 @@ interface InspectorDashboardProps {
 export type InspectorTabType = 'today' | 'map' | 'verify';
 
 export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
+  district,
   complaints,
   waterBodies,
   onSubmitInspectionReport,
@@ -233,10 +235,12 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   // Category in Today View ('pending' | 'completed' | 'verify')
   const [todayCategory, setTodayCategory] = useState<'pending' | 'completed' | 'verify'>('pending');
   const [submissionBanner, setSubmissionBanner] = useState<string | null>(null);
+  const [tasksSyncVersion, setTasksSyncVersion] = useState<number>(0);
 
   useEffect(() => {
     const handleSync = () => {
       try {
+        setTasksSyncVersion((v) => v + 1);
         const storedIds = localStorage.getItem('nir_inspector_completed_task_ids');
         if (storedIds) {
           const arr = JSON.parse(storedIds);
@@ -453,7 +457,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
               t &&
               !isCompletedLocally &&
               !hasReport &&
-              (t.stage === 'assigned' || t.stage === 'in_progress') &&
+              (t.stage === 'assigned' || t.stage === 'in_progress' || t.stage === 'under_verification') &&
               t.verificationInspectorName &&
               isInspectorNameMatch(t.verificationInspectorName, selectedInspector)
             ) {
@@ -497,14 +501,22 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
   // 3. Verification Tasks dynamically scoped strictly to this inspector's assigned grievances
   const dynamicVerificationTasks: VerificationTaskItem[] = useMemo(() => {
+    const list: VerificationTaskItem[] = [];
+    const seenIds = new Set<string>();
+
+    // CRITICAL STATUTORY RULE:
+    // A task ONLY enters post-work repair verification if the ACTION WORKER has clicked Complete,
+    // uploaded after-work photographic evidence, and submitted for verification.
+    // NEVER include 'WORKER_IN_PROGRESS' or uncompleted tasks!
     const realVerifications = myAssignedComplaints.filter(
       (c) =>
-        (c.status === 'VERIFICATION_PENDING' || c.status === 'WORKER_IN_PROGRESS')
+        c.status === 'VERIFICATION_PENDING' ||
+        (c.workExecution && c.workExecution.status === 'COMPLETED' && (c.status as string) !== 'RESOLVED')
     );
 
-    const list: VerificationTaskItem[] = [];
-
     realVerifications.forEach((c, idx) => {
+      seenIds.add(c.id);
+      seenIds.add(`VRF-LIVE-${c.id}`);
       list.push({
         id: `VRF-LIVE-${c.id}`,
         taskId: `TSK-${distCode}-${c.id.replace(/\D/g, '') || idx + 101}`,
@@ -579,8 +591,115 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       });
     });
 
+    // Also load tasks from nir_nodal_tasks where this inspector is designated and work is under verification
+    try {
+      const storedTasksStr = localStorage.getItem('nir_nodal_tasks');
+      if (storedTasksStr) {
+        const storedTasks = JSON.parse(storedTasksStr);
+        if (Array.isArray(storedTasks)) {
+          storedTasks.forEach((t) => {
+            const targetId = t.sourceRefId || t.id;
+            const isAssignedToThisInspector =
+              (t.verificationInspectorName && isInspectorNameMatch(t.verificationInspectorName, selectedInspector)) ||
+              (t.verificationInspectorId && (t.verificationInspectorId === selectedInspector.inspector_id || t.verificationInspectorId === (selectedInspector as any).id));
+
+            // STATUTORY GOVERNANCE RULE:
+            // A task ONLY enters post-work verification if stage is 'under_verification'
+            // AND the Action Worker has actually completed the repair work (afterPhotoUrl / completion remarks).
+            // NEVER include 'in_progress' or 'assigned'!
+            const isCompletedByWorker = 
+              t.stage === 'under_verification' && 
+              (Boolean(t.afterPhotoUrl) || Boolean(t.isCompletedByWorker) || t.status === 'VERIFICATION_PENDING');
+
+            if (t && isAssignedToThisInspector && isCompletedByWorker) {
+              const vrfId = `VRF-LIVE-${targetId}`;
+              if (!seenIds.has(vrfId) && !seenIds.has(t.id) && !seenIds.has(targetId)) {
+                seenIds.add(vrfId);
+                seenIds.add(t.id);
+                if (targetId) seenIds.add(targetId);
+                list.unshift({
+                  id: vrfId,
+                  taskId: t.id,
+                  citizenComplaintId: targetId,
+                  priority: 'High Priority (Level 2)',
+                  title: `${t.title || 'Water Structure'} Remediation Sign-Off`,
+                  locationName: `${t.village || t.mandal}, ${t.district || selectedInspector.district}`,
+                  assetCode: t.assetCode || `AP-${distCode}-AST-${t.id.replace(/\D/g, '') || '101'}`,
+                  catchmentBasin: `${t.mandal || mandal} Basin`,
+                  subBasin: `${t.district || selectedInspector.district} Watershed`,
+                  actionWorkerName: t.assignedWorkerName || 'Er. T. Venkata Ramana',
+                  actionWorkerTeam: t.machineryType || 'Mechanical Desilting Unit',
+                  workExecutionClosedDate: 'Remediation Logged',
+                  executionDurationDays: 3,
+                  originallyFlaggedBy: `District Nodal Officer (${t.district || selectedInspector.district})`,
+                  isSelfLoggedByCurrentUser: false,
+                  statutoryRuleSatisfied: true,
+                  beforePhotoUrl: t.beforePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
+                  beforeDate: t.reportedDate || '14 Oct 2026',
+                  beforeInspectorId: selectedInspector.inspector_id,
+                  beforeSiltLevel: '1.2m (Critical)',
+                  beforeDefectNotes: t.description || 'Canal obstructed with debris and silt accumulation.',
+                  afterPhotoUrl: t.afterPhotoUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+                  afterDate: 'Remediation completed',
+                  afterWorkerName: t.assignedWorkerName || 'Er. T. Venkata Ramana',
+                  afterExcavationCubicMeters: `${t.excavatedVolumeM3 || 3800} m³`,
+                  afterWorkerClosureNotes: t.remedialNotes || 'Excavation completed, channel de-choked.',
+                  readings: [
+                    {
+                      parameter: 'Silt Bed Depth',
+                      unit: 'm',
+                      beforeValue: '1.2 m (Critical)',
+                      beforeStatusClass: 'text-rose-600',
+                      workerClaimValue: '0.1 m (Cleared)',
+                      inspectorCheckValue: '0.10 m',
+                      complianceLabel: 'Compliant',
+                      isCompliant: true,
+                    },
+                    {
+                      parameter: 'Water Inflow Velocity',
+                      unit: 'm/s',
+                      beforeValue: '0.05 m/s (Stagnant)',
+                      beforeStatusClass: 'text-rose-600',
+                      workerClaimValue: '0.45 m/s',
+                      inspectorCheckValue: '0.44 m/s',
+                      complianceLabel: 'Normal Flow',
+                      isCompliant: true,
+                    },
+                    {
+                      parameter: 'Water pH Balance',
+                      unit: 'pH',
+                      beforeValue: '6.2 (Acidic Runoff)',
+                      beforeStatusClass: 'text-amber-600',
+                      workerClaimValue: '7.2',
+                      inspectorCheckValue: '7.2',
+                      complianceLabel: 'Safe Range',
+                      isCompliant: true,
+                    },
+                    {
+                      parameter: 'Water Spread Area',
+                      unit: '%',
+                      beforeValue: '25% (Choked)',
+                      beforeStatusClass: 'text-rose-600',
+                      workerClaimValue: '90%',
+                      inspectorCheckValue: '90%',
+                      complianceLabel: 'Restored',
+                      isCompliant: true,
+                    },
+                  ],
+                  inspectorObservations: '',
+                  status: 'PENDING_SIGN_OFF',
+                });
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error reading nir_nodal_tasks in dynamicVerificationTasks:', e);
+    }
+
     return list;
-  }, [complaints, selectedInspector, distCode, mandal]);
+  }, [myAssignedComplaints, distCode, mandal, selectedInspector, tasksSyncVersion]);
 
   // Local overrides for verification tasks (sign-off, reject, re-inspect)
   const [verificationStatusOverrides, setVerificationStatusOverrides] = useState<
@@ -771,6 +890,29 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       );
     }
 
+    // Sync to nir_nodal_tasks
+    try {
+      const storedStr = localStorage.getItem('nir_nodal_tasks');
+      if (storedStr) {
+        const list = JSON.parse(storedStr);
+        if (Array.isArray(list)) {
+          const updated = list.map((t: any) => {
+            if (t.id === task.taskId || t.sourceRefId === cleanId || t.id === cleanId) {
+              return {
+                ...t,
+                stage: 'verified_closed',
+                remedialNotes: observations || t.remedialNotes,
+                isVerified: true,
+              };
+            }
+            return t;
+          });
+          localStorage.setItem('nir_nodal_tasks', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
+        }
+      }
+    } catch {}
+
     const newVaultRecord: OfflineVaultQueueItem = {
       id: `VLT-VERIF-${Date.now()}`,
       assetName: `${task.locationName} Verification Sign-off`,
@@ -800,6 +942,28 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         reason || 'Defects found during physical verification. Requires remedial re-work.'
       );
     }
+
+    // Sync to nir_nodal_tasks
+    try {
+      const storedStr = localStorage.getItem('nir_nodal_tasks');
+      if (storedStr) {
+        const list = JSON.parse(storedStr);
+        if (Array.isArray(list)) {
+          const updated = list.map((t: any) => {
+            if (t.id === task?.taskId || t.sourceRefId === cleanId || t.id === cleanId) {
+              return {
+                ...t,
+                stage: 'assigned',
+                remedialNotes: reason || t.remedialNotes,
+              };
+            }
+            return t;
+          });
+          localStorage.setItem('nir_nodal_tasks', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
+        }
+      }
+    } catch {}
   };
 
   // Handle re-inspect required
@@ -876,9 +1040,16 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 t.sourceRefId === targetComplaintId ||
                 (t.assetCode && t.assetCode === assetCode)
               ) {
+                // Initial physical inspection by Field Inspector is now certified and sealed.
+                // Next: The assigned Action Worker (Engineer / Contractor) must perform the physical repairs!
+                // Stage moves to 'in_progress' (Worker Action Active).
+                // NEVER jump to 'under_verification' until the worker clicks Complete!
+                const nextStage = (t.assignedWorkerName || t.assignedWorkerId) 
+                  ? 'in_progress' 
+                  : (t.stage === 'unassigned' ? 'assigned' : t.stage);
                 return {
                   ...t,
-                  stage: 'under_verification',
+                  stage: nextStage,
                   status: 'INSPECTION_COMPLETED',
                   isInspected: true,
                   inspectionReport: report,
@@ -889,6 +1060,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
               return t;
             });
             localStorage.setItem('nir_nodal_tasks', JSON.stringify(updatedList));
+            window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
           }
         }
       } catch (e) {
@@ -962,6 +1134,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   if (isSelectingInspector) {
     return (
       <InspectorDirectoryHub
+        district={district}
         inspectors={comprehensiveInspectors}
         complaints={complaints}
         selectedInspectorId={selectedInspector?.inspector_id}

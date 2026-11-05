@@ -146,6 +146,27 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
     } catch {}
   }, [tasks]);
 
+  // Real-time synchronization across role dashboards (Inspector, Worker, Nodal)
+  useEffect(() => {
+    const handleSyncTasks = () => {
+      try {
+        const saved = localStorage.getItem('nir_nodal_tasks');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTasks(parsed);
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener('nir_tasks_updated', handleSyncTasks);
+    window.addEventListener('storage', handleSyncTasks);
+    return () => {
+      window.removeEventListener('nir_tasks_updated', handleSyncTasks);
+      window.removeEventListener('storage', handleSyncTasks);
+    };
+  }, []);
+
   const [viewMode, setViewMode] = useState<'queue' | 'board' | 'table'>('queue');
   const [selectedStage, setSelectedStage] = useState<StageKey>('all');
   const [selectedMandal, setSelectedMandal] = useState<string>('all');
@@ -232,10 +253,16 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
   // Auto-initialize selections whenever assigningTask changes
   useEffect(() => {
     if (assigningTask) {
-      const defaultInsp = districtInspectors[0];
+      const defaultInsp = 
+        districtInspectors.find((i) => i.inspector_id === 'insp-vzm-01' || i.full_name?.includes('Rama Krishna')) ||
+        districtInspectors[0];
       setSelectedInspectorId(defaultInsp ? defaultInsp.inspector_id : '');
-      const defaultWorker = districtActionWorkers[0];
+
+      const defaultWorker = 
+        districtActionWorkers.find((w) => w.worker_id === 'wrk-vzm-01' || w.name_or_crew?.includes('Ramana')) ||
+        districtActionWorkers[0];
       setSelectedWorkerId(defaultWorker ? defaultWorker.worker_id : '');
+
       setPriorityOverride(
         assigningTask.priority.includes('Critical') 
           ? 'Critical (Priority 1) - Mandated 48h SLA' 
@@ -358,31 +385,15 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
     const workerRole = chosenWorker ? `${chosenWorker.type} Lead` : 'Action Worker / Crew Lead';
 
     // 1. Update internal task in Nodal Kanban board
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === assigningTask.id) {
-          return {
-            ...t,
-            stage: 'assigned',
-            verificationInspectorName: inspectorName,
-            assignedWorkerName: workerName,
-            assignedWorkerPhone: workerPhone,
-            assignedWorkerRole: workerRole,
-            slaTimerText: 'Due in 24 hours (Inspector Site Verification Active)',
-            remedialNotes: nodalInstructions || t.remedialNotes,
-          };
-        }
-        return t;
-      })
-    );
-
     const nextTasks = tasks.map((t) => {
       if (t.id === assigningTask.id) {
         return {
           ...t,
           stage: 'assigned' as const,
           verificationInspectorName: inspectorName,
+          verificationInspectorId: inspectorId,
           assignedWorkerName: workerName,
+          assignedWorkerId: chosenWorker?.worker_id,
           assignedWorkerPhone: workerPhone,
           assignedWorkerRole: workerRole,
           slaTimerText: 'Due in 24 hours (Inspector Site Verification Active)',
@@ -414,6 +425,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
           assignedInspectorEmail: inspectorEmail,
           assignedInspectorAt: new Date().toISOString(),
           assignedEngineer: workerName,
+          assignedEngineerId: chosenWorker?.worker_id,
           assignedEngineerPhone: workerPhone,
         }
       : {
@@ -439,6 +451,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
           assignedInspectorEmail: inspectorEmail,
           assignedInspectorAt: new Date().toISOString(),
           assignedEngineer: workerName,
+          assignedEngineerId: chosenWorker?.worker_id,
           assignedEngineerPhone: workerPhone,
         };
 
@@ -455,6 +468,20 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
         inspectorEmail
       );
     }
+
+    try {
+      const storedComplaints = JSON.parse(localStorage.getItem('nir_complaints') || '[]');
+      const updatedList = Array.isArray(storedComplaints)
+        ? storedComplaints.map((c: any) => (c.id === targetComplaintId ? updatedComplaint : c))
+        : [];
+      if (!updatedList.some((c: any) => c.id === targetComplaintId)) {
+        updatedList.unshift(updatedComplaint);
+      }
+      localStorage.setItem('nir_complaints', JSON.stringify(updatedList));
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
+    window.dispatchEvent(new CustomEvent('nir_complaints_updated'));
 
     try {
       await saveComplaintToSupabase(updatedComplaint);

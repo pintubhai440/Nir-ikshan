@@ -131,7 +131,13 @@ export default function App() {
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'hi' | 'te'>('en');
-  const [selectedNodalDistrict, setSelectedNodalDistrict] = useState<string>('');
+  const [selectedNodalDistrict, setSelectedNodalDistrict] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nir_selected_nodal_district') || localStorage.getItem('nir_current_district') || '';
+    } catch {
+      return '';
+    }
+  });
 
   // Auth states for the protected roles
   const [authenticatedRoles, setAuthenticatedRoles] = useState<Record<UserRoleType, boolean>>({
@@ -278,8 +284,15 @@ export default function App() {
       setIsOtpModalOpen(true);
       return;
     }
-    if (role === 'nodal') {
-      setSelectedNodalDistrict('');
+    if (role === 'nodal_vizianagaram') {
+      setSelectedNodalDistrict('Vizianagaram');
+      try { localStorage.setItem('nir_selected_nodal_district', 'Vizianagaram'); } catch {}
+    } else if (role === 'nodal_parvathipuram') {
+      setSelectedNodalDistrict('Parvathipuram Manyam');
+      try { localStorage.setItem('nir_selected_nodal_district', 'Parvathipuram Manyam'); } catch {}
+    } else if (role === 'nodal_visakhapatnam') {
+      setSelectedNodalDistrict('Visakhapatnam');
+      try { localStorage.setItem('nir_selected_nodal_district', 'Visakhapatnam'); } catch {}
     }
     if (role === 'inspector') {
       setInspectorNavKey((prev) => prev + 1);
@@ -439,9 +452,12 @@ export default function App() {
       if (exists) {
         next = prev.map((c) => {
           if (c.id === complaintId) {
+            const hasAssignedEngineer = Boolean(c.assignedEngineer || c.assignedEngineerId || c.workExecution?.engineerName);
             const updated: CitizenComplaint = {
               ...c,
-              status: 'INSPECTION_COMPLETED',
+              // If an engineer / contractor is assigned, move to WORKER_IN_PROGRESS so worker can execute remediation!
+              // NEVER move to VERIFICATION_PENDING before worker completes work!
+              status: hasAssignedEngineer ? 'WORKER_IN_PROGRESS' : 'INSPECTION_COMPLETED',
               inspectionReport: report,
             };
             targetComplaint = updated;
@@ -840,8 +856,14 @@ export default function App() {
                 ? 'Visakhapatnam'
                 : selectedNodalDistrict || undefined
             }
-            initialSelectingDistrict={currentRole === 'nodal'}
-            onSelectDistrict={(d) => setSelectedNodalDistrict(d)}
+            initialSelectingDistrict={currentRole === 'nodal' && !selectedNodalDistrict}
+            onSelectDistrict={(d) => {
+              setSelectedNodalDistrict(d);
+              try {
+                localStorage.setItem('nir_selected_nodal_district', d);
+                localStorage.setItem('nir_current_district', d);
+              } catch {}
+            }}
             complaints={complaints}
             waterBodies={waterBodies}
             officers={officers}
@@ -856,6 +878,7 @@ export default function App() {
         {currentRole === 'inspector' && (
           <InspectorDashboard
             key={`inspector-nav-${inspectorNavKey}`}
+            district={selectedNodalDistrict || undefined}
             complaints={complaints}
             waterBodies={waterBodies}
             onSubmitInspectionReport={handleSubmitInspectionReport}
@@ -869,6 +892,7 @@ export default function App() {
         {currentRole === 'engineer' && (
           <EngineerDashboard
             key={`worker-nav-${workerNavKey}`}
+            district={selectedNodalDistrict || undefined}
             complaints={complaints}
             waterBodies={waterBodies}
             onAcceptTask={handleAcceptTask}

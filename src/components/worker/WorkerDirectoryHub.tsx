@@ -8,7 +8,7 @@
  * Strictly 0 fake data.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { SupabaseActionWorkerRow } from '../../data/allDistrictsTeamData';
 import { ANDHRA_PRADESH_26_DISTRICTS } from '../../data/andhraDistrictsData';
@@ -42,9 +42,10 @@ import {
   Truck
 } from 'lucide-react';
 import { CitizenComplaint } from '../../types/nirikshan';
-import { isComplaintAssignedToWorker, isDistrictMatch } from '../../utils/workerFilter';
+import { isComplaintAssignedToWorker, isDistrictMatch, isWorkerNameMatch } from '../../utils/workerFilter';
 
 interface WorkerDirectoryHubProps {
+  district?: string;
   workers: SupabaseActionWorkerRow[];
   complaints?: CitizenComplaint[];
   selectedWorkerId?: string;
@@ -54,6 +55,7 @@ interface WorkerDirectoryHubProps {
 }
 
 export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
+  district,
   workers,
   complaints = [],
   selectedWorkerId,
@@ -62,7 +64,20 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
   isSupabaseLive = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(() => {
+    if (district) return district;
+    try {
+      return localStorage.getItem('nir_selected_nodal_district') || localStorage.getItem('nir_current_district') || 'Srikakulam';
+    } catch {
+      return 'Srikakulam';
+    }
+  });
+
+  useEffect(() => {
+    if (district) {
+      setSelectedDistrict(district);
+    }
+  }, [district]);
   const [typeFilter, setTypeFilter] = useState<'all' | 'Engineer' | 'Crew' | 'Contractor' | 'Individual'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Available' | 'Busy' | 'On leave'>('all');
 
@@ -141,13 +156,42 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
   const busyCount = uniqueWorkers.filter((w) => (w.availability || '').toLowerCase() === 'busy').length;
   const engineerCount = uniqueWorkers.filter((w) => w.type === 'Engineer').length;
   const contractorCount = uniqueWorkers.filter((w) => w.type === 'Contractor').length;
-  const totalOpenTasks = complaints.filter(
-    (c) =>
-      c.status === 'ACTION_ASSIGNED' ||
-      c.status === 'WORKER_IN_PROGRESS' ||
-      c.workExecution?.status === 'PENDING_ACCEPTANCE' ||
-      c.workExecution?.status === 'ACCEPTED'
-  ).length;
+  const totalOpenTasks = useMemo(() => {
+    let count = 0;
+    const seen = new Set<string>();
+    complaints.forEach((c) => {
+      if (
+        c.status === 'ACTION_ASSIGNED' ||
+        c.status === 'WORKER_IN_PROGRESS' ||
+        c.status === 'VERIFICATION_PENDING' ||
+        c.workExecution?.status === 'PENDING_ACCEPTANCE' ||
+        c.workExecution?.status === 'ACCEPTED' ||
+        c.workExecution?.status === 'COMPLETED'
+      ) {
+        seen.add(c.id);
+        count++;
+      }
+    });
+
+    try {
+      const stored = localStorage.getItem('nir_nodal_tasks');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((t: any) => {
+            const id = t.sourceRefId || t.id;
+            if (!seen.has(id) && !seen.has(t.id) && t.stage !== 'unassigned') {
+              seen.add(id);
+              seen.add(t.id);
+              count++;
+            }
+          });
+        }
+      }
+    } catch {}
+
+    return count;
+  }, [complaints]);
 
   const getWorkerInitials = (worker: SupabaseActionWorkerRow): string => {
     const raw = worker.name_or_crew || worker.name_or_crew_type || worker.contact_person || 'WK';
@@ -335,16 +379,65 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
           const isBusy = (worker.availability || '').toLowerCase() === 'busy';
 
           // Live assigned complaints count for this specific worker (100% real data)
-          const assignedComplaints = complaints.filter((c) => isComplaintAssignedToWorker(c, worker));
-          const urgentWorkCount = assignedComplaints.filter(
+          let mergedList = [...complaints];
+          try {
+            const cachedStr = localStorage.getItem('nir_complaints');
+            if (cachedStr) {
+              const cached = JSON.parse(cachedStr);
+              if (Array.isArray(cached)) {
+                const map = new Map<string, CitizenComplaint>();
+                mergedList.forEach((c) => map.set(c.id, c));
+                cached.forEach((c) => {
+                  if (c && c.id) map.set(c.id, { ...map.get(c.id), ...c });
+                });
+                mergedList = Array.from(map.values());
+              }
+            }
+          } catch {}
+
+          const assignedComplaints = mergedList.filter((c) => isComplaintAssignedToWorker(c, worker));
+          let urgentWorkCount = assignedComplaints.filter(
             (c) => c.status === 'ACTION_ASSIGNED' || c.workExecution?.status === 'PENDING_ACCEPTANCE'
           ).length;
-          const inProgressWorkCount = assignedComplaints.filter(
+          let inProgressWorkCount = assignedComplaints.filter(
             (c) => c.status === 'WORKER_IN_PROGRESS' || c.workExecution?.status === 'ACCEPTED'
           ).length;
-          const completedWorkCount = assignedComplaints.filter(
+          let completedWorkCount = assignedComplaints.filter(
             (c) => c.status === 'VERIFICATION_PENDING' || c.status === 'RESOLVED' || c.workExecution?.status === 'COMPLETED'
           ).length;
+
+          let activeTaskForWorker: any = null;
+
+          // Also count tasks from nir_nodal_tasks
+          try {
+            const storedTasksStr = localStorage.getItem('nir_nodal_tasks');
+            if (storedTasksStr) {
+              const storedTasks = JSON.parse(storedTasksStr);
+              if (Array.isArray(storedTasks)) {
+                storedTasks.forEach((t: any) => {
+                  const targetId = t.sourceRefId || t.id;
+                  const isAssigned =
+                    (t.assignedWorkerId && (
+                      t.assignedWorkerId.toLowerCase() === worker.worker_id.toLowerCase() ||
+                      t.assignedWorkerId.toLowerCase().replace('sup-wrk-', '') === worker.worker_id.toLowerCase().replace('sup-wrk-', '')
+                    )) ||
+                    isWorkerNameMatch(t.assignedWorkerName, worker);
+
+                  if (isAssigned) {
+                    if (!activeTaskForWorker) {
+                      activeTaskForWorker = t;
+                    }
+                    const alreadyInAssigned = assignedComplaints.some((c) => c.id === targetId || c.id === t.id);
+                    if (!alreadyInAssigned) {
+                      if (t.stage === 'assigned') urgentWorkCount += 1;
+                      else if (t.stage === 'in_progress') inProgressWorkCount += 1;
+                      else if (t.stage === 'under_verification' || t.stage === 'verified_closed') completedWorkCount += 1;
+                    }
+                  }
+                });
+              }
+            }
+          } catch {}
 
           return (
             <div
@@ -435,32 +528,66 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                   </div>
                 </div>
 
-                {/* Workload Telemetry */}
-                <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                  <div className={`border rounded-xl p-2.5 ${urgentWorkCount > 0 ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-50/80 border-slate-200/80'}`}>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 block">
-                      Assigned Orders
+                {/* Workload Telemetry (Assigned / In-Progress / Under Verification) */}
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className={`border rounded-xl p-2 ${urgentWorkCount > 0 ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-50/80 border-slate-200/80'}`}>
+                    <span className="text-[9px] uppercase font-bold tracking-wider text-blue-700 block">
+                      Assigned
                     </span>
-                    <span className="text-lg font-black text-[#03045E]">
+                    <span className="text-base sm:text-lg font-black text-[#03045E]">
                       {urgentWorkCount}
                     </span>
-                    <span className="text-[10px] text-blue-600 block font-medium">
-                      {urgentWorkCount > 0 ? `${urgentWorkCount} Awaiting Decision` : 'Queue Empty'}
+                    <span className="text-[9px] text-blue-600 block font-medium truncate">
+                      {urgentWorkCount > 0 ? 'Pending' : 'Empty'}
                     </span>
                   </div>
 
-                  <div className={`border rounded-xl p-2.5 ${inProgressWorkCount > 0 ? 'bg-emerald-50/80 border-emerald-200 text-emerald-700' : 'bg-slate-50/80 border-slate-200/80 text-slate-600'}`}>
-                    <span className="text-[10px] uppercase font-bold tracking-wider block">
-                      In-Progress Sites
+                  <div className={`border rounded-xl p-2 ${inProgressWorkCount > 0 ? 'bg-amber-50/80 border-amber-200 text-amber-700' : 'bg-slate-50/80 border-slate-200/80 text-slate-600'}`}>
+                    <span className="text-[9px] uppercase font-bold tracking-wider block">
+                      In-Progress
                     </span>
-                    <span className="text-lg font-black text-emerald-800">
+                    <span className="text-base sm:text-lg font-black text-amber-800">
                       {inProgressWorkCount}
                     </span>
-                    <span className="text-[10px] block font-medium">
-                      {inProgressWorkCount > 0 ? `${inProgressWorkCount} Active On-Field` : 'Ready For Dispatch'}
+                    <span className="text-[9px] block font-medium truncate">
+                      {inProgressWorkCount > 0 ? 'Active' : 'Standby'}
+                    </span>
+                  </div>
+
+                  <div className={`border rounded-xl p-2 ${completedWorkCount > 0 ? 'bg-purple-50/80 border-purple-200 text-purple-700' : 'bg-slate-50/80 border-slate-200/80 text-slate-600'}`}>
+                    <span className="text-[9px] uppercase font-bold tracking-wider block">
+                      Verification
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-purple-800">
+                      {completedWorkCount}
+                    </span>
+                    <span className="text-[9px] block font-medium truncate">
+                      {completedWorkCount > 0 ? 'Audit Due' : 'None'}
                     </span>
                   </div>
                 </div>
+
+                {/* Active Case Banner when worker has assigned or active task */}
+                {activeTaskForWorker && (
+                  <div className="bg-purple-50/90 border border-purple-200/90 rounded-2xl p-2.5 text-xs space-y-1">
+                    <div className="flex items-center justify-between text-purple-900 font-bold text-[10px]">
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-purple-600 animate-pulse" />
+                        <span>Case: {activeTaskForWorker.id}</span>
+                      </span>
+                      <span className="bg-purple-200/90 text-purple-900 px-1.5 py-0.5 rounded font-mono text-[9px] uppercase">
+                        {activeTaskForWorker.stage === 'under_verification' ? 'Under Verification' : activeTaskForWorker.stage.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="text-slate-800 font-bold text-[11px] truncate" title={activeTaskForWorker.title}>
+                      {activeTaskForWorker.title}
+                    </div>
+                    <div className="text-[10px] text-purple-700 flex items-center justify-between">
+                      <span>Verifier: {activeTaskForWorker.verificationInspectorName || 'Inspector'}</span>
+                      <span className="font-semibold text-[#0077B6]">Ready in Terminal ➔</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Contact Coordinates */}
                 <div className="space-y-1 text-[11px] text-slate-600">

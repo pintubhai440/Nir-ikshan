@@ -168,7 +168,23 @@ export const COMPLETE_AP_FIELD_INSPECTORS: SupabaseFieldInspectorRow[] = [
     joined_on: '2025-10-15',
   },
 
-  // 3. Vizianagaram (NO-VZM-01) - Matching User Supabase Video
+  // 3. Vizianagaram (NO-VZM-01) - Lead Field Inspectors (Sri K. Rama Krishna & Team)
+  {
+    inspector_id: 'insp-vzm-01',
+    full_name: 'Sri K. Rama Krishna',
+    phone: '+91 94401 22334',
+    email: 'kr.krishna@field.ap.gov.in',
+    district: 'Vizianagaram',
+    mandal: 'Gantyada / Bobbili',
+    nodal_officer_id: 'NO-VZM-01',
+    languages: 'Telugu/English',
+    status: 'Active',
+    meter_id: 'TDS-VZM-001',
+    meter_last_calibrated: '2026-04-10',
+    open_inspections: 3,
+    overdue_inspections: 0,
+    joined_on: '2025-09-15',
+  },
   {
     inspector_id: 'INS-001',
     full_name: 'Ravi Teja Naidu',
@@ -179,7 +195,7 @@ export const COMPLETE_AP_FIELD_INSPECTORS: SupabaseFieldInspectorRow[] = [
     nodal_officer_id: 'NO-VZM-01',
     languages: 'Telugu/English',
     status: 'Active',
-    meter_id: 'TDS-VZM-001',
+    meter_id: 'TDS-VZM-002',
     meter_last_calibrated: '2026-04-10',
     open_inspections: 4,
     overdue_inspections: 0,

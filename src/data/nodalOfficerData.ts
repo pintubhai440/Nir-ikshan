@@ -59,6 +59,7 @@ export interface NodalKanbanTask {
   reportedDate: string;
   targetDate: string;
   assignedWorkerName?: string;
+  assignedWorkerId?: string;
   assignedWorkerPhone?: string;
   assignedWorkerRole?: string;
   machineryType?: string;
@@ -72,6 +73,8 @@ export interface NodalKanbanTask {
   slaTimerText?: string;
   remedialNotes?: string;
   verificationInspectorName?: string;
+  verificationInspectorId?: string;
+  verificationInspectorPhone?: string;
 }
 
 export interface TeamMemberProfile {
@@ -488,9 +491,13 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     stage: 'assigned',
     reportedDate: '22 Oct 2026',
     targetDate: '25 Oct 2026 (Overdue)',
-    assignedWorkerName: 'T. Anandhan',
-    assignedWorkerPhone: '+91 95400 11223',
-    assignedWorkerRole: 'Desilting Contractor Lead',
+    assignedWorkerName: 'Er. T. Venkata Ramana',
+    assignedWorkerId: 'wrk-vzm-01',
+    assignedWorkerPhone: '+91 94402 33445',
+    assignedWorkerRole: 'Executive Engineer & Heavy Earthmoving Unit Lead',
+    verificationInspectorName: 'Sri K. Rama Krishna',
+    verificationInspectorId: 'insp-vzm-01',
+    verificationInspectorPhone: '+91 94401 22334',
     slaBreached: true,
     slaTimerText: '48h Breach • Escalate to SE',
   },
@@ -511,9 +518,13 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     stage: 'assigned',
     reportedDate: '23 Oct 2026',
     targetDate: '29 Oct 2026',
-    assignedWorkerName: 'S. Muralidhar',
-    assignedWorkerPhone: '+91 98402 33445',
+    assignedWorkerName: 'Godavari Earthworks',
+    assignedWorkerId: 'MW-003',
+    assignedWorkerPhone: '+91 90000 20003',
     assignedWorkerRole: 'Bund Maintenance Lead',
+    verificationInspectorName: 'Inspector Pooja Reddy',
+    verificationInspectorId: 'insp-vzm-03',
+    verificationInspectorPhone: '+91 97480 11184',
     slaTimerText: 'Due in 2 days',
   },
   {
@@ -533,9 +544,13 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     stage: 'assigned',
     reportedDate: '24 Oct 2026',
     targetDate: '28 Oct 2026',
-    assignedWorkerName: 'K. Satyanarayana',
-    assignedWorkerPhone: '+91 96403 44556',
+    assignedWorkerName: 'Sri Sai Cleaning Crew',
+    assignedWorkerId: 'MW-001',
+    assignedWorkerPhone: '+91 90000 20001',
     assignedWorkerRole: 'Sanitation & Well Specialist',
+    verificationInspectorName: 'Sri K. Rama Krishna',
+    verificationInspectorId: 'insp-vzm-01',
+    verificationInspectorPhone: '+91 94401 22334',
     slaTimerText: 'Due in 18 hours',
   },
   {
@@ -556,9 +571,10 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     stage: 'in_progress',
     reportedDate: '18 Oct 2026',
     targetDate: '28 Oct 2026',
-    assignedWorkerName: 'T. Anandhan',
-    assignedWorkerPhone: '+91 95400 11223',
-    assignedWorkerRole: 'Desilting Contractor Lead',
+    assignedWorkerName: 'Appalaraju',
+    assignedWorkerId: 'MW-002',
+    assignedWorkerPhone: '+91 90000 20002',
+    assignedWorkerRole: 'Desilting Lead (Excavator Crew #2)',
     machineryType: 'Excavator Crew #2 (JCB 3DX & Tipper)',
     progressPercent: 93,
     excavatedVolumeM3: 4200,
@@ -566,7 +582,9 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     beforePhotoUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
     duringPhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=800&q=80',
     afterPhotoUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80',
-    verificationInspectorName: 'Pooja Reddy',
+    verificationInspectorName: 'Inspector Pooja Reddy',
+    verificationInspectorId: 'insp-vzm-03',
+    verificationInspectorPhone: '+91 97480 11184',
     remedialNotes: 'Excavator Crew #2 completed 4,200 m³ bed desilting and stone pitching apron revetment. Hydraulic gradient verified.',
   },
   {
@@ -586,9 +604,13 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     stage: 'in_progress',
     reportedDate: '20 Oct 2026',
     targetDate: '27 Oct 2026',
-    assignedWorkerName: 'S. Muralidhar',
-    assignedWorkerPhone: '+91 98402 33445',
+    assignedWorkerName: 'Godavari Earthworks',
+    assignedWorkerId: 'MW-003',
+    assignedWorkerPhone: '+91 90000 20003',
     assignedWorkerRole: 'Bund Maintenance Lead',
+    verificationInspectorName: 'Sri V. Jagannadha Rao',
+    verificationInspectorId: 'insp-vzm-02',
+    verificationInspectorPhone: '+91 94405 66778',
     machineryType: 'Masonry Strike Team #1',
     progressPercent: 82,
     excavatedVolumeM3: 1850,
@@ -612,10 +634,16 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     stage: 'under_verification',
     reportedDate: '10 Oct 2026',
     targetDate: '24 Oct 2026',
-    assignedWorkerName: 'T. Anandhan',
-    assignedWorkerPhone: '+91 95400 11223',
-    verificationInspectorName: 'M. Venkat',
-    remedialNotes: 'Desilting and gear restoration completed. Inspector Venkat scheduled for final GPS photographic sign-off.',
+    assignedWorkerName: 'Er. T. Venkata Ramana',
+    assignedWorkerId: 'wrk-vzm-01',
+    assignedWorkerPhone: '+91 94402 33445',
+    assignedWorkerRole: 'Executive Engineer & Heavy Earthmoving Unit Lead',
+    verificationInspectorName: 'Sri K. Rama Krishna',
+    verificationInspectorId: 'insp-vzm-01',
+    verificationInspectorPhone: '+91 94401 22334',
+    beforePhotoUrl: '/assets/evidence/sluice_gate_choked.jpg',
+    afterPhotoUrl: '/assets/evidence/sluice_gate_cleaned.jpg',
+    remedialNotes: 'Desilting and gear restoration completed. Inspector Sri K. Rama Krishna scheduled for final GPS photographic sign-off.',
   },
   {
     id: 'TSK-VZ-1142',
@@ -634,10 +662,13 @@ export const VIZIANAGARAM_NODAL_TASKS: NodalKanbanTask[] = [
     stage: 'verified_closed',
     reportedDate: '05 Oct 2026',
     targetDate: '18 Oct 2026',
-    assignedWorkerName: 'S. Muralidhar',
-    assignedWorkerPhone: '+91 98402 33445',
-    verificationInspectorName: 'Pooja Reddy',
-    remedialNotes: 'Verified clean by Pooja Reddy on 19 Oct. Geotagged water flow restored at 45 cusecs.',
+    assignedWorkerName: 'Godavari Earthworks',
+    assignedWorkerId: 'MW-003',
+    assignedWorkerPhone: '+91 90000 20003',
+    verificationInspectorName: 'Inspector Pooja Reddy',
+    verificationInspectorId: 'insp-vzm-03',
+    verificationInspectorPhone: '+91 97480 11184',
+    remedialNotes: 'Verified clean by Inspector Pooja Reddy on 19 Oct. Geotagged water flow restored at 45 cusecs.',
   },
   {
     id: 'TSK-VZ-1220',
@@ -955,26 +986,55 @@ export function getDistrictInitialKanbanTasks(districtName: string): NodalKanban
     },
   ];
 
-  return templates.map((t, idx) => ({
-    id: `TSK-${distSlug}-${3000 + idx}`,
-    district: districtName,
-    source: t.type,
-    sourceRefId: `CMP-${distSlug}-${400 + idx}`,
-    assetCode: `AP-${distSlug}-AST-0${idx + 1}`,
-    title: t.title,
-    description: t.desc,
-    mandal: mandals[idx % mandals.length],
-    village: `${mandals[idx % mandals.length]} Town`,
-    ayacutHa: t.ayacut,
-    cadastralRef: `CAD-${distSlug}-0${idx + 1}`,
-    coordinates: { lat: 16.5 + (idx * 0.05), lng: 80.5 + (idx * 0.05) },
-    priority: t.priority,
-    stage: t.stage,
-    reportedDate: '19 Oct 2026',
-    targetDate: '29 Oct 2026',
-    assignedWorkerName: t.stage !== 'unassigned' ? 'AP Remediation Crew' : undefined,
-    assignedWorkerPhone: t.stage !== 'unassigned' ? '+91 94400 11223' : undefined,
-  }));
+  const team = getUnifiedDistrictTeam(districtName);
+  const districtInspectors = team.filter((m) => m.role === 'Field Inspector');
+  const districtWorkers = team.filter((m) => m.role === 'Action Worker');
+
+  return templates.map((t, idx) => {
+    const assignedWorker = districtWorkers.length > 0 ? districtWorkers[idx % districtWorkers.length] : undefined;
+    const assignedInspector = districtInspectors.length > 0 ? districtInspectors[idx % districtInspectors.length] : undefined;
+
+    const workerName = assignedWorker ? assignedWorker.name : undefined;
+    const workerPhone = assignedWorker ? assignedWorker.phone : undefined;
+    const workerId = assignedWorker ? (assignedWorker.employeeCode || assignedWorker.id) : undefined;
+    const workerRole = assignedWorker ? assignedWorker.designation : undefined;
+
+    const inspectorName = assignedInspector ? assignedInspector.name : undefined;
+    const inspectorId = assignedInspector ? (assignedInspector.employeeCode || assignedInspector.id) : undefined;
+    const inspectorPhone = assignedInspector ? assignedInspector.phone : undefined;
+
+    return {
+      id: `TSK-${distSlug}-${3000 + idx}`,
+      district: districtName,
+      source: t.type,
+      sourceRefId: `CMP-${distSlug}-${400 + idx}`,
+      assetCode: `AP-${distSlug}-AST-0${idx + 1}`,
+      title: t.title,
+      description: t.desc,
+      mandal: mandals[idx % mandals.length],
+      village: `${mandals[idx % mandals.length]} Town`,
+      ayacutHa: t.ayacut,
+      cadastralRef: `CAD-${distSlug}-0${idx + 1}`,
+      coordinates: { lat: 16.5 + (idx * 0.05), lng: 80.5 + (idx * 0.05) },
+      priority: t.priority,
+      stage: t.stage,
+      reportedDate: '19 Oct 2026',
+      targetDate: '29 Oct 2026',
+      assignedWorkerName: t.stage !== 'unassigned' ? workerName : undefined,
+      assignedWorkerId: t.stage !== 'unassigned' ? workerId : undefined,
+      assignedWorkerPhone: t.stage !== 'unassigned' ? workerPhone : undefined,
+      assignedWorkerRole: t.stage !== 'unassigned' ? workerRole : undefined,
+      verificationInspectorName: inspectorName,
+      verificationInspectorId: inspectorId,
+      verificationInspectorPhone: inspectorPhone,
+      beforePhotoUrl: '/assets/evidence/sluice_gate_choked.jpg',
+      afterPhotoUrl: (t.stage === 'under_verification' || t.stage === 'verified_closed') ? '/assets/evidence/sluice_gate_cleaned.jpg' : undefined,
+      isCompletedByWorker: (t.stage === 'under_verification' || t.stage === 'verified_closed'),
+      remedialNotes: (t.stage === 'under_verification' || t.stage === 'verified_closed')
+        ? `Remediation completed on site by ${workerName || 'district action crew'}. Conduits cleared and flow restored.`
+        : undefined,
+    };
+  });
 }
 
 export const INITIAL_NODAL_TASKS: NodalKanbanTask[] = [
@@ -1187,12 +1247,34 @@ export const PARVATHIPURAM_DISTRICT_TEAM: TeamMemberProfile[] = [
 // Authoritative Field Team for Vizianagaram District (Directly matching Supabase tables field_inspectors & action_workers)
 export const VIZIANAGARAM_DISTRICT_TEAM: TeamMemberProfile[] = [
   {
+    id: 'sup-insp-ins-000',
+    employeeCode: 'insp-vzm-01',
+    name: 'Sri K. Rama Krishna',
+    role: 'Field Inspector',
+    designation: 'Lead Field Inspector (TDS Meter TDS-VZM-001)',
+    specialization: 'Calibrated Digital Multi-Param Meter • Physical Geo-tag Verification & Silt Audit',
+    phone: '+91 94401 22334',
+    maskedPhone: '+91 94******34',
+    assignedMandals: ['Gantyada', 'Bobbili'],
+    activeTasks: 3,
+    capacityLimit: 10,
+    overdueTasks: 0,
+    status: 'Optimal',
+    rating: 4.96,
+    meterId: 'TDS-VZM-001',
+    meterCalibrated: '2026-04-10',
+    languages: 'Telugu/English',
+    email: 'kr.krishna@field.ap.gov.in',
+    district: 'Vizianagaram',
+    joinedOn: '2025-09-15',
+  },
+  {
     id: 'sup-insp-ins-001',
     employeeCode: 'INS-001',
     name: 'Ravi Teja Naidu',
     role: 'Field Inspector',
-    designation: 'Field Inspector (TDS Meter TDS-VZM-001)',
-    specialization: 'Calibrated Digital Meter (TDS-VZM-001) • Water Quality & Silt Auditing',
+    designation: 'Field Inspector (TDS Meter TDS-VZM-002)',
+    specialization: 'Calibrated Digital Meter (TDS-VZM-002) • Water Quality & Silt Auditing',
     phone: '+91 90000 10001',
     maskedPhone: '+91 90******01',
     assignedMandals: ['Bobbili'],
@@ -1201,7 +1283,7 @@ export const VIZIANAGARAM_DISTRICT_TEAM: TeamMemberProfile[] = [
     overdueTasks: 0,
     status: 'Optimal',
     rating: 4.92,
-    meterId: 'TDS-VZM-001',
+    meterId: 'TDS-VZM-002',
     meterCalibrated: '2026-04-10',
     languages: 'Telugu/English',
     email: 'ravi.teja@example.org',
@@ -1339,11 +1421,33 @@ export const VIZIANAGARAM_DISTRICT_TEAM: TeamMemberProfile[] = [
     joinedOn: '2025-11-20',
   },
   {
+    id: 'sup-wrk-vzm-01',
+    employeeCode: 'wrk-vzm-01',
+    name: 'Er. T. Venkata Ramana',
+    role: 'Action Worker',
+    designation: 'Executive Engineer & Heavy Earthmoving Unit Lead',
+    specialization: 'Heavy Excavator (JCB 3DX), Sludge Suction Pump & Sluice Gate Restoration',
+    phone: '+91 94402 33445',
+    maskedPhone: '+91 94******45',
+    assignedMandals: ['Bobbili', 'Bhogapuram', 'Denkada', 'Vizianagaram'],
+    activeTasks: 2,
+    capacityLimit: 10,
+    overdueTasks: 0,
+    status: 'Available',
+    rating: 4.98,
+    workerType: 'Engineer',
+    contactPerson: 'Er. T. Venkata Ramana',
+    skills: 'desilting;heavy earthmoving;sluice gate repair;weir channel clearing',
+    languages: 'Telugu/English',
+    district: 'Vizianagaram',
+    joinedOn: '2025-11-10',
+  },
+  {
     id: 'sup-wrk-mw-001',
     employeeCode: 'MW-001',
-    name: 'JCB Crew 1',
+    name: 'JCB Crew 1 (Sri Sai Cleaning Crew)',
     role: 'Action Worker',
-    designation: 'Remediation Crew (Lead: Appala Raju)',
+    designation: 'Remediation Crew (Lead: Ramu Naidu)',
     specialization: 'Heavy Excavator & Hydraulic Desilting Unit • Bobbili & Gajapathinagaram',
     phone: '+91 90000 20001',
     maskedPhone: '+91 90******01',

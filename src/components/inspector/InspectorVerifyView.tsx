@@ -70,8 +70,38 @@ export const InspectorVerifyView: React.FC<InspectorVerifyViewProps> = ({
 
   if (!selectedTask) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
-        No verification tasks currently pending.
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto shadow-xs space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto shadow-xs">
+          <Wrench className="w-8 h-8 text-amber-600" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Ground Remediation In-Progress
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            No work orders are currently awaiting post-repair sign-off.
+          </p>
+        </div>
+
+        {/* Statutory Governance Rule Banner */}
+        <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-50/90 to-sky-50/70 border border-blue-200 rounded-2xl text-left text-xs text-blue-950 space-y-3">
+          <div className="flex items-center gap-2 font-bold text-blue-900">
+            <ShieldCheck className="w-4 h-4 text-blue-700" />
+            <span>Statutory Governance Protocol: Re-Verification Lock</span>
+          </div>
+          <p className="text-slate-600 leading-relaxed text-xs">
+            Post-work physical verification is strictly locked until the assigned <strong>Action Worker (Engineer / Contractor)</strong> completes the ground physical repairs, uploads the <strong>After-Work Photo</strong>, and marks the task as complete in their terminal.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-blue-800 pt-1 border-t border-blue-200/60">
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold">1. Nodal Assigned ✓</span>
+            <span>➔</span>
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold">2. Initial Check Done ✓</span>
+            <span>➔</span>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 font-bold animate-pulse">3. Worker Action Active ⚙</span>
+            <span>➔</span>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-300 font-semibold">4. Re-Verification (Here)</span>
+          </div>
+        </div>
       </div>
     );
   }

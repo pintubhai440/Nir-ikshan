@@ -46,6 +46,7 @@ import { CitizenComplaint } from '../../types/nirikshan';
 import { isComplaintAssignedToInspector, isComplaintSlaOverdue, isInspectorNameMatch } from '../../utils/inspectorFilter';
 
 interface InspectorDirectoryHubProps {
+  district?: string;
   inspectors: SupabaseFieldInspectorRow[];
   complaints?: CitizenComplaint[];
   selectedInspectorId?: string;
@@ -55,6 +56,7 @@ interface InspectorDirectoryHubProps {
 }
 
 export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
+  district,
   inspectors,
   complaints = [],
   selectedInspectorId,
@@ -63,7 +65,20 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
   isSupabaseLive = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(() => {
+    if (district && district !== 'all') return district;
+    try {
+      return localStorage.getItem('nir_selected_nodal_district') || localStorage.getItem('nir_current_district') || 'Vizianagaram';
+    } catch {
+      return 'Vizianagaram';
+    }
+  });
+
+  React.useEffect(() => {
+    if (district && district !== 'all' && district.trim()) {
+      setSelectedDistrict(district);
+    }
+  }, [district]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'On leave' | 'Standby'>('all');
 
   // Individual Field Inspector Authentication & Data Isolation State
@@ -280,7 +295,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                     t &&
                     !isCompletedLocally &&
                     !hasReport &&
-                    (t.stage === 'assigned' || t.stage === 'in_progress') &&
+                    (t.stage === 'assigned' || t.stage === 'in_progress' || t.stage === 'under_verification') &&
                     t.verificationInspectorName &&
                     isInspectorNameMatch(t.verificationInspectorName, inspector)
                   ) {

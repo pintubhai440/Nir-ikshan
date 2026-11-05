@@ -75,7 +75,7 @@ import {
   SupabaseActionWorkerRow 
 } from '../data/allDistrictsTeamData';
 import { WorkerDirectoryHub } from './worker/WorkerDirectoryHub';
-import { isComplaintAssignedToWorker, isDistrictMatch } from '../utils/workerFilter';
+import { isComplaintAssignedToWorker, isDistrictMatch, isWorkerNameMatch } from '../utils/workerFilter';
 import { 
   fetchActionWorkersFromSupabase, 
   subscribeToActionWorkers, 
@@ -86,6 +86,7 @@ export const DEFAULT_BEFORE_PHOTO = '/assets/evidence/sluice_gate_choked.jpg';
 export const DEFAULT_AFTER_PHOTO = '/assets/evidence/sluice_gate_cleaned.jpg';
 
 interface EngineerDashboardProps {
+  district?: string;
   complaints: CitizenComplaint[];
   waterBodies: WaterBody[];
   onAcceptTask: (complaintId: string, beforePhotoUrl: string) => void;
@@ -98,6 +99,7 @@ type WorkerTab = 'assigned' | 'in_progress' | 'completed' | 'map';
 type DecisionSubView = 'overview' | 'review' | 'accept_guidance' | 'decline_reason';
 
 export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
+  district,
   complaints,
   waterBodies,
   onAcceptTask,
@@ -467,17 +469,137 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const beforeFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Real-time synchronization trigger across roles (Nodal Kanban, Inspector, Action Worker)
+  const [tasksSyncVersion, setTasksSyncVersion] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => {
+      setTasksSyncVersion((v) => v + 1);
+    };
+    window.addEventListener('nir_tasks_updated', handleSync);
+    window.addEventListener('nir_complaints_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('nir_tasks_updated', handleSync);
+      window.removeEventListener('nir_complaints_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
   // Strict 1-to-1 Worker Task Isolation (Zero Cross-Worker Leakage)
   // Ek worker dusre worker ka koi bhi kaam nahi dekh sakta hai.
-  // Only complaints officially assigned to this specific worker by the Nodal Officer are visible.
+  // Only complaints & work orders officially assigned to this specific worker by the Nodal Officer are visible.
+  // Synchronized across base complaints, localStorage nir_complaints, and nir_nodal_tasks.
   // Blocked / Declined tasks are immediately excluded from active terminal view.
   const workerComplaints = useMemo<CitizenComplaint[]>(() => {
-    return complaints.filter((c: CitizenComplaint) => {
+    const map = new Map<string, CitizenComplaint>();
+
+    // 1. Base complaints
+    complaints.forEach((c) => {
+      if (c && c.id) map.set(c.id, c);
+    });
+
+    // 2. Local storage complaints
+    try {
+      const cachedStr = localStorage.getItem('nir_complaints');
+      if (cachedStr) {
+        const cached = JSON.parse(cachedStr);
+        if (Array.isArray(cached)) {
+          cached.forEach((c: CitizenComplaint) => {
+            if (c && c.id) {
+              const existing = map.get(c.id);
+              map.set(c.id, { ...existing, ...c });
+            }
+          });
+        }
+      }
+    } catch {}
+
+    // 3. Authoritative tasks from nir_nodal_tasks
+    try {
+      const nodalTasksStr = localStorage.getItem('nir_nodal_tasks');
+      if (nodalTasksStr) {
+        const nodalTasks = JSON.parse(nodalTasksStr);
+        if (Array.isArray(nodalTasks)) {
+          nodalTasks.forEach((t: any) => {
+            if (!t) return;
+            const isAssigned =
+              (t.assignedWorkerId && (
+                t.assignedWorkerId.toLowerCase() === selectedWorker.worker_id.toLowerCase() ||
+                t.assignedWorkerId.toLowerCase().replace('sup-wrk-', '') === selectedWorker.worker_id.toLowerCase().replace('sup-wrk-', '')
+              )) ||
+              isWorkerNameMatch(t.assignedWorkerName, selectedWorker);
+
+            if (isAssigned) {
+              const targetId = t.sourceRefId || t.id;
+              const existing = map.get(targetId) || map.get(t.id);
+
+              let mappedStatus: CitizenComplaint['status'] = 'ACTION_ASSIGNED';
+              let execStatus = 'PENDING_ACCEPTANCE';
+
+              if (t.stage === 'in_progress') {
+                mappedStatus = 'WORKER_IN_PROGRESS';
+                execStatus = 'ACCEPTED';
+              } else if (t.stage === 'under_verification') {
+                mappedStatus = 'VERIFICATION_PENDING';
+                execStatus = 'COMPLETED';
+              } else if (t.stage === 'verified_closed') {
+                mappedStatus = 'RESOLVED';
+                execStatus = 'COMPLETED';
+              }
+
+              const mergedItem: CitizenComplaint = {
+                id: targetId,
+                district: t.district || existing?.district || selectedWorker.district,
+                mandal: t.mandal || existing?.mandal || (selectedWorker as any).mandal || 'Bobbili',
+                village: t.village || existing?.village || t.mandal,
+                locationLandmark: t.title || existing?.locationLandmark || 'Water Structure',
+                shortDescription: t.description || existing?.shortDescription || 'Sluice gate & channel desilting',
+                coordinates: t.coordinates || existing?.coordinates || { lat: 18.5721, lng: 83.3644 },
+                submittedAt: t.reportedDate || existing?.submittedAt || new Date().toISOString(),
+                citizenName: t.citizenName || existing?.citizenName || 'Public Grievance Cell',
+                citizenAge: 38,
+                citizenGender: 'Other',
+                citizenPhone: t.citizenPhone || existing?.citizenPhone || '+91 94401 22334',
+                assignedNodalOfficer: t.assignedNodalOfficer || existing?.assignedNodalOfficer || 'District Nodal Officer',
+                assignedInspector: t.verificationInspectorName || existing?.assignedInspector || 'Sri K. Rama Krishna',
+                assignedInspectorPhone: t.verificationInspectorPhone || existing?.assignedInspectorPhone || '+91 94401 22334',
+                assignedInspectorId: t.verificationInspectorId || existing?.assignedInspectorId || 'insp-vzm-01',
+                assignedEngineer: t.assignedWorkerName || existing?.assignedEngineer || selectedWorker.name_or_crew,
+                assignedEngineerPhone: t.assignedWorkerPhone || existing?.assignedEngineerPhone || selectedWorker.phone,
+                assignedEngineerId: selectedWorker.worker_id,
+                wasteType: t.title || existing?.wasteType || 'Channel Choke & Silt',
+                photoUrl: t.beforePhotoUrl || existing?.photoUrl || DEFAULT_BEFORE_PHOTO,
+                status: existing?.status && existing.status !== 'INSPECTOR_ASSIGNED' && existing.status !== 'SUBMITTED' ? existing.status : mappedStatus,
+                machineryDeployed: t.machineryType || existing?.machineryDeployed || 'Hydraulic Excavator & Suction Pump',
+                workExecution: existing?.workExecution || {
+                  id: `EXEC-${targetId}`,
+                  engineerName: t.assignedWorkerName || selectedWorker.name_or_crew,
+                  engineerPhone: t.assignedWorkerPhone || selectedWorker.phone,
+                  assignedAt: t.reportedDate || new Date().toISOString(),
+                  deadline: t.targetDate || '24 Hours',
+                  status: execStatus as any,
+                  acceptedAt: new Date().toISOString(),
+                  beforePhotoUrl: t.beforePhotoUrl || DEFAULT_BEFORE_PHOTO,
+                  afterPhotoUrl: t.afterPhotoUrl || (t.stage === 'under_verification' || t.stage === 'verified_closed' ? DEFAULT_AFTER_PHOTO : undefined),
+                  workSummary: t.remedialNotes,
+                },
+              };
+
+              map.set(targetId, mergedItem);
+            }
+          });
+        }
+      }
+    } catch {}
+
+    const all = Array.from(map.values());
+    return all.filter((c: CitizenComplaint) => {
       if (declinedComplaintIds.includes(c.id)) return false;
       if (c.workExecution?.status === 'BLOCKED') return false;
       return isComplaintAssignedToWorker(c, selectedWorker);
     });
-  }, [complaints, selectedWorker, declinedComplaintIds]);
+  }, [complaints, selectedWorker, declinedComplaintIds, tasksSyncVersion]);
 
   // Dynamic Task Categorization
   const urgentTasks: CitizenComplaint[] = workerComplaints.filter(
@@ -517,6 +639,17 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
       c.status === 'RESOLVED' ||
       c.workExecution !== undefined
   );
+
+  // Auto-switch active tab when selecting a worker who has tasks in progress or under verification
+  useEffect(() => {
+    if (urgentTasks.length > 0) {
+      setActiveTab('assigned');
+    } else if (inProgressTasks.length > 0) {
+      setActiveTab('in_progress');
+    } else if (waitingReviewTasks.length > 0) {
+      setActiveTab('completed');
+    }
+  }, [selectedWorker?.worker_id, urgentTasks.length, inProgressTasks.length, waitingReviewTasks.length]);
 
   // Active complaint determination
   const activeComplaint =
@@ -589,6 +722,25 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
     
     setSelectedComplaintId(activeComplaint.id);
     onAcceptTask(activeComplaint.id, photoToUse);
+
+    // Sync to nir_nodal_tasks
+    try {
+      const storedStr = localStorage.getItem('nir_nodal_tasks');
+      if (storedStr) {
+        const list = JSON.parse(storedStr);
+        if (Array.isArray(list)) {
+          const updated = list.map((t: any) => {
+            if (t.id === activeComplaint.id || t.sourceRefId === activeComplaint.id) {
+              return { ...t, stage: 'in_progress', beforePhotoUrl: photoToUse };
+            }
+            return t;
+          });
+          localStorage.setItem('nir_nodal_tasks', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
+        }
+      }
+    } catch {}
+
     confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
     setActiveTab('in_progress');
     setDecisionSubView('overview');
@@ -612,7 +764,29 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
     // 2. Transmit block/decline action to Supabase and parent App state
     onBlockTask(complaintIdToDecline, finalReason);
 
-    // 3. Set statutory confirmation notice
+    // 3. Sync decline to nir_nodal_tasks
+    try {
+      const storedStr = localStorage.getItem('nir_nodal_tasks');
+      if (storedStr) {
+        const list = JSON.parse(storedStr);
+        if (Array.isArray(list)) {
+          const updated = list.map((t: any) => {
+            if (t.id === complaintIdToDecline || t.sourceRefId === complaintIdToDecline) {
+              return {
+                ...t,
+                stage: 'unassigned',
+                remedialNotes: `Declined by worker: ${finalReason}`,
+              };
+            }
+            return t;
+          });
+          localStorage.setItem('nir_nodal_tasks', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
+        }
+      }
+    } catch {}
+
+    // 4. Set statutory confirmation notice
     setDeclineSuccessNotice({
       id: complaintIdToDecline,
       location: locationName,
@@ -621,7 +795,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
       hasVoiceNote,
     });
 
-    // 4. Reset audio and transition to overview
+    // 5. Reset audio and transition to overview
     resetDeclineVoiceRecording();
     setDecisionSubView('overview');
   };
@@ -632,6 +806,32 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
     const finalAfter = afterPhotoUrl || DEFAULT_AFTER_PHOTO;
     const summary = `Remediation completed on site by ${workerCount}-worker excavation unit. Conduits and sluice aprons at ${taskToComplete.locationLandmark} de-silted, floating obstructions (${taskToComplete.wasteType || 'silt & debris'}) cleared, gate spindle greased and tested. Restored flow verified on camera.`;
     onCompleteTask(taskToComplete.id, finalAfter, summary);
+
+    // Sync to nir_nodal_tasks
+    try {
+      const storedStr = localStorage.getItem('nir_nodal_tasks');
+      if (storedStr) {
+        const list = JSON.parse(storedStr);
+        if (Array.isArray(list)) {
+          const updated = list.map((t: any) => {
+            if (t.id === taskToComplete.id || t.sourceRefId === taskToComplete.id) {
+              return {
+                ...t,
+                stage: 'under_verification',
+                afterPhotoUrl: finalAfter,
+                remedialNotes: summary,
+                isCompletedByWorker: true,
+                workerCompletedAt: new Date().toISOString(),
+              };
+            }
+            return t;
+          });
+          localStorage.setItem('nir_nodal_tasks', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('nir_tasks_updated'));
+        }
+      }
+    } catch {}
+
     confetti({ particleCount: 120, spread: 85, origin: { y: 0.5 } });
     setActiveTab('completed');
   };
@@ -823,6 +1023,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   if (isSelectingWorker) {
     return (
       <WorkerDirectoryHub
+        district={district}
         workers={allWorkers}
         complaints={complaints}
         selectedWorkerId={selectedWorker.worker_id}
@@ -1305,12 +1506,57 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                     </div>
                     <div className="space-y-1">
                       <h3 className="text-base sm:text-lg font-black text-slate-900">
-                        No Pending Work Orders Awaiting Decision
+                        {waitingReviewTasks.length > 0
+                          ? `1 Work Order Under Statutory Verification`
+                          : 'No Pending Work Orders Awaiting Decision'}
                       </h3>
                       <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                        All remediation tasks assigned to <strong>{selectedWorkerDisplayName}</strong> have already been accepted and moved to active execution or completed.
+                        {waitingReviewTasks.length > 0
+                          ? `Remediation completed by ${selectedWorkerDisplayName} and submitted for physical inspection audit.`
+                          : `All remediation tasks assigned to ${selectedWorkerDisplayName} have already been accepted and moved to active execution or completed.`}
                       </p>
                     </div>
+
+                    {/* Prominent Under Verification Case Card */}
+                    {waitingReviewTasks.length > 0 && (
+                      <div className="text-left bg-gradient-to-br from-purple-50/90 to-indigo-50/90 border-2 border-purple-300 rounded-2xl p-4 sm:p-5 space-y-3 max-w-2xl mx-auto shadow-2xs">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-200/90 text-purple-900 text-[11px] font-mono font-bold">
+                            <Sparkles className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
+                            <span>STAGE 04: UNDER VERIFICATION ({waitingReviewTasks.length})</span>
+                          </span>
+                          <span className="text-xs text-purple-700 font-semibold">Inspector Physical Sign-Off Due</span>
+                        </div>
+
+                        {waitingReviewTasks.map((t) => (
+                          <div key={t.id} className="bg-white border border-purple-200 rounded-xl p-3.5 space-y-2.5 shadow-2xs">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-mono text-[10px] text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">{t.id}</span>
+                                <h4 className="font-bold text-slate-900 text-sm mt-1">{t.locationLandmark || t.wasteType}</h4>
+                                <p className="text-xs text-slate-500">{t.village ? `${t.village}, ` : ''}{t.mandal} Mandal • {t.district} District</p>
+                              </div>
+                              <span className="bg-purple-100 text-purple-900 text-[10px] font-bold px-2.5 py-1 rounded-full border border-purple-300 shrink-0">
+                                Audit Due
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-600 italic bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                              "{t.shortDescription}"
+                            </div>
+                            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 flex-wrap gap-2">
+                              <span className="text-slate-600 font-medium">Assigned Field Inspector: <strong className="text-slate-900">{t.assignedInspector || 'Field Inspector'}</strong></span>
+                              <button
+                                onClick={() => setActiveTab('completed')}
+                                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <span>Inspect Verification Dossier</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
                       {inProgressTasks.length > 0 && (
@@ -2614,12 +2860,13 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* SUBMIT BUTTON: Next: Review & Send for Checking */}
+                {/* SUBMIT BUTTON: Complete Remediation & Send for Verification */}
                 <button
                   onClick={handleSubmitToInspectorForVerification}
-                  className="w-full py-3 px-4 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs hover:shadow-sm active:scale-98"
+                  className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-98"
                 >
-                  <span>Next: Review &amp; Send for Checking ➔</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                  <span>Complete Remediation &amp; Unlock Inspector Verification ➔</span>
                 </button>
               </div>
 

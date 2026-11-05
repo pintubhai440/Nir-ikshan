@@ -146,6 +146,15 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
     }
   }, [initialSelectingDistrict]);
 
+  useEffect(() => {
+    if (currentDistrict) {
+      try {
+        localStorage.setItem('nir_selected_nodal_district', currentDistrict);
+        localStorage.setItem('nir_current_district', currentDistrict);
+      } catch {}
+    }
+  }, [currentDistrict]);
+
   // District Dummy Authentication Modal State
   const [pendingDistrictAuth, setPendingDistrictAuth] = useState<DistrictTelemetry | null>(null);
   const [authEmail, setAuthEmail] = useState<string>('');
