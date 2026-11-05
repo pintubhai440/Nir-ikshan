@@ -18,7 +18,7 @@ import {
   INITIAL_CITIZEN_COMPLAINTS,
   SAMPLE_CITIZEN_COMPLAINTS
 } from './data/nirikshanData';
-import { SupabaseFieldInspectorRow } from './data/allDistrictsTeamData';
+import { SupabaseFieldInspectorRow, SupabaseActionWorkerRow } from './data/allDistrictsTeamData';
 import { NirikshanHeader } from './components/NirikshanHeader';
 import { NirikshanSlideDrawer } from './components/NirikshanSlideDrawer';
 import { OtpLoginModal } from './components/OtpLoginModal';
@@ -232,6 +232,32 @@ export default function App() {
     []
   );
 
+  const [workerNavKey, setWorkerNavKey] = useState<number>(0);
+  const [workerViewInfo, setWorkerViewInfo] = useState<{
+    isDirectory: boolean;
+    worker: SupabaseActionWorkerRow | null;
+  }>({ isDirectory: true, worker: null });
+
+  const handleWorkerViewChange = useCallback(
+    (view: { isDirectory: boolean; worker: SupabaseActionWorkerRow | null }) => {
+      setWorkerViewInfo((prev) => {
+        if (
+          prev.isDirectory === view.isDirectory &&
+          prev.worker?.worker_id === view.worker?.worker_id
+        ) {
+          return prev;
+        }
+        return view;
+      });
+    },
+    []
+  );
+
+  const handleReturnToWorkerDirectory = () => {
+    setWorkerNavKey((prev) => prev + 1);
+    setWorkerViewInfo({ isDirectory: true, worker: null });
+  };
+
   // Role selection logic with auth gate
   const handleSelectRole = (role: UserRoleType) => {
     // If not logged in and choosing any protected dashboard, prompt OTP login modal
@@ -246,6 +272,10 @@ export default function App() {
     if (role === 'inspector') {
       setInspectorNavKey((prev) => prev + 1);
       setInspectorViewInfo({ isDirectory: true, inspector: null });
+    }
+    if (role === 'engineer') {
+      setWorkerNavKey((prev) => prev + 1);
+      setWorkerViewInfo({ isDirectory: true, worker: null });
     }
     setCurrentRole(role);
   };
@@ -662,6 +692,32 @@ export default function App() {
                     </span>
                   </>
                 )
+              ) : currentRole === 'engineer' ? (
+                workerViewInfo.isDirectory || !workerViewInfo.worker ? (
+                  // Level 1: Action Worker & Remediation Fleet Directory
+                  <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Action Worker Directory</span>
+                  </span>
+                ) : (
+                  // Level 2: Inside Workstation for a specific worker
+                  <>
+                    <button
+                      onClick={handleReturnToWorkerDirectory}
+                      className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Back to Action Worker Directory"
+                    >
+                      <span>Action Worker Directory</span>
+                    </button>
+                    <span className="text-slate-300">/</span>
+                    <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>
+                        Worker {workerViewInfo.worker.name_or_crew || workerViewInfo.worker.name_or_crew_type || workerViewInfo.worker.contact_person} ({workerViewInfo.worker.worker_id})
+                      </span>
+                    </span>
+                  </>
+                )
               ) : (
                 <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -675,6 +731,8 @@ export default function App() {
               onClick={() => {
                 if (currentRole === 'inspector' && !inspectorViewInfo.isDirectory && inspectorViewInfo.inspector) {
                   handleReturnToInspectorDirectory();
+                } else if (currentRole === 'engineer' && !workerViewInfo.isDirectory && workerViewInfo.worker) {
+                  handleReturnToWorkerDirectory();
                 } else {
                   setCurrentRole('overview');
                 }
@@ -683,6 +741,8 @@ export default function App() {
               title={
                 currentRole === 'inspector' && !inspectorViewInfo.isDirectory && inspectorViewInfo.inspector
                   ? 'Back to Field Inspector Directory'
+                  : currentRole === 'engineer' && !workerViewInfo.isDirectory && workerViewInfo.worker
+                  ? 'Back to Action Worker Directory'
                   : 'Back to Portal Home'
               }
             >
@@ -774,11 +834,13 @@ export default function App() {
         {/* 7. ACTION WORKER / ENGINEER MOBILE WORKSTATION */}
         {currentRole === 'engineer' && (
           <EngineerDashboard
+            key={`worker-nav-${workerNavKey}`}
             complaints={complaints}
             waterBodies={waterBodies}
             onAcceptTask={handleAcceptTask}
             onBlockTask={handleBlockTask}
             onCompleteTask={handleCompleteTask}
+            onViewChange={handleWorkerViewChange}
           />
         )}
       </main>

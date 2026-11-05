@@ -84,7 +84,7 @@ export const NirikshanNavbar: React.FC<NirikshanNavbarProps> = ({
     {
       role: 'engineer' as UserRoleType,
       number: '4',
-      label: 'Action Worker / Engineer',
+      label: 'Action Worker (सफाई व मरम्मत)',
       icon: Wrench,
       requiresAuth: true,
     },

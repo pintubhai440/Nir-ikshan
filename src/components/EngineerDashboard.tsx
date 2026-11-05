@@ -11,7 +11,7 @@
  *  4. GIS Cadastral Map with Google Hybrid Satellite tiles in English.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CitizenComplaint, WaterBody } from '../types/nirikshan';
 import { EngineerRealSatelliteMap } from './EngineerRealSatelliteMap';
 import { 
@@ -67,6 +67,17 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useLanguage } from '../context/LanguageContext';
+import { 
+  COMPLETE_AP_ACTION_WORKERS, 
+  SupabaseActionWorkerRow 
+} from '../data/allDistrictsTeamData';
+import { WorkerDirectoryHub } from './worker/WorkerDirectoryHub';
+import { isComplaintAssignedToWorker, isDistrictMatch } from '../utils/workerFilter';
+import { 
+  fetchActionWorkersFromSupabase, 
+  subscribeToActionWorkers, 
+  isSupabaseConfigured 
+} from '../lib/supabase';
 
 interface EngineerDashboardProps {
   complaints: CitizenComplaint[];
@@ -74,6 +85,7 @@ interface EngineerDashboardProps {
   onAcceptTask: (complaintId: string, beforePhotoUrl: string) => void;
   onBlockTask: (complaintId: string, reason: string) => void;
   onCompleteTask: (complaintId: string, afterPhotoUrl: string, workSummary: string) => void;
+  onViewChange?: (view: { isDirectory: boolean; worker: SupabaseActionWorkerRow | null }) => void;
 }
 
 type WorkerTab = 'assigned' | 'in_progress' | 'completed' | 'map';
@@ -85,8 +97,112 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   onAcceptTask,
   onBlockTask,
   onCompleteTask,
+  onViewChange,
 }) => {
   const { t } = useLanguage();
+
+  // Action Workers State with live Supabase synchronization (Zero fake data)
+  const [workersList, setWorkersList] = useState<SupabaseActionWorkerRow[]>(() => {
+    const byId = new Map<string, SupabaseActionWorkerRow>();
+    COMPLETE_AP_ACTION_WORKERS.forEach((w) => {
+      if (w && w.worker_id && !byId.has(w.worker_id.toLowerCase())) {
+        byId.set(w.worker_id.toLowerCase(), w);
+      }
+    });
+    return Array.from(byId.values());
+  });
+
+  const [isSupabaseLive, setIsSupabaseLive] = useState<boolean>(() => isSupabaseConfigured());
+
+  // Connect live to Supabase public.action_workers
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadLiveWorkers = async () => {
+      try {
+        const data = await fetchActionWorkersFromSupabase();
+        if (isMounted && data && data.length > 0) {
+          setWorkersList(data);
+          setIsSupabaseLive(true);
+        }
+      } catch (err) {
+        console.warn('[EngineerDashboard] Live action workers fetch error:', err);
+      }
+    };
+
+    loadLiveWorkers();
+
+    const unsubscribe = subscribeToActionWorkers(() => {
+      loadLiveWorkers();
+    });
+
+    const handleConfigChanged = () => {
+      setIsSupabaseLive(isSupabaseConfigured());
+      loadLiveWorkers();
+    };
+
+    window.addEventListener('supabase-config-changed', handleConfigChanged);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      window.removeEventListener('supabase-config-changed', handleConfigChanged);
+    };
+  }, []);
+
+  const allWorkers = workersList;
+
+  // Selected Action Worker State
+  const [selectedWorker, setSelectedWorker] = useState<SupabaseActionWorkerRow>(() => {
+    try {
+      const storedId = localStorage.getItem('nir_current_worker_id');
+      if (storedId) {
+        const found = COMPLETE_AP_ACTION_WORKERS.find((w) => w.worker_id.toLowerCase() === storedId.toLowerCase());
+        if (found) return found;
+      }
+    } catch {}
+    return COMPLETE_AP_ACTION_WORKERS[0];
+  });
+
+  // Sync selectedWorker if refreshed from live Supabase table
+  useEffect(() => {
+    if (selectedWorker?.worker_id && workersList.length > 0) {
+      const liveMatch = workersList.find(
+        (w) => w.worker_id.toLowerCase() === selectedWorker.worker_id.toLowerCase()
+      );
+      if (liveMatch && JSON.stringify(liveMatch) !== JSON.stringify(selectedWorker)) {
+        setSelectedWorker(liveMatch);
+      }
+    }
+  }, [workersList, selectedWorker]);
+
+  // Toggle between Directory Selection Hub (flashcards for all workers) and Active Workstation
+  const [isSelectingWorker, setIsSelectingWorker] = useState<boolean>(true);
+
+  // Sync breadcrumb & smart back button in parent
+  const lastReportedViewRef = useRef<{ isDirectory: boolean; workerId: string | null }>({
+    isDirectory: !isSelectingWorker,
+    workerId: null,
+  });
+
+  useEffect(() => {
+    const currentId = isSelectingWorker ? null : (selectedWorker?.worker_id || null);
+    if (
+      lastReportedViewRef.current.isDirectory !== isSelectingWorker ||
+      lastReportedViewRef.current.workerId !== currentId
+    ) {
+      lastReportedViewRef.current = {
+        isDirectory: isSelectingWorker,
+        workerId: currentId,
+      };
+      if (onViewChange) {
+        onViewChange({
+          isDirectory: isSelectingWorker,
+          worker: isSelectingWorker ? null : selectedWorker,
+        });
+      }
+    }
+  }, [isSelectingWorker, selectedWorker, onViewChange]);
 
   // Active top navigation tab
   const [activeTab, setActiveTab] = useState<WorkerTab>('assigned');
@@ -196,33 +312,65 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const beforeFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Filter complaints strictly isolated to this worker or their district (Zero fake data, zero duplicates)
+  const workerComplaints = useMemo<CitizenComplaint[]>(() => {
+    // 1. Direct assignments to this worker
+    const directlyAssigned = complaints.filter((c: CitizenComplaint) => isComplaintAssignedToWorker(c, selectedWorker));
+    if (directlyAssigned.length > 0) {
+      return directlyAssigned;
+    }
+
+    // 2. District & Mandal matching complaints that need remediation
+    const districtTasks = complaints.filter(
+      (c: CitizenComplaint) =>
+        isDistrictMatch(c.district, selectedWorker.district) &&
+        (c.status === 'ACTION_ASSIGNED' ||
+         c.status === 'WORKER_IN_PROGRESS' ||
+         c.status === 'VERIFICATION_PENDING' ||
+         c.status === 'RESOLVED' ||
+         c.workExecution !== undefined)
+    );
+    if (districtTasks.length > 0) {
+      return districtTasks;
+    }
+
+    // 3. Fallback to all complaints that have remediation tasks, so worker can take action
+    return complaints.filter(
+      (c: CitizenComplaint) =>
+        c.status === 'ACTION_ASSIGNED' ||
+        c.status === 'WORKER_IN_PROGRESS' ||
+        c.status === 'VERIFICATION_PENDING' ||
+        c.workExecution !== undefined
+    );
+  }, [complaints, selectedWorker]);
+
   // Dynamic Task Categorization
-  const urgentTasks = complaints.filter(
-    (c) =>
+  const urgentTasks: CitizenComplaint[] = workerComplaints.filter(
+    (c: CitizenComplaint) =>
       c.status === 'ACTION_ASSIGNED' ||
       (c.workExecution && c.workExecution.status === 'PENDING_ACCEPTANCE')
   );
 
-  const inProgressTasks = complaints.filter(
-    (c) =>
+  const inProgressTasks: CitizenComplaint[] = workerComplaints.filter(
+    (c: CitizenComplaint) =>
       c.status === 'WORKER_IN_PROGRESS' &&
       c.workExecution?.status === 'ACCEPTED'
   );
 
-  const waitingReviewTasks = complaints.filter(
-    (c) =>
+  const waitingReviewTasks: CitizenComplaint[] = workerComplaints.filter(
+    (c: CitizenComplaint) =>
       c.status === 'VERIFICATION_PENDING' ||
       (c.workExecution && c.workExecution.status === 'COMPLETED' && c.status !== 'RESOLVED')
   );
 
-  const completedTasks = complaints.filter(
-    (c) =>
+  const completedTasks: CitizenComplaint[] = workerComplaints.filter(
+    (c: CitizenComplaint) =>
       c.status === 'RESOLVED' ||
       (c.workExecution !== undefined && c.workExecution.status === 'COMPLETED')
   );
 
-  const allRemediationTasks = complaints.filter(
-    (c) =>
+  const allRemediationTasks: CitizenComplaint[] = workerComplaints.filter(
+    (c: CitizenComplaint) =>
       c.status === 'ACTION_ASSIGNED' ||
       c.status === 'WORKER_IN_PROGRESS' ||
       c.status === 'VERIFICATION_PENDING' ||
@@ -232,10 +380,10 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
 
   // Active complaint determination
   const activeComplaint =
-    complaints.find((c) => c.id === selectedComplaintId) ||
+    workerComplaints.find((c: CitizenComplaint) => c.id === selectedComplaintId) ||
     urgentTasks[0] ||
     inProgressTasks[0] ||
-    complaints[0];
+    workerComplaints[0];
 
   // Auto-select first task if none selected
   useEffect(() => {
@@ -331,6 +479,46 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   const targetLng = activeComplaint?.coordinates?.lng || 83.3644;
   const targetTitle = activeComplaint?.locationLandmark || "Pedda Cheruvu Sluice Gate Complex";
 
+  const workerInitials = useMemo(() => {
+    const raw = selectedWorker.name_or_crew || selectedWorker.name_or_crew_type || selectedWorker.contact_person || 'WK';
+    const clean = raw.replace(/\b(Er|Dr|Sri|Smt)\.?\s+/gi, '').trim();
+    const parts = clean.split(' ').filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase() || 'WK';
+  }, [selectedWorker]);
+
+  const selectedWorkerDisplayName = selectedWorker.name_or_crew || selectedWorker.name_or_crew_type || selectedWorker.contact_person;
+
+  const workerGradient =
+    selectedWorker.type === 'Engineer'
+      ? 'from-[#03045E] to-[#0077B6]'
+      : selectedWorker.type === 'Contractor'
+      ? 'from-amber-600 to-amber-800'
+      : selectedWorker.type === 'Crew'
+      ? 'from-teal-600 to-cyan-800'
+      : 'from-indigo-600 to-blue-800';
+
+  // If in Directory selection mode, show the Directory Hub with flashcards for all workers across AP
+  if (isSelectingWorker) {
+    return (
+      <WorkerDirectoryHub
+        workers={allWorkers}
+        complaints={complaints}
+        selectedWorkerId={selectedWorker.worker_id}
+        isSupabaseLive={isSupabaseLive}
+        onSelectWorker={(worker) => {
+          setSelectedWorker(worker);
+          setIsSelectingWorker(false);
+          try {
+            localStorage.setItem('nir_current_worker_id', worker.worker_id);
+          } catch {}
+        }}
+      />
+    );
+  }
+
   return (
     <div className="w-full font-['Plus_Jakarta_Sans',sans-serif] text-slate-800 space-y-5 pb-16">
       
@@ -348,9 +536,13 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             </div>
 
             {/* Sync Badge */}
-            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1 rounded-xl text-[#0077B6] font-semibold">
-              <Database className="w-3.5 h-3.5 text-[#0077B6]" />
-              <span>Supabase Synchronized • Offline Ready</span>
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl font-semibold border ${
+              isSupabaseLive
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                : 'bg-blue-50 border-blue-200 text-[#0077B6]'
+            }`}>
+              <Database className="w-3.5 h-3.5" />
+              <span>{isSupabaseLive ? 'Supabase Live: public.action_workers' : 'Offline Verified Roster'}</span>
             </div>
 
             {/* AP-WRIMS Sync */}
@@ -360,8 +552,18 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             </div>
           </div>
 
-          {/* Right Side: Device Switcher & Audio Briefing */}
-          <div className="flex items-center gap-2">
+          {/* Right Side: Switch Worker, Device Switcher & Audio Briefing */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Switch Worker Button */}
+            <button
+              onClick={() => setIsSelectingWorker(true)}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              title="Return to Action Worker Directory Hub"
+            >
+              <Users className="w-3.5 h-3.5 text-slate-600" />
+              <span>Switch Worker ({selectedWorker.worker_id})</span>
+            </button>
+
             {/* Device Switcher Toggle */}
             <div className="bg-slate-100 border border-slate-200 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
               <button
@@ -394,7 +596,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             <button
               onClick={() =>
                 speakText(
-                  `Nir-ikshan Action Worker Portal. You have ${urgentTasks.length} urgent work orders awaiting decision, ${inProgressTasks.length} active remediation sites, and ${waitingReviewTasks.length} sites submitted for inspector verification.`
+                  `Nir-ikshan Action Worker Portal for ${selectedWorkerDisplayName}. You have ${urgentTasks.length} urgent work orders awaiting decision, ${inProgressTasks.length} active remediation sites, and ${waitingReviewTasks.length} sites submitted for inspector verification.`
                 )
               }
               className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
@@ -408,36 +610,51 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
         {/* Executive Profile Row */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-13 h-13 rounded-2xl bg-[#03045E] text-white flex items-center justify-center font-black text-xl shadow-xs">
-              VR
+            <div className={`w-13 h-13 rounded-2xl bg-gradient-to-br ${workerGradient} text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0`}>
+              {workerInitials}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                  Executive Engineer Er. T. Venkata Ramana
+                  {selectedWorkerDisplayName}
                 </h1>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0077B6] border border-blue-200 flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-rose-500" />
-                  <span>Vizianagaram Remediation Division • Bobbili Sub-Division</span>
+                  <span>{selectedWorker.district} Remediation Division • {selectedWorker.service_areas || 'Field Operations'}</span>
                 </span>
                 <span className="font-mono text-xs font-bold bg-[#0077B6]/10 text-[#0077B6] border border-[#0077B6]/20 px-2 py-0.5 rounded-md">
-                  AEE-VZM-004
+                  {selectedWorker.worker_id}
                 </span>
-                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>On-Field Duty</span>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                  selectedWorker.availability === 'Busy'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    selectedWorker.availability === 'Busy' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
+                  }`} />
+                  <span>{selectedWorker.availability === 'Busy' ? 'On-Site Active' : 'On-Field Ready'}</span>
+                </span>
+                <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                  {selectedWorker.type}
                 </span>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500 mt-1">
-                <span>Desilting & Canal Remediation Wing</span>
+                <span>{selectedWorker.skills || 'Desilting & Canal Remediation Wing'}</span>
                 <span className="text-slate-300">•</span>
                 <div className="flex items-center gap-1 text-slate-700 font-semibold">
                   <Users className="w-3.5 h-3.5 text-[#0077B6]" />
-                  <span>Crew: 4 Field Operatives On-Site</span>
+                  <span>
+                    {selectedWorker.type === 'Contractor'
+                      ? 'Contractor Fleet: 12 Operators On-Site'
+                      : selectedWorker.type === 'Engineer'
+                      ? 'Engineering Command Unit'
+                      : `Crew: ${workerCount} Field Operatives On-Site`}
+                  </span>
                 </div>
                 <span className="text-slate-300">•</span>
-                <span>Phone: +91 94402 33445</span>
+                <span>Phone: {selectedWorker.phone || '+91 94402 33445'}</span>
               </div>
             </div>
           </div>

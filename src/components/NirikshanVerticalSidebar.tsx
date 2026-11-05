@@ -99,8 +99,8 @@ export const NirikshanVerticalSidebar: React.FC<NirikshanVerticalSidebarProps> =
     {
       role: 'engineer' as UserRoleType,
       number: '4',
-      title: 'Action Worker / Engineer',
-      telugu: 'ఫీల్డ్ ఇంజనీరింగ్ వర్కర్',
+      title: 'Action Worker (सफाई व मरम्मत)',
+      telugu: 'యాక్షన్ వర్కర్ (పారిశుధ్య & మరమ్మతు)',
       desc: 'Strict deadlines • Accept with Before-photo or Block with reason',
       icon: Wrench,
       badge: 'Action Worker',

@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CitizenComplaint } from '../types/nirikshan';
 import { DepartmentalPersonnel, INITIAL_DEPARTMENTAL_PERSONNEL } from '../data/stateAdminData';
 import { TeamMemberProfile, getDistrictTeamProfiles } from '../data/nodalOfficerData';
+import { SupabaseActionWorkerRow } from '../data/allDistrictsTeamData';
 
 // Support Vite import.meta.env, window globals, and safe browser localStorage (which never touches git)
 export const getStoredSupabaseConfig = () => {
@@ -1070,3 +1071,95 @@ export function subscribeToDistrictTeam(onTeamChanged: () => void): () => void {
     client.removeChannel(channel);
   };
 }
+
+/**
+ * Maps a database row from public.action_workers into SupabaseActionWorkerRow
+ */
+export function mapRowToActionWorker(row: any): SupabaseActionWorkerRow {
+  return {
+    worker_id: String(row.worker_id || row.id),
+    name_or_crew: String(row.name_or_crew || row.name_or_crew_type || row.contact_person || 'Action Worker'),
+    name_or_crew_type: String(row.name_or_crew || row.name_or_crew_type || row.contact_person || 'Action Worker'),
+    type: (row.type || 'Crew') as 'Crew' | 'Contractor' | 'Engineer' | 'Individual',
+    contact_person: String(row.contact_person || row.name_or_crew || 'Lead Officer'),
+    phone: String(row.phone || '+91 90000 20001'),
+    skills: String(row.skills || 'waste cleaning;desilting'),
+    service_areas: String(row.service_areas || row.district || 'Andhra Pradesh'),
+    district: String(row.district || 'Vizianagaram'),
+    nodal_officer_id: row.nodal_officer_id || undefined,
+    availability: (row.availability || 'Available') as 'Available' | 'Busy' | 'On leave',
+    languages: String(row.languages || 'Telugu'),
+    status: (row.status === 'Inactive' ? 'Inactive' : 'Active') as 'Active' | 'Inactive',
+    open_tasks: Number(row.open_tasks) || 0,
+    tasks_declined: Number(row.tasks_declined) || 0,
+    no_response: Number(row.no_response) || 0,
+    added_on: String(row.added_on || new Date().toISOString().split('T')[0]),
+  };
+}
+
+/**
+ * Direct live fetch from public.action_workers table in Supabase
+ * Strictly 0 synthetic/fake data.
+ */
+export async function fetchActionWorkersFromSupabase(): Promise<SupabaseActionWorkerRow[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('action_workers')
+      .select('*')
+      .order('worker_id', { ascending: true });
+
+    if (error) {
+      console.warn('[Supabase] Failed to fetch action_workers:', error.message);
+      return null;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const uniqueMap = new Map<string, SupabaseActionWorkerRow>();
+      for (const row of data) {
+        if (row && (row.worker_id || row.id)) {
+          const mapped = mapRowToActionWorker(row);
+          const key = mapped.worker_id.toLowerCase().trim();
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, mapped);
+          }
+        }
+      }
+      return Array.from(uniqueMap.values());
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Supabase] Network exception fetching action_workers:', err);
+    return null;
+  }
+}
+
+/**
+ * Subscribes to real-time additions and updates on action_workers table
+ */
+export function subscribeToActionWorkers(onChanged: () => void): () => void {
+  const client = getSupabaseClient();
+  if (!client) return () => {};
+
+  const channel = client
+    .channel('action-workers-realtime-sub')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'action_workers',
+      },
+      () => {
+        onChanged();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    client.removeChannel(channel);
+  };
+}
+

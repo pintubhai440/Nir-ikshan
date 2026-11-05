@@ -59,7 +59,7 @@ export const NirikshanTopBar: React.FC<NirikshanTopBarProps> = ({
         };
       case 'engineer':
         return {
-          title: 'Action Worker / Engineer',
+          title: 'Action Worker (सफाई व मरम्मत)',
           icon: Wrench,
           bg: 'bg-amber-100 text-amber-800 border-amber-300',
         };
