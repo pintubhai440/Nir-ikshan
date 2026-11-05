@@ -1000,10 +1000,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         }`}
                       />
                       <div className="text-[11px] text-slate-800 font-bold truncate">
-                        {activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}
+                        {activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector ? (
+                          activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector
+                        ) : (
+                          <span className="text-slate-400 italic font-semibold">{tr('Awaiting Assignment', 'आवंटन लंबित', 'కేటాయింపు పెండింగ్‌లో ఉంది')}</span>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        {tr('Field Ground Survey', 'धरातलीय सर्वेक्षण', 'క్షేత్రస్థాయి సర్వే')}
+                        {activeDossier.assignedInspector || activeDossier.inspectionReport?.inspectorName
+                          ? tr('Field Ground Survey', 'धरातलीय सर्वेक्षण', 'క్షేత్రస్థాయి సర్వే')
+                          : tr('Nodal Dispatch Pending', 'नोडल आदेश लंबित', 'నోడల్ ఉత్తర్వు పెండింగ్')}
                       </div>
                     </div>
 
@@ -1028,10 +1034,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         }`}
                       />
                       <div className="text-[11px] text-slate-800 font-bold truncate">
-                        {activeDossier.assignedEngineer || 'P. Venkat & Crew'}
+                        {activeDossier.assignedEngineer || activeDossier.workExecution?.engineerName ? (
+                          activeDossier.assignedEngineer || activeDossier.workExecution?.engineerName
+                        ) : (
+                          <span className="text-slate-400 italic font-semibold">{tr('Awaiting Work Order', 'कार्य आदेश लंबित', 'వర్క్ ఆర్డర్ పెండింగ్‌లో ఉంది')}</span>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        {tr('Civil Work Force', 'निर्माण कार्य दल', 'సివిల్ పనుల బృందం')}
+                        {activeDossier.assignedEngineer || activeDossier.workExecution?.engineerName
+                          ? tr('Civil Work Force', 'निर्माण कार्य दल', 'సివిల్ పనుల బృందం')
+                          : tr('Post-Inspection Stage', 'जांच उपरांत चरण', 'తనిఖీ తదుపరి దశ')}
                       </div>
                     </div>
 
@@ -1199,8 +1211,101 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <span>{tr('✓ Verified by Nodal Cell', '✓ नोडल सेल द्वारा सत्यापित', '✓ నోడల్ విభాగం ద్వారా ధృవీకరించబడింది')}</span>
                         </div>
                       </div>
+                    ) : getStatusStepNumber(activeDossier.status) === 1 ? (
+                      /* Step 1: Awaiting Nodal Officer Triage Card (Zero Fake Data) */
+                      <div className="bg-sky-50/70 p-4 sm:p-5 rounded-2xl border border-sky-300 shadow-2xs space-y-3 flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sky-950">
+                            <span className="text-xs font-extrabold flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-[#0077B6]" />
+                              <span>{tr('⏳ Awaiting Nodal Officer Triage', '⏳ नोडल अधिकारी समीक्षा प्रतीक्षारत', '⏳ నోడల్ అధికారి సమీక్ష పెండింగ్‌లో ఉంది')}</span>
+                            </span>
+                            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-sky-200 text-[#03045E] border border-sky-300 font-mono">
+                              {tr('72h SLA Active', '72 घंटे SLA सक्रिय', '72 గంటల SLA క్రియాశీలం')}
+                            </span>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-xl border border-sky-200 space-y-2 text-xs text-slate-800">
+                            <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-100">
+                              <span className="text-slate-500 font-medium">{tr('Statutory Stage:', 'वैधानिक चरण:', 'చట్టబద్ధమైన దశ:')}</span>
+                              <span className="font-bold text-[#0077B6]">{tr('Stage 1 of 4 • Citizen Registered', 'चरण 1 / 4 • नागरिक पंजीकरण पूर्ण', 'దశ 1 / 4 • నమోదు పూర్తయింది')}</span>
+                            </div>
+
+                            <p className="text-xs text-slate-700 leading-relaxed">
+                              {tr(
+                                'Complaint successfully registered on Nir-ikshan APWRIMS grid. The District Nodal Officer has statutory responsibility to triage this issue and issue an official dispatch directive to the designated Mandal Field Inspector.',
+                                'शिकायत नीर-ईक्षण पोर्टल पर सफलतापूर्वक दर्ज हो गई है। जिला नोडल अधिकारी के पास इस शिकायत की समीक्षा कर संबंधित मंडल फील्ड इंस्पेक्टर को जांच आदेश जारी करने की वैधानिक जिम्मेदारी है।',
+                                'ఫిర్యాదు విజయవంతంగా నమోదైంది. జిల్లా నోడల్ అధికారి దీనిని పరిశీలించి సంబంధిత మండల్ ఫీల్డ్ ఇన్‌స్పెక్టర్‌కు అధికారిక ఉత్తర్వు జారీ చేయాల్సి ఉంటుంది.'
+                              )}
+                            </p>
+
+                            <div className="pt-1.5 space-y-1.5 text-[11px] text-slate-600">
+                              <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                <span className="font-medium text-slate-500">{tr('Field Inspector:', 'फील्ड इंस्पेक्टर:', 'ఫీల్డ్ ఇన్‌స్పెక్టర్:')}</span>
+                                <span className="font-bold text-amber-700 italic">{tr('Awaiting Nodal Assignment', 'नोडल आवंटन प्रतीक्षारत', 'నోడల్ కేటాయింపు పెండింగ్‌లో ఉంది')}</span>
+                              </div>
+                              <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200">
+                                <span className="font-medium text-slate-500">{tr('Remediation Action Team:', 'सफाई एक्शन टीम:', 'శానిటేషన్ యాక్షన్ టీమ్:')}</span>
+                                <span className="font-bold text-slate-400 italic">{tr('Awaiting Inspection Report', 'जांच रिपोर्ट उपरांत', 'తనిఖీ నివేదిక తదుపరి')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-sky-900 pt-2 border-t border-sky-200 flex items-center justify-between font-medium">
+                          <span>{tr('Target Triage Deadline:', 'प्रारंभिक प्रेषण समय-सीमा:', 'ప్రాథమిక కేటాయింపు గడువు:')} <strong>{tr('Under 24h Directive', '24 घंटे के अंदर', '24 గంటల్లోపు')}</strong></span>
+                          <span className="text-[#0077B6] font-bold">{tr('Phase: Triage Pending', 'चरण: समीक्षा जारी', 'దశ: పరిశీలనలో ఉంది')}</span>
+                        </div>
+                      </div>
+                    ) : getStatusStepNumber(activeDossier.status) === 2 ? (
+                      /* Step 2: Inspector Assigned & En-Route Card */
+                      <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-300 shadow-2xs space-y-3 flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sky-950">
+                            <span className="text-xs font-extrabold flex items-center gap-1.5">
+                              <UserCheck className="w-4 h-4 text-[#0077B6]" />
+                              <span>{tr('🚶 Field Inspector Dispatched & En-Route', '🚶 फील्ड इंस्पेक्टर प्रेषित (रास्ते में)', '🚶 ఫీల్డ్ ఇన్‌స్పెక్టర్ పంపబడ్డారు')}</span>
+                            </span>
+                            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-mono">
+                              {tr('On-Site Survey', 'मौके पर जांच', 'ఆన్-సైట్ సర్వే')}
+                            </span>
+                          </div>
+
+                          <div className="bg-white p-3.5 rounded-xl border border-sky-200 space-y-2 text-xs text-slate-800">
+                            <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-100">
+                              <span className="text-slate-500 font-medium">{tr('Assigned Inspector:', 'नियुक्त इंस्पेक्टर:', 'కేటాయించిన ఇన్‌స్పెక్టర్:')}</span>
+                              <strong className="text-[#0077B6]">{activeDossier.assignedInspector || activeDossier.inspectionReport?.inspectorName}</strong>
+                            </div>
+
+                            {activeDossier.assignedInspectorPhone && (
+                              <div className="flex items-center justify-between text-[11px] text-slate-600">
+                                <span>{tr('Contact Number:', 'संपर्क नंबर:', 'సంప్రదింపు నంబర్:')}</span>
+                                <span className="font-mono font-bold text-slate-900">{activeDossier.assignedInspectorPhone}</span>
+                              </div>
+                            )}
+
+                            <p className="text-xs text-slate-700 leading-relaxed pt-1">
+                              {tr(
+                                `Inspector has been ordered under statutory directive to physically cross-check GPS coordinates (${activeDossier.coordinates.lat.toFixed(4)}, ${activeDossier.coordinates.lng.toFixed(4)}) at ${activeDossier.locationLandmark} and conduct digital TDS water quality probing.`,
+                                `इंस्पेक्टर को वैधानिक 24 घंटे आदेश के तहत ${activeDossier.locationLandmark} पर जीपीएस सत्यापन करने एवं टीडीएस डिजिटल जल गुणवत्ता मापने का आधिकारिक आदेश जारी हो चुका है।`,
+                                `ఇన్‌స్పెక్టర్‌కు GPS ధృవీకరణ మరియు TDS నీటి నాణ్యత పరీక్ష నిర్వహించడానికి అధికారిక ఉత్తర్వులు జారీ చేయబడ్డాయి.`
+                              )}
+                            </p>
+
+                            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200 text-[11px]">
+                              <span className="text-slate-500 font-medium">{tr('Remediation Action Crew:', 'कार्यकारी सफाई दल:', 'శానిటేషన్ యాక్షన్ టీమ్:')}</span>
+                              <span className="font-bold text-slate-400 italic">{tr('Awaiting Inspection Report', 'जांच रिपोर्ट प्रतीक्षारत', 'నివేదిక పెండింగ్‌లో ఉంది')}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-sky-900 pt-2 border-t border-sky-200 flex items-center justify-between font-medium">
+                          <span>{tr('Inspection SLA:', 'निरीक्षण एसएलए:', 'తనిఖీ SLA:')} <strong>24h Standard</strong></span>
+                          <span className="text-[#0077B6] font-bold">{tr('Phase: Field Verification', 'चरण: फील्ड जांच जारी', 'దశ: క్షేత్ర తనిఖీ')}</span>
+                        </div>
+                      </div>
                     ) : (
-                      /* Active Field Investigation Card with Real Telemetry & Photo */
+                      /* Step 3+: Active Field Investigation Card with Real Telemetry & Photo */
                       <div className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-300 shadow-2xs space-y-3 flex flex-col justify-between">
                         <div className="space-y-3">
                           <div className="flex items-center justify-between text-amber-950">
@@ -1208,54 +1313,56 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               <Wrench className="w-4 h-4 text-amber-600" />
                               <span>{tr('🔍 Field Inspection & Action Status', '🔍 फील्ड निरीक्षण एवं कार्रवाई स्थिति', '🔍 ఫీల్డ్ తనిఖీ & చర్య స్థితి')}</span>
                             </span>
-                            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
-                              {tr('Active in Field', 'मैदान में सक्रिय', 'ఫీల్డ్‌లో క్రియాశీలం')}
+                            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300 font-mono">
+                              {activeDossier.status === 'VERIFICATION_PENDING' ? tr('Work Done Proof', 'काम पूरा सबूत', 'పని పూర్తి సాక్ష్యం') : tr('Active in Field', 'मैदान में सक्रिय', 'ఫీల్డ్‌లో క్రియాశీలం')}
                             </span>
                           </div>
 
                           {/* Interim Inspection Preview Photo */}
-                          <div 
-                            onClick={() => {
-                              const photo = activeDossier.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80';
-                              setPreviewPhoto({
-                                url: photo,
-                                title: `${tr('Field Survey', 'फील्ड सर्वेक्षण', 'ఫీల్డ్ సర్వే')}: ${activeDossier.locationLandmark}`,
-                                subtitle: `${tr('Inspector:', 'निरीक्षक:', 'ఇన్స్పెక్టర్:')} ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}`
-                              });
-                            }}
-                            className="relative group rounded-xl overflow-hidden cursor-pointer bg-slate-900 border border-amber-200 aspect-16/10"
-                          >
-                            <img
-                              src={activeDossier.inspectionReport?.sitePhotoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80'}
-                              alt="Field Investigation"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-[#03045E]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
-                              <Maximize2 className="w-4 h-4" />
-                              <span>{tr('Click to Zoom', 'ज़ूम करने के लिए क्लिक करें', 'జూమ్ చేయడానికి క్లిక్ చేయండి')}</span>
+                          {(activeDossier.inspectionReport?.sitePhotoUrl || activeDossier.workExecution?.afterPhotoUrl || activeDossier.photoUrl) && (
+                            <div 
+                              onClick={() => {
+                                const photo = activeDossier.workExecution?.afterPhotoUrl || activeDossier.inspectionReport?.sitePhotoUrl || activeDossier.photoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80';
+                                setPreviewPhoto({
+                                  url: photo,
+                                  title: `${tr('Field Survey', 'फील्ड सर्वेक्षण', 'ఫీల్డ్ సర్వే')}: ${activeDossier.locationLandmark}`,
+                                  subtitle: `${tr('Inspector:', 'निरीक्षक:', 'ఇన్స్పెక్టర్:')} ${activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || tr('Field Inspector', 'फील्ड इंस्पेक्टर', 'ఫీల్డ్ ఇన్‌స్పెక్టర్')}`
+                                });
+                              }}
+                              className="relative group rounded-xl overflow-hidden cursor-pointer bg-slate-900 border border-amber-200 aspect-16/10"
+                            >
+                              <img
+                                src={activeDossier.workExecution?.afterPhotoUrl || activeDossier.inspectionReport?.sitePhotoUrl || activeDossier.photoUrl || 'https://images.unsplash.com/photo-1584466977773-e625c37cdd50?auto=format&fit=crop&w=600&q=80'}
+                                alt="Field Investigation"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-[#03045E]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
+                                <Maximize2 className="w-4 h-4" />
+                                <span>{tr('Click to Zoom', 'ज़ूम करने के लिए क्लिक करें', 'జూమ్ చేయడానికి క్లిక్ చేయండి')}</span>
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* Ground Truth Findings Grid */}
                           <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-2 text-xs text-amber-950">
                             <div className="flex items-center justify-between text-xs">
-                              <span>{tr('Inspector:', 'निरीक्षक:', 'ఇన్స్పెక్టర్:')} <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || 'G. Srinivas Rao'}</strong></span>
-                              <span className="font-extrabold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
+                              <span>{tr('Inspector:', 'निरीक्षक:', 'ఇన్స్పెక్టర్:')} <strong>{activeDossier.inspectionReport?.inspectorName || activeDossier.assignedInspector || tr('Field Officer', 'फील्ड अधिकारी', 'ఫీల్డ్ అధికారి')}</strong></span>
+                              <span className="font-extrabold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200 font-mono">
                                 TDS: {activeDossier.inspectionReport?.tdsReadingPpm || 640} ppm
                               </span>
                             </div>
                             <div className="text-xs text-slate-700">
-                              <strong>{tr('Waste Source:', 'अपशिष्ट स्रोत:', 'వ్యర్థాల మూలం:')}</strong> {activeDossier.inspectionReport?.wasteLevel || 'Severe'} ({activeDossier.inspectionReport?.wasteType || 'Agricultural Runoff & Silt Encroachment'})
+                              <strong>{tr('Waste Source:', 'अपशिष्ट स्रोत:', 'వ్యర్థాల మూలం:')}</strong> {activeDossier.inspectionReport?.wasteLevel || 'Severe'} ({activeDossier.inspectionReport?.wasteType || activeDossier.wasteType || 'Agricultural Runoff & Silt Encroachment'})
                             </div>
                             <p className="text-xs text-amber-900 leading-relaxed bg-amber-50/80 p-2 rounded-lg border border-amber-200/60">
-                              {activeDossier.inspectionReport?.validationRemarks || tr('Site surveyed by field officer. Heavy silt and debris blocking natural percolation. Action crew dispatched with excavation machinery.', 'फील्ड अधिकारी द्वारा स्थल का निरीक्षण किया गया। भारी गाद व कचरा प्राकृतिक रिसाव को रोक रहा है। मशीनरी के साथ कार्य दल भेजा गया।', 'క్షేత్రస్థాయి అధికారి పరిశీలించారు. పూడిక మరియు వ్యర్థాలు నీటి ఇంకుడును అడ్డుకుంటున్నాయి. యంత్రాలతో సహాయక బృందం చేరుకుంది.')}
+                              {activeDossier.workExecution?.workSummary || activeDossier.inspectionReport?.validationRemarks || tr('Site surveyed by field officer. Heavy silt and debris blocking natural percolation. Action crew dispatched with excavation machinery.', 'फील्ड अधिकारी द्वारा स्थल का निरीक्षण किया गया। भारी गाद व कचरा प्राकृतिक रिसाव को रोक रहा है। मशीनरी के साथ कार्य दल भेजा गया।', 'క్షేత్రస్థాయి అధికారి పరిశీలించారు. పూడిక మరియు వ్యర్థాలు నీటి ఇంకుడును అడ్డుకుంటున్నాయి. యంత్రాలతో సహాయక బృందం చేరుకుంది.')}
                             </p>
                           </div>
                         </div>
 
                         <div className="text-xs text-amber-800 pt-2 border-t border-amber-200 flex items-center justify-between font-medium">
-                          <span>{tr('Action Crew:', 'कार्य दल:', 'పనుల బృందం:')} <strong>{activeDossier.assignedEngineer || 'P. Venkat & Team'}</strong></span>
-                          <span>{tr('Machinery On-Site', 'मशीनरी मौके पर', 'యంత్రాలు ఆన్-సైట్')}</span>
+                          <span>{tr('Action Crew:', 'कार्य दल:', 'పనుల బృందం:')} <strong>{activeDossier.assignedEngineer || activeDossier.workExecution?.engineerName || tr('Awaiting Nodal Work Order', 'नोडल कार्य आदेश प्रतीक्षारत', 'నోడల్ వర్క్ ఆర్డర్ పెండింగ్')}</strong></span>
+                          <span>{activeDossier.assignedEngineer ? tr('Machinery On-Site', 'मशीनरी मौके पर', 'యంత్రాలు ఆన్-సైట్') : tr('Pending Allocation', 'आवंटन लंबित', 'కేటాయింపు పెండింగ్')}</span>
                         </div>
                       </div>
                     )}
@@ -1266,7 +1373,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                 <div className="pt-4 border-t border-sky-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 text-xs">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#03045E] text-white flex items-center justify-center font-extrabold text-sm shrink-0 shadow-2xs">
-                      SE
+                      IAS
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">{tr('Assigned Nodal Cell', 'आवंटित नोडल सेल', 'కేటాయించిన నోడల్ విభాగం')}</span>

@@ -89,6 +89,328 @@ import confetti from 'canvas-confetti';
 import jsPDF from 'jspdf';
 import { saveComplaintToSupabase } from '../lib/supabase';
 import { JumpToDropdown } from './JumpToDropdown';
+import { useLanguage } from '../context/LanguageContext';
+
+export const NODAL_UI_TEXT = {
+  en: {
+    back: 'Back',
+    portalHome: 'Portal Home',
+    nodalBreadcrumb: 'Nodal Officer (26 Districts Command)',
+    camTag: 'CAM 02 • ANDHRA PRADESH WATER RESOURCES COMMAND',
+    strictIsolationBadge: 'Strict Data Isolation Enforced',
+    bannerTitle: '26 District Nodal Officers of Andhra Pradesh',
+    bannerDesc: 'Select your assigned district below. Every District Nodal Officer operates under strictly isolated statutory jurisdiction under Section 10 of the AP Water Resources Act. Zero cross-district data leakage.',
+    districtsLabel: 'Districts',
+    circlesSub: 'Nodal Circles',
+    dataPrivacy: 'Data Privacy',
+    strictIsoSub: 'Strict Isolation',
+    selectDistrictHeading: 'Select your assigned district (strict data isolation):',
+    selectDistrictSub: 'Click any district circle to unlock its 9 Core Operational Portals, live complaints triage, and cadastral maps.',
+    searchPlaceholder: 'Search district, officer, or headquarters...',
+    filterAll: 'All 26 Districts',
+    filterNorth: 'North Coastal',
+    filterSouth: 'Coastal Andhra',
+    filterRaya: 'Rayalaseema',
+    statutoryNodalOfficer: 'STATUTORY NODAL OFFICER',
+    hq: 'HQ',
+    authRequired: 'Auth Required to Access Data',
+    enterHub: 'Enter Hub',
+    secureBadge: 'Secured under APWR Act § 10',
+    // Login Modal
+    loginTitle: 'District Login',
+    loginSubtitle: 'Enter official credentials to unlock the 9 District Operational Modules & Command Portals.',
+    officialBadge: 'Official Gov-ID Verified',
+    emailLabel: 'Official Officer Email / Employee ID',
+    pinLabel: 'Security PIN / Official Password',
+    pinHint: 'During authentication active: enter 1234 or any credentials to sign in.',
+    authBtn: 'Authenticate & Access Hub',
+    cancel: 'Cancel',
+    // Command station view
+    districtCommandStation: 'District Command Station',
+    officerInCharge: 'Officer In-Charge',
+    slaActive: '72h Statutory SLA Active',
+    totalInflow: 'Total Inflow',
+    inspection: 'Inspection',
+    remediation: 'Remediation',
+    resolved: 'Resolved',
+    openSatMap: 'Open Satellite Map (GIS)',
+    triageComplaints: 'Triage Complaints',
+    pending: 'Pending',
+    exportGazette: 'Export Certified Gazette (PDF)',
+    liveTelemetryHeading: 'District Live Telemetry & Hydrological Baseline',
+    strictScope: 'Strict District Scope',
+    apwrimsSource: 'APWRIMS & Central Water Commission (CWC) Real-Time Data',
+    liveInflowCard: 'Live Inflow',
+    liveGrievances: 'Live Grievances',
+    pendingInspection: 'Pending Inspection',
+    inRemediation: 'In Remediation',
+    waterAssetsCard: 'Water Assets',
+    districtWaterBodies: 'District Assets',
+    reservoirsPercolation: 'Reservoirs, Infiltration Tanks & Piezometers',
+    reservoirStorage: 'Reservoir Storage',
+    capacityFull: 'Capacity Full',
+    coreModulesTitle: 'District Operational Modules & Command Portals',
+    corePortalsBadge: '9 Core Portals',
+    coreModulesSub: 'Execute any operational portal to drill down into district cartography, inspection schedules, citizen complaints triage, or statutory reviews.',
+    filterAllPortals: 'All Portals',
+    filterOps: 'Operational & Field Triage',
+    filterGeo: 'Geospatial & Water Assets',
+    filterGov: 'Assurance & Governance',
+    searchPortals: 'Search portals, telemetry, SLAs, or tasks...',
+    // 9 cards
+    mapTitle: 'Map',
+    mapSubtitle: 'Satellite Surveillance & Cadastral GIS',
+    mapBadge: 'Real Satellite Telemetry',
+    mapCta: 'Open Satellite Map',
+    inspectionsTitle: 'Inspection Schedule',
+    inspectionsSubtitle: 'Pre-Monsoon & Periodic Cadence',
+    inspectionsBadge: 'Pre-Monsoon Readiness',
+    inspectionsCta: 'View Schedule & Evidence',
+    complaintsTitle: 'Complaints',
+    complaintsSubtitle: 'Public Assessment & Inflow',
+    complaintsCta: 'Open Complaints Triage',
+    issuesTitle: 'Issues and Tasks',
+    issuesSubtitle: 'Workflow Kanban & Work Orders',
+    issuesCta: 'Open Workflow Kanban',
+    assetsTitle: 'Assets',
+    assetsSubtitle: 'District Water Bodies & Infiltration',
+    assetsCta: 'Inspect Asset Catalog',
+    teamTitle: 'My Team',
+    teamSubtitle: 'District Field Team Management',
+    teamCta: 'Manage Team & Workloads',
+    monthlyTitle: 'Monthly Review & Reports',
+    monthlySubtitle: 'Hydrology Assurance, Gazette & 65B Dossiers',
+    monthlyCta: 'Open Review & Reports',
+    settingsTitle: 'Settings',
+    settingsSubtitle: 'District Operational Configurations',
+    settingsCta: 'Configure Parameters',
+    // Settings view
+    settingsHeading: 'Nodal Governance & SLA Configurations',
+    settingsDesc: 'Configure statutory SLA thresholds, automated deduplication clustering radius, and SMS gateway dispatch credentials for',
+    slaThresholds: 'Citizen Grievance SLA Thresholds',
+    priorityEmergency: 'Priority 1 (Emergency Sluice & Breach):',
+    priorityDeSilting: 'Priority 2 (De-silting & Quality Probes):',
+    priorityRoutine: 'Routine Maintenance & Grass Weeding:',
+    geofencingEngine: 'Geofencing & Verification Engine',
+    clusteringRadius: 'Auto-Deduplication Clustering Radius:',
+    gpsTolerance: 'Inspector GPS Baseline Tolerance:',
+    exifHash: 'EXIF Camera Tamper Hash Enforced:',
+    saveBtn: 'Save District Parameters',
+    paramSaved: 'Parameters Saved Successfully!',
+  },
+  hi: {
+    back: 'वापस',
+    portalHome: 'पोर्टल होम',
+    nodalBreadcrumb: 'नोडल अधिकारी (26 जिला कमान)',
+    camTag: 'कैन 02 • आंध्र प्रदेश जल संसाधन कमान',
+    strictIsolationBadge: 'कठोर डेटा पृथक्करण लागू',
+    bannerTitle: 'आंध्र प्रदेश के 26 जिला नोडल अधिकारी',
+    bannerDesc: 'नीचे अपना आवंटित जिला चुनें। प्रत्येक जिला नोडल अधिकारी एपी जल संसाधन अधिनियम की धारा 10 के तहत अलग वैधानिक अधिकार क्षेत्र में कार्य करता है। शून्य डेटा रिसाव।',
+    districtsLabel: 'जिले',
+    circlesSub: 'नोडल मंडल',
+    dataPrivacy: 'डेटा गोपनीयता',
+    strictIsoSub: 'सख्त अलगाव',
+    selectDistrictHeading: 'अपना आवंटित जिला चुनें (सख्त डेटा अलगाव):',
+    selectDistrictSub: '9 प्रमुख परिचालन पोर्टल्स, लाइव शिकायत निवारण और भूकर मानचित्र अनलॉक करने के लिए किसी भी जिले पर क्लिक करें।',
+    searchPlaceholder: 'जिला, अधिकारी या मुख्यालय खोजें...',
+    filterAll: 'सभी 26 जिले',
+    filterNorth: 'उत्तरी तटीय',
+    filterSouth: 'तटीय आंध्र',
+    filterRaya: 'रायलसीमा',
+    statutoryNodalOfficer: 'वैधानिक नोडल अधिकारी',
+    hq: 'मुख्यालय',
+    authRequired: 'डेटा देखने हेतु प्रमाणीकरण आवश्यक',
+    enterHub: 'हब में प्रवेश करें',
+    secureBadge: 'एपी जल संसाधन अधिनियम धारा 10 अंतर्गत सुरक्षित',
+    // Login Modal
+    loginTitle: 'जिला लॉगिन',
+    loginSubtitle: '9 जिला परिचालन मॉड्यूल्स और कमान पोर्टल्स को अनलॉक करने के लिए आधिकारिक क्रेडेंशियल्स दर्ज करें।',
+    officialBadge: 'सरकारी पहचान सत्यापित',
+    emailLabel: 'अधिकारी की ईमेल / कर्मचारी आईडी',
+    pinLabel: 'सुरक्षा पिन / पासवर्ड',
+    pinHint: 'प्रमाणीकरण सक्रिय: साइन इन करने के लिए 1234 या कोई भी क्रेडेंशियल दर्ज करें।',
+    authBtn: 'प्रमाणित करें एवं हब खोलें',
+    cancel: 'रद्द करें',
+    // Command station view
+    districtCommandStation: 'जिला कमान स्टेशन',
+    officerInCharge: 'प्रभारी अधिकारी',
+    slaActive: '72 घंटे की वैधानिक SLA सक्रिय',
+    totalInflow: 'कुल शिकायतें',
+    inspection: 'निरीक्षण',
+    remediation: 'सुधार कार्य',
+    resolved: 'समाधानित',
+    openSatMap: 'उपग्रह मानचित्र खोलें (GIS)',
+    triageComplaints: 'शिकायत निवारण',
+    pending: 'लंबित',
+    exportGazette: 'प्रमाणित राजपत्र निर्यात करें (PDF)',
+    liveTelemetryHeading: 'जिला लाइव टेलीमेट्री एवं जलवैज्ञानिक आधाररेखा',
+    strictScope: 'सख्त जिला दायरा',
+    apwrimsSource: 'APWRIMS एवं केंद्रीय जल आयोग (CWC) रियल-टाइम डेटा',
+    liveInflowCard: 'लाइव शिकायतें',
+    liveGrievances: 'सक्रिय शिकायतें',
+    pendingInspection: 'लंबित निरीक्षण',
+    inRemediation: 'सुधार कार्य प्रगति पर',
+    waterAssetsCard: 'जल परिसंपत्तियां',
+    districtWaterBodies: 'जिला जल संरचनाएं',
+    reservoirsPercolation: 'जलाशय, अंतःस्रवण टैंक एवं पीजोमीटर',
+    reservoirStorage: 'जलाशय भंडारण',
+    capacityFull: 'क्षमता भरी हुई',
+    coreModulesTitle: 'जिला परिचालन मॉड्यूल एवं कमान पोर्टल्स',
+    corePortalsBadge: '9 प्रमुख पोर्टल्स',
+    coreModulesSub: 'जिला मानचित्रण, निरीक्षण कार्यक्रम, शिकायत निवारण या वैधानिक समीक्षा में जाने के लिए किसी भी पोर्टल पर क्लिक करें।',
+    filterAllPortals: 'सभी पोर्टल्स',
+    filterOps: 'परिचालन एवं फील्ड निवारण',
+    filterGeo: 'भू-स्थानिक एवं जल परिसंपत्तियां',
+    filterGov: 'आश्वासन एवं प्रशासनिक शासन',
+    searchPortals: 'पोर्टल, टेलीमेट्री, SLA या कार्य खोजें...',
+    // 9 cards
+    mapTitle: 'मानचित्र',
+    mapSubtitle: 'उपग्रह निगरानी एवं भूकर जीआईएस',
+    mapBadge: 'रियल सैटेलाइट टेलीमेट्री',
+    mapCta: 'उपग्रह मानचित्र खोलें',
+    inspectionsTitle: 'निरीक्षण कार्यक्रम',
+    inspectionsSubtitle: 'मानसून-पूर्व एवं आवधिक चक्र',
+    inspectionsBadge: 'मानसून-पूर्व तत्परता',
+    inspectionsCta: 'कार्यक्रम और साक्ष्य देखें',
+    complaintsTitle: 'शिकायतें',
+    complaintsSubtitle: 'सार्वजनिक मूल्यांकन एवं निवारण',
+    complaintsCta: 'शिकायत निवारण खोलें',
+    issuesTitle: 'मुद्दे एवं कार्य',
+    issuesSubtitle: 'कार्यप्रवाह कानबान एवं वर्क ऑर्डर',
+    issuesCta: 'वर्कफ़्लो कानबान खोलें',
+    assetsTitle: 'परिसंपत्तियां',
+    assetsSubtitle: 'जिला जल निकाय एवं अंतःस्रवण संरचनाएं',
+    assetsCta: 'परिसंपत्ति सूची देखें',
+    teamTitle: 'मेरी टीम',
+    teamSubtitle: 'जिला फील्ड टीम प्रबंधन',
+    teamCta: 'टीम और कार्यभार प्रबंधित करें',
+    monthlyTitle: 'मासिक समीक्षा एवं रिपोर्ट',
+    monthlySubtitle: 'जलविज्ञान आश्वासन, राजपत्र एवं 65B डॉसियर',
+    monthlyCta: 'समीक्षा एवं रिपोर्ट खोलें',
+    settingsTitle: 'सेटिंग्स',
+    settingsSubtitle: 'जिला परिचालन विन्यास',
+    settingsCta: 'पैरामीटर कॉन्फ़िगर करें',
+    // Settings view
+    settingsHeading: 'नोडल शासन एवं SLA विन्यास',
+    settingsDesc: 'वैधानिक SLA सीमाएं, स्वचालित क्लस्टरिंग दायरा और एसएमएस गेटवे क्रेडेंशियल कॉन्फ़िगर करें:',
+    slaThresholds: 'नागरिक शिकायत SLA समय सीमा',
+    priorityEmergency: 'प्राथमिकता 1 (आपातकालीन स्लूइस एवं तटबंध दरार):',
+    priorityDeSilting: 'प्राथमिकता 2 (गाद सफाई एवं गुणवत्ता जांच):',
+    priorityRoutine: 'नियमित रखरखाव एवं खरपतवार सफाई:',
+    geofencingEngine: 'जियोफेंसिंग एवं सत्यापन इंजन',
+    clusteringRadius: 'स्वचालित डुप्लीकेशन क्लस्टरिंग दायरा:',
+    gpsTolerance: 'इंस्पेक्टर जीपीएस बेसलाइन सहिष्णुता:',
+    exifHash: 'कैमरा फोटो EXIF टेम्पर हैश लागू:',
+    saveBtn: 'जिला पैरामीटर सुरक्षित करें',
+    paramSaved: 'पैरामीटर सफलतापूर्वक सहेजे गए!',
+  },
+  te: {
+    back: 'వెనుకకు',
+    portalHome: 'పోర్టల్ హోమ్',
+    nodalBreadcrumb: 'నోడల్ అధికారి (26 జిల్లాల కమాండ్)',
+    camTag: 'క్యామ్ 02 • ఆంధ్రప్రదేశ్ జలవనరుల కమాండ్',
+    strictIsolationBadge: 'ఖచ్చితమైన డేటా ఐసోలేషన్ అమలులో ఉంది',
+    bannerTitle: 'ఆంధ్రప్రదేశ్ 26 జిల్లాల నోడల్ అధికారులు',
+    bannerDesc: 'క్రింద మీ కేటాయించిన జిల్లాను ఎంచుకోండి. ప్రతి జిల్లా నోడల్ అధికారి ఏపీ జలవనరుల చట్టం సెక్షన్ 10 కింద ఖచ్చితమైన అధికార పరిధిలో పనిచేస్తారు.',
+    districtsLabel: 'జిల్లాలు',
+    circlesSub: 'నోడల్ సర్కిల్స్',
+    dataPrivacy: 'డేటా గోప్యత',
+    strictIsoSub: 'ఖచ్చితమైన విభజన',
+    selectDistrictHeading: 'మీ కేటాయించిన జిల్లాను ఎంచుకోండి (ఖచ్చితమైన డేటా ఐసోలేషన్):',
+    selectDistrictSub: '9 ప్రధాన కార్యాచరణ పోర్టల్స్, లైవ్ ఫిర్యాదుల పరిష్కారం మరియు మ్యాప్‌లను అన్‌లాక్ చేయడానికి ఏదైనా జిల్లాపై క్లిక్ చేయండి.',
+    searchPlaceholder: 'జిల్లా, అధికారి లేదా ప్రధాన కార్యాలయాన్ని శోధించండి...',
+    filterAll: 'అన్ని 26 జిల్లాలు',
+    filterNorth: 'ఉత్తర కోస్తా',
+    filterSouth: 'కోస్తాంధ్ర',
+    filterRaya: 'రాయలసీమ',
+    statutoryNodalOfficer: 'చట్టబద్ధమైన నోడల్ అధికారి',
+    hq: 'హెచ్‌క్యూ',
+    authRequired: 'డేటా చూడటానికి ప్రామాణీకరణ అవసరం',
+    enterHub: 'హబ్‌లోకి ప్రవేశించండి',
+    secureBadge: 'ఏపీ డబ్ల్యూఆర్ చట్టం సెక్షన్ 10 క్రింద రక్షించబడింది',
+    // Login Modal
+    loginTitle: 'జిల్లా లాగిన్',
+    loginSubtitle: '9 జిల్లా కార్యాచరణ మాడ్యూల్స్ మరియు కమాండ్ పోర్టల్‌లను అన్‌లాక్ చేయడానికి అధికారిక వివరాలను నమోదు చేయండి.',
+    officialBadge: 'అధికారిక గుర్తింపు ధృవీకరించబడింది',
+    emailLabel: 'అధికారిక అధికారి ఇమెయిల్ / ఉద్యోగి ఐడి',
+    pinLabel: 'భద్రతా పిన్ / పాస్‌వర్డ్',
+    pinHint: 'ప్రామాణీకరణ చురుకుగా ఉంది: లాగిన్ కావడానికి 1234 లేదా ఏదైనా వివరాలను నమోదు చేయండి.',
+    authBtn: 'ధృవీకరించి హబ్‌ను తెరవండి',
+    cancel: 'రద్దు చేయండి',
+    // Command station view
+    districtCommandStation: 'జిల్లా కమాండ్ స్టేషన్',
+    officerInCharge: 'ఇన్‌చార్జ్ అధికారి',
+    slaActive: '72 గంటల చట్టబద్ధమైన SLA చురుకుగా ఉంది',
+    totalInflow: 'మొత్తం ఫిర్యాదులు',
+    inspection: 'తనిఖీ',
+    remediation: 'మరమ్మతు పనులు',
+    resolved: 'పరిష్కరించబడినవి',
+    openSatMap: 'శాటిలైట్ మ్యాప్ తెరవండి (GIS)',
+    triageComplaints: 'ఫిర్యాదుల పరిష్కారం',
+    pending: 'పెండింగ్',
+    exportGazette: 'గెజిట్ డౌన్‌లోడ్ చేయండి (PDF)',
+    liveTelemetryHeading: 'జిల్లా లైవ్ టెలిమెట్రీ & హైడ్రోలాజికల్ బేస్‌లైన్',
+    strictScope: 'జిల్లా పరిధి మాత్రమే',
+    apwrimsSource: 'APWRIMS & కేంద్ర జల సంఘం (CWC) రియల్-టైమ్ డేటా',
+    liveInflowCard: 'లైవ్ ఇన్‌ఫ్లో',
+    liveGrievances: 'సజీవ ఫిర్యాదులు',
+    pendingInspection: 'పెండింగ్ తనిఖీ',
+    inRemediation: 'మరమ్మతులో ఉంది',
+    waterAssetsCard: 'జల వనరులు',
+    districtWaterBodies: 'జిల్లా ఆస్తులు',
+    reservoirsPercolation: 'జలాశయాలు, ఊర చెరువులు & పీజోమీటర్లు',
+    reservoirStorage: 'జలాశయ నిల్వ',
+    capacityFull: 'నిల్వ సామర్థ్యం',
+    coreModulesTitle: 'జిల్లా కార్యాచరణ మాడ్యూల్స్ & కమాండ్ పోర్టల్స్',
+    corePortalsBadge: '9 ప్రధాన పోర్టల్స్',
+    coreModulesSub: 'జిల్లా మ్యాపింగ్, తనిఖీ షెడ్యూల్స్, ఫిర్యాదుల పరిష్కారం లేదా చట్టబద్ధమైన సమీక్షను చూడటానికి ఏదైనా పోర్టల్‌పై క్లిక్ చేయండి.',
+    filterAllPortals: 'అన్ని పోర్టల్స్',
+    filterOps: 'కార్యాచరణ & ఫీల్డ్ తనిఖీ',
+    filterGeo: 'జియోస్పేషియల్ & జల వనరులు',
+    filterGov: 'భరోసా & పాలన',
+    searchPortals: 'పోర్టల్స్, టెలిమెట్రీ, SLA లు లేదా పనులను శోధించండి...',
+    // 9 cards
+    mapTitle: 'మ్యాప్',
+    mapSubtitle: 'శాటిలైట్ నిఘా & కాడాస్ట్రాల్ GIS',
+    mapBadge: 'రియల్ శాటిలైట్ టెలిమెట్రీ',
+    mapCta: 'శాటిలైట్ మ్యాప్ తెరవండి',
+    inspectionsTitle: 'తనిఖీ షెడ్యూల్',
+    inspectionsSubtitle: 'రుతుపవనాల ముందు & ఆవర్తన తనిఖీ',
+    inspectionsBadge: 'రుతుపవనాల సంసిద్ధత',
+    inspectionsCta: 'షెడ్యూల్ & ఆధారాలను చూడండి',
+    complaintsTitle: 'ఫిర్యాదులు',
+    complaintsSubtitle: 'ప్రజా అంచనా & ఇన్‌ఫ్లో',
+    complaintsCta: 'ఫిర్యాదుల పరిష్కారం తెరవండి',
+    issuesTitle: 'సమస్యలు మరియు పనులు',
+    issuesSubtitle: 'వర్క్‌ఫ్లో కాన్బన్ & వర్క్ ఆర్డర్స్',
+    issuesCta: 'వర్క్‌ఫ్లో కాన్బన్ తెరవండి',
+    assetsTitle: 'ఆస్తులు',
+    assetsSubtitle: 'జిల్లా జల వనరులు & ఇంఫిల్ట్రేషన్',
+    assetsCta: 'ఆస్తుల జాబితాను చూడండి',
+    teamTitle: 'నా బృందం',
+    teamSubtitle: 'జిల్లా ఫీల్డ్ టీమ్ నిర్వహణ',
+    teamCta: 'బృందాన్ని నిర్వహించండి',
+    monthlyTitle: 'నెలవారీ సమీక్ష & నివేదికలు',
+    monthlySubtitle: 'హైడ్రాలజీ భరోసా, గెజిట్ & 65B డాక్యుమెంట్లు',
+    monthlyCta: 'సమీక్ష & నివేదికలను తెరవండి',
+    settingsTitle: 'సెట్టింగ్‌లు',
+    settingsSubtitle: 'జిల్లా కార్యాచరణ కాన్ఫిగరేషన్లు',
+    settingsCta: 'పారామితులను కాన్ఫిగర్ చేయండి',
+    // Settings view
+    settingsHeading: 'నోడల్ పాలన & SLA కాన్ఫిగరేషన్లు',
+    settingsDesc: 'చట్టబద్ధమైన SLA పరిమితులు, ఆటోమేటెడ్ డూప్లికేషన్ క్లస్టరింగ్ మరియు SMS గేట్‌వే వివరాలను కాన్ఫిగర్ చేయండి:',
+    slaThresholds: 'పౌర ఫిర్యాదుల SLA పరిమితులు',
+    priorityEmergency: 'ప్రాధాన్యత 1 (అత్యవసర స్లూయిస్ & గండి పడటం):',
+    priorityDeSilting: 'ప్రాధాన్యత 2 (పూడికతీత & నాణ్యత తనిఖీ):',
+    priorityRoutine: 'సాధారణ నిర్వహణ & కలుపు మొక్కల తొలగింపు:',
+    geofencingEngine: 'జియోఫెన్సింగ్ & వెరిఫికేషన్ ఇంజిన్',
+    clusteringRadius: 'ఆటోమేటిక్ డూప్లికేషన్ క్లస్టరింగ్ వ్యాసార్థం:',
+    gpsTolerance: 'ఇన్స్పెక్టర్ GPS బేస్‌లైన్ సహనం:',
+    exifHash: 'కెమెరా ఫోటో EXIF ట్యాంపర్ హాష్ అమలులో ఉంది:',
+    saveBtn: 'జిల్లా పారామితులను సేవ్ చేయండి',
+    paramSaved: 'పారామితులు విజయవంతంగా సేవ్ చేయబడ్డాయి!',
+  },
+};
 
 export type NodalActiveTab = 
   | 'hub' 
@@ -133,6 +455,10 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
   onUpdateComplaint,
   onBackToHome,
 }) => {
+  const { language } = useLanguage();
+  const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
+  const uiText = NODAL_UI_TEXT[currentLang];
+
   // District state: default to 26 district selection view unless already authenticated
   const [currentDistrict, setCurrentDistrict] = useState<string>(initialDistrict || 'Vizianagaram');
   const [isSelectingDistrict, setIsSelectingDistrict] = useState<boolean>(
@@ -721,9 +1047,9 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
       {
         id: 'map' as NodalActiveTab,
         category: 'geo',
-        title: 'Map',
-        subtitle: 'Satellite Surveillance & Cadastral GIS',
-        badge: 'Real Satellite Telemetry',
+        title: uiText.mapTitle,
+        subtitle: uiText.mapSubtitle,
+        badge: uiText.mapBadge,
         badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         icon: Satellite,
         iconBg: 'bg-emerald-50 text-emerald-600',
@@ -732,14 +1058,14 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         statLabel: 'District Surveillance',
         statValue: `${districtWaterBodies.length || currentDistrictData.totalWaterBodiesCount} Water Assets`,
         secondaryStat: `${districtReservoirs.length} Reservoirs • ${districtComplaints.length} Grievances`,
-        ctaText: 'Open Satellite Map',
+        ctaText: uiText.mapCta,
       },
       {
         id: 'inspections' as NodalActiveTab,
         category: 'ops',
-        title: 'Inspection Schedule',
-        subtitle: 'Pre-Monsoon & Periodic Cadence',
-        badge: 'Pre-Monsoon Readiness',
+        title: uiText.inspectionsTitle,
+        subtitle: uiText.inspectionsSubtitle,
+        badge: uiText.inspectionsBadge,
         badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
         icon: CalendarClock,
         iconBg: 'bg-blue-50 text-[#0077b6]',
@@ -748,29 +1074,29 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         statLabel: 'Scheduled Inspections',
         statValue: `${currentDistrictData.monitoredSitesCount} Priority Assets`,
         secondaryStat: '90% Coverage Rate',
-        ctaText: 'View Schedule & Evidence',
+        ctaText: uiText.inspectionsCta,
       },
       {
         id: 'complaints' as NodalActiveTab,
         category: 'ops',
-        title: 'Complaints',
-        subtitle: 'Public Assessment & Inflow',
-        badge: pendingInspectionCount > 0 ? `${pendingInspectionCount} Awaiting Triage` : 'Triage Current',
+        title: uiText.complaintsTitle,
+        subtitle: uiText.complaintsSubtitle,
+        badge: pendingInspectionCount > 0 ? `${pendingInspectionCount} ${uiText.pending}` : 'Triage Current',
         badgeClass: pendingInspectionCount > 0 ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
         icon: AlertTriangle,
         iconBg: 'bg-amber-50 text-amber-600',
         accentBorder: 'hover:border-amber-500',
         description: `Live citizen grievance triage queue for ${currentDistrict}. Rapid inspector dispatches, auto-deduplication within 500m radius, and masked citizen telemetry for privacy.`,
-        statLabel: 'Total Inflow',
+        statLabel: uiText.totalInflow,
         statValue: `${totalInflow} Complaints`,
         secondaryStat: `${inInspectionCount} in Field Verification`,
-        ctaText: 'Open Complaints Triage',
+        ctaText: uiText.complaintsCta,
       },
       {
         id: 'issues_and_tasks' as NodalActiveTab,
         category: 'ops',
-        title: 'Issues and Tasks',
-        subtitle: 'Workflow Kanban & Work Orders',
+        title: uiText.issuesTitle,
+        subtitle: uiText.issuesSubtitle,
         badge: `${inActionCount + pendingInspectionCount} Active Tasks`,
         badgeClass: 'bg-sky-50 text-[#0077b6] border-sky-200',
         icon: AlertOctagon,
@@ -780,13 +1106,13 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         statLabel: 'Active Work Orders',
         statValue: `${inActionCount} Heavy Machinery`,
         secondaryStat: `${resolvedCount} Verified Closed`,
-        ctaText: 'Open Workflow Kanban',
+        ctaText: uiText.issuesCta,
       },
       {
         id: 'assets' as NodalActiveTab,
         category: 'geo',
-        title: 'Assets',
-        subtitle: 'District Water Bodies & Infiltration',
+        title: uiText.assetsTitle,
+        subtitle: uiText.assetsSubtitle,
         badge: `${districtWaterBodies.length || currentDistrictData.totalWaterBodiesCount} Registered`,
         badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
         icon: Droplets,
@@ -796,13 +1122,13 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         statLabel: 'Total Ayacut',
         statValue: '18,450 Hectares',
         secondaryStat: 'APWRIMS & Bhuvan Synced',
-        ctaText: 'Inspect Asset Catalog',
+        ctaText: uiText.assetsCta,
       },
       {
         id: 'team' as NodalActiveTab,
         category: 'gov',
-        title: 'My Team',
-        subtitle: 'District Field Team Management',
+        title: uiText.teamTitle,
+        subtitle: uiText.teamSubtitle,
         badge: `${districtTeamList.length} Personnel`,
         badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
         icon: Users,
@@ -812,13 +1138,13 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         statLabel: 'Field Inspectors',
         statValue: `${districtInspCount} Active`,
         secondaryStat: `${districtWrkCount} Remediation Leads`,
-        ctaText: 'Manage Team & Workloads',
+        ctaText: uiText.teamCta,
       },
       {
         id: 'monthly_review' as NodalActiveTab,
         category: 'gov',
-        title: 'Monthly Review & Reports',
-        subtitle: 'Hydrology Assurance, Gazette & 65B Dossiers',
+        title: uiText.monthlyTitle,
+        subtitle: uiText.monthlySubtitle,
         badge: 'Statutory & Certified',
         badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
         icon: BarChart3,
@@ -828,13 +1154,13 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         statLabel: 'Assurance & Reports',
         statValue: '78.4% Ready',
         secondaryStat: '3 Certified Dossiers Available',
-        ctaText: 'Open Review & Reports',
+        ctaText: uiText.monthlyCta,
       },
       {
         id: 'settings' as NodalActiveTab,
         category: 'gov',
-        title: 'Settings',
-        subtitle: 'District Operational Configurations',
+        title: uiText.settingsTitle,
+        subtitle: uiText.settingsSubtitle,
         badge: 'SLA & Geofencing',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
         icon: Settings,
@@ -844,7 +1170,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
         statLabel: 'District Profile',
         statValue: `${currentDistrict} Active`,
         secondaryStat: 'AP Water Act Compliance',
-        ctaText: 'Configure Parameters',
+        ctaText: uiText.settingsCta,
       },
     ];
   }, [
@@ -890,10 +1216,10 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             <button
               onClick={() => onBackToHome ? onBackToHome() : null}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
-              title="Back to Portal Home"
+              title={uiText.portalHome}
             >
               <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
-              <span>Back</span>
+              <span>{uiText.back}</span>
             </button>
 
             <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1"></div>
@@ -903,14 +1229,14 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>Portal Home</span>
+              <span>{uiText.portalHome}</span>
             </button>
 
             <span className="text-slate-300">/</span>
 
             <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5 shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Nodal Officer (26 Districts Command)</span>
+              <span>{uiText.nodalBreadcrumb}</span>
             </span>
           </div>
         </div>
@@ -924,34 +1250,34 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="inline-flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full text-xs font-mono font-bold text-sky-200 border border-white/15">
                   <Building2 className="w-3.5 h-3.5 text-sky-300" />
-                  <span>CAM 02 • ANDHRA PRADESH WATER RESOURCES COMMAND</span>
+                  <span>{uiText.camTag}</span>
                 </div>
                 <span className="text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>Strict Data Isolation Enforced</span>
+                  <span>{uiText.strictIsolationBadge}</span>
                 </span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight">
-                26 District Nodal Officers of Andhra Pradesh
+                {uiText.bannerTitle}
               </h1>
 
               <p className="text-xs sm:text-sm text-sky-100 font-medium leading-relaxed">
-                Select your assigned district below. Every District Nodal Officer operates under strictly isolated statutory jurisdiction under Section 10 of the AP Water Resources Act. Zero cross-district data leakage.
+                {uiText.bannerDesc}
               </p>
             </div>
 
             {/* Quick Metrics */}
             <div className="flex items-center gap-3 shrink-0">
               <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl text-center min-w-[110px]">
-                <span className="text-[10px] font-mono uppercase font-bold text-sky-200 block">Districts</span>
+                <span className="text-[10px] font-mono uppercase font-bold text-sky-200 block">{uiText.districtsLabel}</span>
                 <span className="text-2xl font-black text-amber-300">26</span>
-                <span className="text-[9px] text-sky-100 block">Nodal Circles</span>
+                <span className="text-[9px] text-sky-100 block">{uiText.circlesSub}</span>
               </div>
               <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl text-center min-w-[125px]">
-                <span className="text-[10px] font-mono uppercase font-bold text-sky-200 block">Data Privacy</span>
+                <span className="text-[10px] font-mono uppercase font-bold text-sky-200 block">{uiText.dataPrivacy}</span>
                 <span className="text-2xl font-black text-emerald-300">100%</span>
-                <span className="text-[9px] text-sky-100 block">Strict Isolation</span>
+                <span className="text-[9px] text-sky-100 block">{uiText.strictIsoSub}</span>
               </div>
             </div>
           </div>
@@ -962,10 +1288,10 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
-                Select your assigned district (strict data isolation):
+                {uiText.selectDistrictHeading}
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Click any district circle to unlock its 9 Core Operational Portals, live complaints triage, and cadastral maps.
+                {uiText.selectDistrictSub}
               </p>
             </div>
 
@@ -974,7 +1300,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search district, officer, or headquarters..."
+                placeholder={uiText.searchPlaceholder}
                 value={districtSearch}
                 onChange={(e) => setDistrictSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none font-medium text-slate-800"
@@ -993,7 +1319,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              All 26 Districts (26)
+              {uiText.filterAll} (26)
             </button>
             <button
               onClick={() => setDistrictRegionFilter('North Coastal')}
@@ -1003,7 +1329,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              North Coastal (6)
+              {uiText.filterNorth} (6)
             </button>
             <button
               onClick={() => setDistrictRegionFilter('Coastal Andhra')}
@@ -1013,7 +1339,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              Coastal Andhra (12)
+              {uiText.filterSouth} (12)
             </button>
             <button
               onClick={() => setDistrictRegionFilter('Rayalaseema')}
@@ -1023,6 +1349,10 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
+              {uiText.filterRaya} (8)
+            </button>
+          </div>
+        </div>
               Rayalaseema (8)
             </button>
           </div>
@@ -1110,8 +1440,8 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70 space-y-1.5 text-xs group-hover:bg-blue-50/40 transition-colors">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3 text-[#0077b6]" />
-                        <span>Statutory Nodal Officer</span>
+                        <ShieldCheck className="w-3 tailored text-[#0077b6]" />
+                        <span>{uiText.statutoryNodalOfficer}</span>
                       </span>
                       <span className="font-mono text-[9px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -1135,12 +1465,12 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
-                            District Data Privacy
+                            {uiText.dataPrivacy}
                           </span>
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         </div>
                         <p className="text-[11px] font-semibold text-slate-700 truncate">
-                          Secured Under APWR Act § 10
+                          {uiText.secureBadge}
                         </p>
                       </div>
                     </div>
@@ -1154,7 +1484,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 text-slate-500 font-medium text-[11px]">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Auth Required to Access Data</span>
+                    <span>{uiText.authRequired}</span>
                   </div>
                   <button
                     onClick={(e) => {
@@ -1164,7 +1494,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     className="font-extrabold text-xs bg-gradient-to-r from-[#0077b6] to-[#023e8a] hover:from-[#023e8a] hover:to-[#03045e] text-white px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer group-hover:scale-102"
                   >
                     <Lock className="w-3 h-3 text-amber-300" />
-                    <span>Enter Hub</span>
+                    <span>{uiText.enterHub}</span>
                     <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </div>
@@ -1194,15 +1524,15 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     <span>STATUTORY COMMAND ACCESS</span>
                   </span>
                   <span className="text-[10px] font-mono font-semibold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-300/30">
-                    Dummy Auth
+                    {uiText.officialBadge}
                   </span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                  {pendingDistrictAuth.name} District Login
+                  {pendingDistrictAuth.name} {uiText.loginTitle}
                 </h3>
                 <p className="text-xs text-sky-100 font-medium mt-1">
-                  Enter officer credentials to unlock the 9 District Operational Modules & Command Portals.
+                  {uiText.loginSubtitle}
                 </p>
               </div>
 
@@ -1214,7 +1544,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   </div>
                   <div className="min-w-0 flex-1 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-slate-400">Designated Nodal Officer</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">{uiText.statutoryNodalOfficer}</span>
                       <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                         District Verified
                       </span>
@@ -1236,7 +1566,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 <form onSubmit={handleConfirmDistrictLogin} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Official Officer Email / Employee ID:
+                      {uiText.emailLabel}
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1253,7 +1583,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-slate-700">
-                        Security PIN / Official Password:
+                        {uiText.pinLabel}
                       </label>
                       <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
                         Default: 1234
@@ -1277,7 +1607,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                       </button>
                     </div>
                     <p className="text-[11px] text-slate-400 mt-1">
-                      * Dummy authentication active: enter 1234 or any credentials to sign in.
+                      {uiText.pinHint}
                     </p>
                   </div>
 
@@ -1294,14 +1624,14 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                       onClick={() => setPendingDistrictAuth(null)}
                       className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
                     >
-                      Cancel
+                      {uiText.cancel}
                     </button>
                     <button
                       type="submit"
                       className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0077b6] to-[#023e8a] hover:from-[#023e8a] hover:to-[#03045e] text-white font-extrabold text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 active:scale-98"
                     >
                       <LogIn className="w-4 h-4" />
-                      <span>Authenticate & Access Hub</span>
+                      <span>{uiText.authBtn}</span>
                     </button>
                   </div>
                 </form>
@@ -1431,38 +1761,38 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   </span>
                   <span className="text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>72h Statutory SLA Active</span>
+                    <span>{uiText.slaActive}</span>
                   </span>
                 </div>
 
                 <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                  {currentDistrict} District Command Station
+                  {currentDistrict} {uiText.districtCommandStation}
                 </h2>
 
                 <p className="text-xs sm:text-sm text-sky-100 font-medium leading-relaxed">
-                  Officer In-Charge: <strong>{currentDistrictData.officerInCharge.name}</strong> ({currentDistrictData.officerInCharge.designation}) • HQ: {currentDistrictData.headquarter} • {currentDistrictData.region} Region. Strict jurisdictional data isolation active.
+                  {uiText.officerInCharge}: <strong>{currentDistrictData.officerInCharge.name}</strong> ({currentDistrictData.officerInCharge.designation}) • HQ: {currentDistrictData.headquarter} • {currentDistrictData.region} Region. Strict jurisdictional data isolation active.
                 </p>
               </div>
 
               {/* 4 Real-time Statutory Metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0 w-full lg:w-auto">
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-center min-w-[95px]">
-                  <span className="text-[9px] uppercase font-bold text-sky-200 block">Total Inflow</span>
+                  <span className="text-[9px] uppercase font-bold text-sky-200 block">{uiText.totalInflow}</span>
                   <span className="text-xl font-black text-amber-300">{totalInflow}</span>
                   <span className="text-[9px] text-sky-200 block">Supabase</span>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-center min-w-[95px]">
-                  <span className="text-[9px] uppercase font-bold text-sky-200 block">Inspection</span>
+                  <span className="text-[9px] uppercase font-bold text-sky-200 block">{uiText.inspection}</span>
                   <span className="text-xl font-black text-sky-300">{inInspectionCount}</span>
                   <span className="text-[9px] text-sky-200 block">En-Route</span>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-center min-w-[95px]">
-                  <span className="text-[9px] uppercase font-bold text-sky-200 block">Remediation</span>
+                  <span className="text-[9px] uppercase font-bold text-sky-200 block">{uiText.remediation}</span>
                   <span className="text-xl font-black text-orange-300">{inActionCount}</span>
                   <span className="text-[9px] text-sky-200 block">Machinery</span>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-center min-w-[95px]">
-                  <span className="text-[9px] uppercase font-bold text-sky-200 block">Resolved</span>
+                  <span className="text-[9px] uppercase font-bold text-sky-200 block">{uiText.resolved}</span>
                   <span className="text-xl font-black text-emerald-300">{resolvedCount}</span>
                   <span className="text-[9px] text-sky-200 block">Verified</span>
                 </div>
@@ -1476,21 +1806,21 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 className="bg-white text-[#03045E] hover:bg-sky-50 px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
               >
                 <Satellite className="w-3.5 h-3.5 text-blue-600" />
-                <span>Open Satellite Map (GIS)</span>
+                <span>{uiText.openSatMap}</span>
               </button>
               <button
                 onClick={() => setActiveTab('complaints')}
                 className="bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
-                <span>Triage Complaints ({pendingInspectionCount} Pending)</span>
+                <span>{uiText.triageComplaints} ({pendingInspectionCount} {uiText.pending})</span>
               </button>
               <button
                 onClick={handleDownloadDossierPdf}
                 className="bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ml-auto"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Export Certified Gazette (PDF)</span>
+                <span>{uiText.exportGazette}</span>
               </button>
             </div>
           </div>
@@ -1503,14 +1833,14 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 <h3 className="font-extrabold text-sm text-[#03045E]">
-                  {currentDistrict} District Live Telemetry & Hydrological Baseline
+                  {currentDistrict} {uiText.liveTelemetryHeading}
                 </h3>
                 <span className="text-[10px] font-mono font-bold bg-blue-50 text-[#0077b6] px-2 py-0.5 rounded-full border border-blue-200">
-                  Strict District Scope
+                  {uiText.strictScope}
                 </span>
               </div>
               <span className="text-[11px] font-medium text-slate-500">
-                APWRIMS & Central Water Commission (CWC) Real-Time Data
+                {uiText.apwrimsSource}
               </span>
             </div>
 
@@ -1522,7 +1852,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 font-mono">
-                    Live Inflow
+                    {uiText.liveInflowCard}
                   </span>
                   <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
                     <AlertTriangle className="w-3.5 h-3.5" />
@@ -1530,10 +1860,10 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-2xl font-black text-slate-900 font-mono">{totalInflow}</span>
-                  <span className="text-xs font-bold text-amber-600">Live Grievances</span>
+                  <span className="text-xs font-bold text-amber-600">{uiText.liveGrievances}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium mt-1">
-                  {pendingInspectionCount} Pending Inspection • {inActionCount} In Remediation
+                  {pendingInspectionCount} {uiText.pendingInspection} • {inActionCount} {uiText.inRemediation}
                 </p>
               </div>
 
@@ -1544,7 +1874,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-[#0077b6] font-mono">
-                    Water Assets
+                    {uiText.waterAssetsCard}
                   </span>
                   <div className="w-7 h-7 rounded-lg bg-sky-100 flex items-center justify-center text-[#0077b6] group-hover:scale-110 transition-transform">
                     <Droplets className="w-3.5 h-3.5" />
@@ -1552,10 +1882,10 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-2xl font-black text-slate-900 font-mono">{currentDistrictData.totalWaterBodiesCount}</span>
-                  <span className="text-xs font-bold text-sky-700">District Assets</span>
+                  <span className="text-xs font-bold text-sky-700">{uiText.districtWaterBodies}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium mt-1">
-                  Reservoirs, Barrages, Infiltration Tanks & Piezometers
+                  {uiText.reservoirsPercolation}
                 </p>
               </div>
 
@@ -1566,7 +1896,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 font-mono">
-                    Reservoir Storage
+                    {uiText.reservoirStorage}
                   </span>
                   <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                     <Waves className="w-3.5 h-3.5" />
@@ -1574,7 +1904,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-2xl font-black text-[#0077b6] font-mono">{currentDistrictData.wrisTelemetry.storagePercentage}%</span>
-                  <span className="text-xs font-bold text-emerald-600">Capacity Full</span>
+                  <span className="text-xs font-bold text-emerald-600">{uiText.capacityFull}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium mt-1">
                   Live: {currentDistrictData.wrisTelemetry.liveStorageTMC} TMC • {currentDistrictData.wrisTelemetry.currentStorageMCM} MCM / {currentDistrictData.wrisTelemetry.capacityMCM} MCM
@@ -1589,14 +1919,14 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               <div>
                 <div className="flex items-center gap-2.5">
                   <h3 className="text-lg font-black text-[#03045E] tracking-tight">
-                    District Operational Modules & Command Portals
+                    {uiText.coreModulesTitle}
                   </h3>
                   <span className="text-xs font-mono font-bold bg-blue-50 text-[#0077b6] px-2.5 py-0.5 rounded-full border border-blue-200">
-                    9 Core Portals
+                    {uiText.corePortalsBadge}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium mt-1 max-w-3xl">
-                  Select any executive portal to drill down into district cartography, inspection schedules, citizen complaints triage, or statutory reviews.
+                  {uiText.coreModulesSub}
                 </p>
               </div>
 
@@ -1605,7 +1935,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search portals, telemetry, SLAs, or tasks..."
+                  placeholder={uiText.searchPortals}
                   value={portalSearch}
                   onChange={(e) => setPortalSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none font-medium text-slate-800"
@@ -1624,7 +1954,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                All Portals ({NODAL_FLASHCARDS.length})
+                {uiText.filterAllPortals} ({NODAL_FLASHCARDS.length})
               </button>
               <button
                 onClick={() => setSelectedCategory('ops')}
@@ -1634,7 +1964,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                Operational & Field Triage (3)
+                {uiText.filterOps} (3)
               </button>
               <button
                 onClick={() => setSelectedCategory('geo')}
@@ -1644,7 +1974,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                Geospatial & Water Assets (2)
+                {uiText.filterGeo} (2)
               </button>
               <button
                 onClick={() => setSelectedCategory('gov')}
@@ -1654,7 +1984,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                Assurance & Governance ({NODAL_FLASHCARDS.filter(c => c.category === 'gov').length})
+                {uiText.filterGov} (3)
               </button>
             </div>
           </div>
@@ -1909,45 +2239,53 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               <span>DISTRICT OPERATIONAL CONFIGURATIONS</span>
             </div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-              {currentDistrict} Nodal Governance Settings
+              {currentDistrict} {currentLang === 'hi' ? 'नोडल शासन सेटिंग्स' : currentLang === 'te' ? 'నోడల్ పాలన సెట్టింగ్‌లు' : 'Nodal Governance Settings'}
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl">
-              Configure statutory SLA thresholds, automated deduplication clustering radius, and SMS gateway dispatch credentials for {currentDistrict} District.
+              {currentLang === 'hi' 
+                ? `${currentDistrict} जिले के लिए वैधानिक SLA सीमाएं, स्वचालित क्लस्टरिंग त्रिज्या और प्रेषण क्रेडेंशियल्स कॉन्फ़िगर करें।`
+                : currentLang === 'te'
+                ? `${currentDistrict} జిల్లా కోసం చట్టబద్ధమైన SLA పరిమితులు, ఆటోమేటెడ్ క్లస్టరింగ్ రేడియస్ మరియు డిస్పాచ్ వివరాలను కాన్ఫిగర్ చేయండి.`
+                : `Configure statutory SLA thresholds, automated deduplication clustering radius, and SMS gateway dispatch credentials for ${currentDistrict} District.`}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-medium">
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-              <h4 className="font-extrabold text-slate-900 text-sm">Citizen Grievance SLA Thresholds</h4>
+              <h4 className="font-extrabold text-slate-900 text-sm">
+                {currentLang === 'hi' ? 'नागरिक शिकायत SLA सीमाएं' : currentLang === 'te' ? 'పౌర ఫిర్యాదు SLA పరిమితులు' : 'Citizen Grievance SLA Thresholds'}
+              </h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span>Priority 1 (Emergency Sluice & Breach):</span>
-                  <span className="font-bold text-rose-600 font-mono">48 Hours</span>
+                  <span>{currentLang === 'hi' ? 'प्राथमिकता 1 (आपातकालीन स्लूस व तटबंध दरार):' : currentLang === 'te' ? 'ప్రాధాన్యత 1 (అత్యవసర తూము & గండి):' : 'Priority 1 (Emergency Sluice & Breach):'}</span>
+                  <span className="font-bold text-rose-600 font-mono">48 {currentLang === 'hi' ? 'घंटे' : currentLang === 'te' ? 'గంటలు' : 'Hours'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Priority 2 (De-silting & Quality Probes):</span>
-                  <span className="font-bold text-amber-600 font-mono">72 Hours</span>
+                  <span>{currentLang === 'hi' ? 'प्राथमिकता 2 (गाद सफाई व जल गुणवत्ता परीक्षण):' : currentLang === 'te' ? 'ప్రాధాన్యత 2 (పూడికతీత & నాణ్యత పరీక్ష):' : 'Priority 2 (De-silting & Quality Probes):'}</span>
+                  <span className="font-bold text-amber-600 font-mono">72 {currentLang === 'hi' ? 'घंटे' : currentLang === 'te' ? 'గంటలు' : 'Hours'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Routine Maintenance & Grass Reseeding:</span>
-                  <span className="font-bold text-emerald-600 font-mono">7 Days</span>
+                  <span>{currentLang === 'hi' ? 'नियमित रखरखाव व घास पुनः रोपण:' : currentLang === 'te' ? 'సాధారణ నిర్వహణ & గడ్డి పునర్నాటడం:' : 'Routine Maintenance & Grass Reseeding:'}</span>
+                  <span className="font-bold text-emerald-600 font-mono">7 {currentLang === 'hi' ? 'दिन' : currentLang === 'te' ? 'రోజులు' : 'Days'}</span>
                 </div>
               </div>
             </div>
 
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-              <h4 className="font-extrabold text-slate-900 text-sm">Geofencing & Verification Engine</h4>
+              <h4 className="font-extrabold text-slate-900 text-sm">
+                {currentLang === 'hi' ? 'जियोफेंसिंग एवं सत्यापन इंजन' : currentLang === 'te' ? 'జియోఫెన్సింగ్ మరియు ధృవీకరణ ఇంజిన్' : 'Geofencing & Verification Engine'}
+              </h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span>Auto-Deduplication Clustering Radius:</span>
-                  <span className="font-bold text-[#0077b6] font-mono">500 Metres</span>
+                  <span>{currentLang === 'hi' ? 'ऑटो-डुप्लिकेशन क्लस्टरिंग दायरा:' : currentLang === 'te' ? 'ఆటో-డూప్లికేషన్ క్లస్టరింగ్ రేడియస్:' : 'Auto-Deduplication Clustering Radius:'}</span>
+                  <span className="font-bold text-[#0077b6] font-mono">500 {currentLang === 'hi' ? 'मीटर' : currentLang === 'te' ? 'మీటర్లు' : 'Metres'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Inspector GPS Baseline Tolerance:</span>
-                  <span className="font-bold text-[#0077b6] font-mono">50 Metres</span>
+                  <span>{currentLang === 'hi' ? 'इंस्पेक्टर GPS सहिष्णुता सीमा:' : currentLang === 'te' ? 'ఇన్‌స్పెక్టర్ GPS టాలరెన్స్:' : 'Inspector GPS Baseline Tolerance:'}</span>
+                  <span className="font-bold text-[#0077b6] font-mono">50 {currentLang === 'hi' ? 'मीटर' : currentLang === 'te' ? 'మీటర్లు' : 'Metres'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>EXIF Camera Tamper Hash Enforced:</span>
+                  <span>{currentLang === 'hi' ? 'EXIF कैमरा छेड़छाड़ हैश लागू:' : currentLang === 'te' ? 'EXIF కెమెరా ట్యాంపర్ హాష్ అమలు:' : 'EXIF Camera Tamper Hash Enforced:'}</span>
                   <span className="font-bold text-emerald-600 font-mono">YES (SHA-256)</span>
                 </div>
               </div>
@@ -1958,11 +2296,16 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             <button
               onClick={() => {
                 confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-                alert(`Operational SLA and Geofencing thresholds for ${currentDistrict} successfully saved.`);
+                const msg = currentLang === 'hi'
+                  ? `${currentDistrict} जिले के परिचालन SLA और जियोफेंसिंग पैरामीटर सफलतापूर्वक सहेजे गए।`
+                  : currentLang === 'te'
+                  ? `${currentDistrict} కార్యాచరణ SLA మరియు జియోఫెన్సింగ్ పారామితులు సేవ్ చేయబడ్డాయి.`
+                  : `Operational SLA and Geofencing thresholds for ${currentDistrict} successfully saved.`;
+                alert(msg);
               }}
               className="px-5 py-2.5 bg-[#0077b6] hover:bg-[#005f92] text-white font-bold rounded-xl text-xs shadow-xs cursor-pointer active:scale-95 transition-all"
             >
-              Save District Parameters
+              {currentLang === 'hi' ? 'जिला पैरामीटर सहेजें' : currentLang === 'te' ? 'జిల్లా పారామితులను సేవ్ చేయండి' : 'Save District Parameters'}
             </button>
           </div>
         </div>

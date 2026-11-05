@@ -45,6 +45,163 @@ import {
 import { CitizenComplaint } from '../../types/nirikshan';
 import { isComplaintAssignedToInspector, isComplaintSlaOverdue, isInspectorNameMatch } from '../../utils/inspectorFilter';
 import { isDistrictMatch } from '../../utils/workerFilter';
+import { useLanguage } from '../../context/LanguageContext';
+
+export const INSPECTOR_DIR_UI_TEXT = {
+  en: {
+    badgeLive: 'Supabase Live: public.field_inspectors',
+    badgeIsolation: '1-to-1 Jurisdictional Isolation',
+    badgeCadre: '60 Authorized Officers',
+    title: 'Field Hydrology & Cadastral Inspection Directory',
+    subtitle: 'Select an authorized Field Inspector to launch their personalized field tablet workstation. Every inspector operates with calibrated digital multi-parameter sensors and strict jurisdictional data isolation.',
+    totalOfficers: 'Total Field Officers',
+    activeOnDuty: 'Active On Duty',
+    calibratedKits: 'Calibrated Kits',
+    searchPlaceholder: 'Search by Inspector Name, Cadre Code (INS-...), Mandal, or Meter ID...',
+    allDistricts: 'All 26 Andhra Pradesh Districts',
+    officersSuffix: 'Officers',
+    allStatuses: 'All Duty Statuses',
+    activeOption: 'Active On Duty',
+    standbyOption: 'Standby / Available',
+    leaveOption: 'On Leave',
+    statutoryCadre: 'Statutory Field Cadre',
+    onDuty: 'On Duty',
+    cadastralJurisdiction: 'Cadastral Jurisdiction:',
+    districtCatchment: 'District Catchment:',
+    districtSuffix: 'District',
+    testingHardware: 'Testing Hardware:',
+    scheduledAudits: 'Scheduled Audits',
+    dueToday: 'Due Today',
+    slaOverdue: 'SLA Overdue',
+    urgentAction: 'Urgent Action',
+    withinThreshold: 'Within Threshold',
+    cadreLock: '1-to-1 Cadre Lock',
+    authAndLaunch: 'Authenticate & Launch Tablet',
+    noOfficersFound: 'No Field Inspectors Found',
+    noOfficersDesc: 'No field officers matched your search criteria. Try clearing the search or changing the district/region filter.',
+    resetFilters: 'Reset All Filters',
+    modalBadge: 'STATUTORY FIELD CADRE ACCESS',
+    modalDummy: 'Dummy Auth',
+    modalTitle: 'Workstation Login',
+    modalSubtitle: 'Enter officer credentials to unlock the calibrated inspection workstation & assigned queue.',
+    authorizedBadge: 'Authorized Field Cadre',
+    cadreVerified: 'Cadre Verified',
+    hydrologistRole: 'Field Hydrologist & Cadastral Auditor',
+    mandalSuffix: 'Mandal',
+    kitLabel: 'Kit:',
+    emailLabel: 'Official Officer Email / Employee ID:',
+    emailPlaceholder: 'officer@water.ap.gov.in',
+    pinLabel: 'Security PIN / Cadre Password:',
+    pinHint: 'Default: 1234',
+    pinPlaceholder: 'Enter 4-digit PIN or password',
+    authSubmit: 'Unlock & Enter Workstation',
+    cancel: 'Cancel',
+    changeOfficer: 'Change Officer',
+    signOut: 'Sign Out',
+  },
+  hi: {
+    badgeLive: 'सुपाबेस लाइव: public.field_inspectors',
+    badgeIsolation: '1-से-1 क्षेत्राधिकार डेटा अलगाव',
+    badgeCadre: '60 प्राधिकृत अधिकारी',
+    title: 'क्षेत्रीय जल विज्ञान एवं भू-अभिलेख निरीक्षण निर्देशिका',
+    subtitle: 'अपने व्यक्तिगत फील्ड टैबलेट वर्कस्टेशन को शुरू करने के लिए अधिकृत फील्ड इंस्पेक्टर का चयन करें। प्रत्येक अधिकारी कैलिब्रेटेड डिजिटल मल्टी-पैरामीटर सेंसर और सख्त क्षेत्राधिकार डेटा गोपनीयता के साथ काम करता है।',
+    totalOfficers: 'कुल फील्ड अधिकारी',
+    activeOnDuty: 'सक्रिय ड्यूटी पर',
+    calibratedKits: 'कैलिब्रेटेड उपकरण',
+    searchPlaceholder: 'इंस्पेक्टर का नाम, कोड (INS-...), मंडल, या मीटर ID से खोजें...',
+    allDistricts: 'आंध्र प्रदेश के सभी 26 जिले',
+    officersSuffix: 'अधिकारी',
+    allStatuses: 'सभी ड्यूटी स्थितियां',
+    activeOption: 'सक्रिय ड्यूटी पर',
+    standbyOption: 'स्टैंडबाय / उपलब्ध',
+    leaveOption: 'अवकाश पर',
+    statutoryCadre: 'वैधानिक फील्ड कैडर',
+    onDuty: 'ड्यूटी पर सक्रिय',
+    cadastralJurisdiction: 'भू-राजस्व क्षेत्राधिकार:',
+    districtCatchment: 'जिला कार्यक्षेत्र:',
+    districtSuffix: 'जिला',
+    testingHardware: 'जांच हार्डवेयर उपकरण:',
+    scheduledAudits: 'निर्धारित ऑडिट',
+    dueToday: 'आज देय',
+    slaOverdue: 'SLA अवधि पार',
+    urgentAction: 'अति आवश्यक कार्यवाही',
+    withinThreshold: 'समय सीमा के भीतर',
+    cadreLock: '1-से-1 कैडर सुरक्षा लॉक',
+    authAndLaunch: 'प्रमाणित करें व टैबलेट खोलें',
+    noOfficersFound: 'कोई फील्ड इंस्पेक्टर नहीं मिला',
+    noOfficersDesc: 'आपके खोज मापदंड से कोई फील्ड अधिकारी मेल नहीं खाता। कृपया खोज हटाएं या जिला बदलें।',
+    resetFilters: 'सभी फिल्टर रीसेट करें',
+    modalBadge: 'वैधानिक फील्ड कैडर अभिगम',
+    modalDummy: 'डमी ऑथेंटिकेशन',
+    modalTitle: 'वर्कस्टेशन लॉगिन',
+    modalSubtitle: 'कैलिब्रेटेड निरीक्षण वर्कस्टेशन और आवंटित मामलों को खोलने के लिए अधिकारी क्रेडेंशियल दर्ज करें।',
+    authorizedBadge: 'प्राधिकृत फील्ड संवर्ग',
+    cadreVerified: 'कैडर सत्यापित',
+    hydrologistRole: 'क्षेत्रीय जलविज्ञानी एवं भू-अभिलेख लेखापरीक्षक',
+    mandalSuffix: 'मंडल',
+    kitLabel: 'सेंसर किट:',
+    emailLabel: 'आधिकारिक अधिकारी ईमेल / कर्मचारी ID:',
+    emailPlaceholder: 'officer@water.ap.gov.in',
+    pinLabel: 'सुरक्षा पिन / पासवर्ड:',
+    pinHint: 'डिफ़ॉल्ट: 1234',
+    pinPlaceholder: '4-अंकीय पिन या पासवर्ड दर्ज करें',
+    authSubmit: 'अनलॉक करें व वर्कस्टेशन में प्रवेश करें',
+    cancel: 'रद्द करें',
+    changeOfficer: 'अधिकारी बदलें',
+    signOut: 'लॉग आउट',
+  },
+  te: {
+    badgeLive: 'సుపాబేస్ లైవ్: public.field_inspectors',
+    badgeIsolation: '1-నుండి-1 అధికార పరిధి భద్రత',
+    badgeCadre: '60 మంది అధికారిక అధికారులు',
+    title: 'ఫీల్డ్ హైడ్రాలజీ & కాడాస్ట్రల్ తనిఖీ డైరెక్టరీ',
+    subtitle: 'వ్యక్తిగత ఫీల్డ్ టాబ్లెట్ వర్క్‌స్టేషన్‌ను ప్రారంభించడానికి అధీకృత ఫీల్డ్ ఇన్‌స్పెక్టర్‌ను ఎంచుకోండి. ప్రతి అధికారి కాలిబ్రేటెడ్ డిజిటల్ సెన్సార్లతో పనిచేస్తారు.',
+    totalOfficers: 'మొత్తం ఫీల్డ్ అధికారులు',
+    activeOnDuty: 'విధులపై క్రియాశీలం',
+    calibratedKits: 'కాలిబ్రేటెడ్ కిట్‌లు',
+    searchPlaceholder: 'ఇన్‌స్పెక్టర్ పేరు, కేడర్ కోడ్ (INS-...), మండలం లేదా మీటర్ ID ద్వారా శోధించండి...',
+    allDistricts: 'ఆంధ్రప్రదేశ్ లోని మొత్తం 26 జిల్లాలు',
+    officersSuffix: 'అధికారులు',
+    allStatuses: 'అన్ని విధి స్థితులు',
+    activeOption: 'విధులపై క్రియాశీలం',
+    standbyOption: 'సిద్ధంగా ఉన్నారు',
+    leaveOption: 'సెలవులో ఉన్నారు',
+    statutoryCadre: 'చట్టబద్ధమైన ఫీల్డ్ కేడర్',
+    onDuty: 'విధిలో ఉన్నారు',
+    cadastralJurisdiction: 'కాడాస్ట్రల్ అధికార పరిధి:',
+    districtCatchment: 'జిల్లా పరిధి:',
+    districtSuffix: 'జిల్లా',
+    testingHardware: 'పరీక్ష హార్డ్‌వేర్ పరికరం:',
+    scheduledAudits: 'షెడ్యూల్ చేసిన ఆడిట్‌లు',
+    dueToday: 'ఈ రోజు బాకీ',
+    slaOverdue: 'SLA గడువు దాటింది',
+    urgentAction: 'అత్యవసర చర్య',
+    withinThreshold: 'సమయ పరిధిలో ఉంది',
+    cadreLock: '1-నుండి-1 కేడర్ లాక్',
+    authAndLaunch: 'ధృవీకరించి టాబ్లెట్ తెరవండి',
+    noOfficersFound: 'ఫీల్డ్ ఇన్‌స్పెక్టర్లు ఎవరూ కనుగొనబడలేదు',
+    noOfficersDesc: 'మీ శోధన ప్రమాణాలకు ఏ ఫీల్డ్ అధికారి సరిపోలలేదు. ఫిల్టర్‌లను రీసెట్ చేయండి.',
+    resetFilters: 'అన్ని ఫిల్టర్‌లను రీసెట్ చేయండి',
+    modalBadge: 'చట్టబద్ధమైన ఫీల్డ్ కేడర్ ప్రాప్యత',
+    modalDummy: 'డమ్మీ ప్రామాణీకరణ',
+    modalTitle: 'వర్క్‌స్టేషన్ లాగిన్',
+    modalSubtitle: 'కాలిబ్రేటెడ్ తనిఖీ వర్క్‌స్టేషన్‌ను అన్‌లాక్ చేయడానికి అధికారి వివరాలను నమోదు చేయండి.',
+    authorizedBadge: 'అధీకృత ఫీల్డ్ కేడర్',
+    cadreVerified: 'కేడర్ ధృవీకరించబడింది',
+    hydrologistRole: 'ఫీల్డ్ హైడ్రాలజిస్ట్ & కాడాస్ట్రల్ ఆడిటర్',
+    mandalSuffix: 'మండలం',
+    kitLabel: 'సెన్సార్ కిట్:',
+    emailLabel: 'అధికారిక ఇమెయిల్ / ఎంప్లాయ్ ID:',
+    emailPlaceholder: 'officer@water.ap.gov.in',
+    pinLabel: 'భద్రతా పిన్ / పాస్‌వర్డ్:',
+    pinHint: 'డిఫాల్ట్: 1234',
+    pinPlaceholder: '4-అంకెల పిన్ నమోదు చేయండి',
+    authSubmit: 'అన్‌లాక్ చేసి వర్క్‌స్టేషన్‌లోకి ప్రవేశించండి',
+    cancel: 'రద్దు చేయండి',
+    changeOfficer: 'అధికారిని మార్చండి',
+    signOut: 'లాగ్ అవుట్',
+  },
+};
 
 interface InspectorDirectoryHubProps {
   district?: string;
@@ -65,6 +222,10 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
   onBack,
   isSupabaseLive = true,
 }) => {
+  const { language } = useLanguage();
+  const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
+  const uiText = INSPECTOR_DIR_UI_TEXT[currentLang];
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>(() => {
     if (district && district !== 'all') return district;
@@ -136,10 +297,10 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
         {/* Title & Description in clean single-line flow */}
         <div className="space-y-1">
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Field Hydrology &amp; Cadastral Inspection Directory
+            {uiText.title}
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Select an authorized Field Inspector to launch their personalized field tablet workstation. Every inspector operates with calibrated digital multi-parameter sensors and strict jurisdictional data isolation.
+            {uiText.subtitle}
           </p>
         </div>
 
@@ -147,7 +308,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
         <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-xl pt-1">
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-center">
             <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block">
-              Total Field Officers
+              {uiText.totalOfficers}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-[#03045E] mt-0.5 block">
               {totalCount}
@@ -156,7 +317,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
 
           <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 text-center">
             <span className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wider block">
-              Active On Duty
+              {uiText.activeOnDuty}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5 block">
               {activeCount}
@@ -165,7 +326,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
 
           <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3 text-center">
             <span className="text-[11px] text-[#0077B6] font-semibold uppercase tracking-wider block">
-              Calibrated Kits
+              {uiText.calibratedKits}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-[#0077B6] mt-0.5 block">
               {calibratedCount}
@@ -185,7 +346,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by Inspector Name, Cadre Code (INS-...), Mandal, or Meter ID..."
+                placeholder={uiText.searchPlaceholder}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6]"
               />
             </div>
@@ -197,14 +358,14 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 onChange={(e) => setSelectedDistrict(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] cursor-pointer"
               >
-                <option value="all">All 26 Andhra Pradesh Districts ({totalCount} Officers)</option>
+                <option value="all">{uiText.allDistricts} ({totalCount} {uiText.officersSuffix})</option>
                 {ANDHRA_PRADESH_26_DISTRICTS.map((d) => {
                   const countInDist = inspectors.filter(
                     (i) => i.district?.toLowerCase() === d.name.toLowerCase()
                   ).length;
                   return (
                     <option key={d.id} value={d.name}>
-                      {d.name} ({countInDist || 2} Inspectors)
+                      {d.name} ({countInDist || 2} {uiText.officersSuffix})
                     </option>
                   );
                 })}
@@ -218,10 +379,10 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] cursor-pointer"
               >
-                <option value="all">All Duty Statuses</option>
-                <option value="Active">Active On Duty ({activeCount})</option>
-                <option value="Standby">Standby / Available</option>
-                <option value="On leave">On Leave</option>
+                <option value="all">{uiText.allStatuses}</option>
+                <option value="Active">{uiText.activeOption} ({activeCount})</option>
+                <option value="Standby">{uiText.standbyOption}</option>
+                <option value="On leave">{uiText.leaveOption}</option>
               </select>
             </div>
           </div>
@@ -350,14 +511,14 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                               isActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
                             }`}
                           />
-                          <span>{inspector.status || 'Active'}</span>
+                          <span>{inspector.status === 'Active' ? uiText.onDuty : (inspector.status || uiText.onDuty)}</span>
                         </span>
                       </div>
                       <h3 className="font-extrabold text-slate-900 text-base mt-1 group-hover:text-[#0077B6] transition-colors">
                         {inspector.full_name}
                       </h3>
                       <p className="text-[11px] font-medium text-slate-500">
-                        Field Hydrologist &amp; Cadastral Auditor
+                        {uiText.hydrologistRole}
                       </p>
                     </div>
                   </div>
@@ -368,25 +529,25 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                   <div className="flex items-center justify-between text-slate-700">
                     <div className="flex items-center gap-1.5 text-slate-500">
                       <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
-                      <span className="font-medium">Jurisdiction:</span>
+                      <span className="font-medium">{uiText.cadastralJurisdiction}</span>
                     </div>
                     <span className="font-bold text-slate-900">
-                      {inspector.mandal ? `${inspector.mandal} Mandal` : 'Central Command'}
+                      {inspector.mandal ? `${inspector.mandal} ${uiText.mandalSuffix}` : 'Central Command'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-700">
                     <div className="flex items-center gap-1.5 text-slate-500">
                       <Compass className="w-3.5 h-3.5 text-[#0077B6]" />
-                      <span className="font-medium">District Catchment:</span>
+                      <span className="font-medium">{uiText.districtCatchment}</span>
                     </div>
                     <span className="font-semibold text-slate-800">
-                      {inspector.district} District
+                      {inspector.district} {uiText.districtSuffix}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-700 pt-1 border-t border-slate-200/60">
                     <div className="flex items-center gap-1.5 text-slate-500">
                       <Cpu className="w-3.5 h-3.5 text-[#0077B6]" />
-                      <span className="font-medium">Testing Hardware:</span>
+                      <span className="font-medium">{uiText.testingHardware}</span>
                     </div>
                     <span className="font-mono text-[11px] font-bold text-slate-800">
                       {inspector.meter_id || 'TDS Multi-Param'}
@@ -398,12 +559,12 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-center text-xs">
                   <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-2.5">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 block">
-                      Scheduled Audits
+                      {uiText.scheduledAudits}
                     </span>
                     <span className="text-lg font-black text-[#03045E]">
                       {openInspections}
                     </span>
-                    <span className="text-[10px] text-blue-600 block">Due Today</span>
+                    <span className="text-[10px] text-blue-600 block">{uiText.dueToday}</span>
                   </div>
 
                   <div className={`rounded-xl p-2.5 border ${
@@ -412,13 +573,13 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                       : 'bg-emerald-50/60 border-emerald-100 text-emerald-700'
                   }`}>
                     <span className="text-[10px] uppercase font-bold tracking-wider block">
-                      SLA Overdue
+                      {uiText.slaOverdue}
                     </span>
                     <span className="text-lg font-black">
                       {overdueInspections}
                     </span>
                     <span className="text-[10px] block">
-                      {overdueInspections > 0 ? 'Urgent Action' : 'Within Threshold'}
+                      {overdueInspections > 0 ? uiText.urgentAction : uiText.withinThreshold}
                     </span>
                   </div>
                 </div>
@@ -441,7 +602,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 <div className="flex items-center justify-between text-[11px] text-slate-500 px-0.5">
                   <span className="flex items-center gap-1 font-semibold text-slate-600">
                     <Lock className="w-3 h-3 text-amber-500" />
-                    1-to-1 Cadre Lock
+                    {uiText.cadreLock}
                   </span>
                   <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                     PIN: 1234
@@ -461,7 +622,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer bg-[#0077B6] hover:bg-[#03045E] text-white shadow-xs active:scale-98"
                 >
                   <Lock className="w-3.5 h-3.5 text-sky-200" />
-                  <span>Authenticate &amp; Launch Tablet</span>
+                  <span>{uiText.authAndLaunch}</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
                 </button>
               </div>
@@ -475,9 +636,9 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
             <Search className="w-6 h-6" />
           </div>
-          <h3 className="font-extrabold text-slate-900 text-base">No Field Inspectors Found</h3>
+          <h3 className="font-extrabold text-slate-900 text-base">{uiText.noOfficersFound}</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            No field officers matched your search criteria. Try clearing the search or changing the district/region filter.
+            {uiText.noOfficersDesc}
           </p>
           <button
             onClick={() => {
@@ -487,7 +648,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
             }}
             className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
           >
-            Reset All Filters
+            {uiText.resetFilters}
           </button>
         </div>
       )}
@@ -502,7 +663,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 type="button"
                 onClick={() => setPendingAuthInspector(null)}
                 className="absolute right-4 top-4 p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                title="Close"
+                title={uiText.cancel}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -510,18 +671,18 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[10px] font-mono font-bold text-sky-200 border border-white/20">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>STATUTORY FIELD CADRE ACCESS</span>
+                  <span>{uiText.modalBadge}</span>
                 </span>
                 <span className="text-[10px] font-mono font-semibold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-300/30">
-                  Dummy Auth
+                  {uiText.modalDummy}
                 </span>
               </div>
 
               <h3 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                {pendingAuthInspector.full_name} Workstation Login
+                {pendingAuthInspector.full_name} {uiText.modalTitle}
               </h3>
               <p className="text-xs text-sky-100 font-medium mt-1">
-                Enter officer credentials to unlock the calibrated inspection workstation &amp; assigned queue.
+                {uiText.modalSubtitle}
               </p>
             </div>
 
@@ -539,26 +700,26 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 <div className="min-w-0 flex-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] uppercase font-bold text-slate-400">
-                      Authorized Field Cadre
+                      {uiText.authorizedBadge}
                     </span>
                     <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      Cadre Verified
+                      {uiText.cadreVerified}
                     </span>
                   </div>
                   <h4 className="font-extrabold text-slate-900 text-sm mt-0.5">
                     {pendingAuthInspector.full_name}
                   </h4>
                   <p className="text-slate-500 font-medium text-[11px]">
-                    Field Hydrologist &amp; Cadastral Auditor • ID: <span className="font-mono font-bold text-slate-700">{pendingAuthInspector.inspector_id}</span>
+                    {uiText.hydrologistRole} • ID: <span className="font-mono font-bold text-slate-700">{pendingAuthInspector.inspector_id}</span>
                   </p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-slate-600 font-medium">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-[#0077B6]" />
-                      {pendingAuthInspector.mandal ? `${pendingAuthInspector.mandal} Mandal` : 'Central'}, {pendingAuthInspector.district} District
+                      {pendingAuthInspector.mandal ? `${pendingAuthInspector.mandal} ${uiText.mandalSuffix}` : 'Central'}, {pendingAuthInspector.district} {uiText.districtSuffix}
                     </span>
                     <span className="flex items-center gap-1">
                       <Cpu className="w-3 h-3 text-[#0077B6]" />
-                      Kit: <span className="font-mono font-bold">{pendingAuthInspector.meter_id || 'TDS Multi-Param'}</span>
+                      {uiText.kitLabel} <span className="font-mono font-bold">{pendingAuthInspector.meter_id || 'TDS Multi-Param'}</span>
                     </span>
                   </div>
                 </div>
@@ -569,7 +730,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!authPin.trim()) {
-                    setAuthError('Please enter the security PIN (Default: 1234)');
+                    setAuthError(currentLang === 'hi' ? 'कृपया सुरक्षा पिन दर्ज करें (डिफ़ॉल्ट: 1234)' : currentLang === 'te' ? 'దయచేసి సెక్యూరిటీ పిన్ నమోదు చేయండి (డిఫాల్ట్: 1234)' : 'Please enter the security PIN (Default: 1234)');
                     return;
                   }
                   // Trigger celebration & authenticate into personalized tablet
@@ -582,7 +743,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
               >
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Official Officer Email / Employee ID:
+                    {uiText.emailLabel}
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -590,7 +751,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                       type="text"
                       value={authEmail}
                       onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="officer@water.ap.gov.in"
+                      placeholder={uiText.emailPlaceholder}
                       className="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0077b6]/30 focus:border-[#0077b6] outline-none font-medium text-slate-800"
                     />
                   </div>
@@ -599,10 +760,10 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-bold text-slate-700">
-                      Security PIN / Cadre Password:
+                      {uiText.pinLabel}
                     </label>
                     <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      Default: 1234
+                      {uiText.pinHint}
                     </span>
                   </div>
                   <div className="relative">
@@ -614,7 +775,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                         setAuthPin(e.target.value);
                         setAuthError('');
                       }}
-                      placeholder="Enter 4-digit PIN or password"
+                      placeholder={uiText.pinPlaceholder}
                       className="w-full pl-9 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0077b6]/30 focus:border-[#0077b6] outline-none font-mono font-bold text-slate-800"
                     />
                     <button
@@ -629,7 +790,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                     <p className="text-[11px] text-rose-600 font-medium mt-1">{authError}</p>
                   ) : (
                     <p className="text-[11px] text-slate-400 mt-1">
-                      * Dummy authentication active: enter 1234 or any credentials to sign in.
+                      * {currentLang === 'hi' ? 'डमी ऑथेंटिकेशन सक्रिय: लॉगिन करने के लिए 1234 दर्ज करें।' : currentLang === 'te' ? 'డమ్మీ ప్రామాణీకరణ: ప్రవేశించడానికి 1234 నమోదు చేయండి.' : 'Dummy authentication active: enter 1234 or any credentials to sign in.'}
                     </p>
                   )}
                 </div>
@@ -637,7 +798,11 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                 <div className="p-3 bg-amber-50/70 border border-amber-200/60 rounded-xl flex items-center gap-2 text-xs text-amber-800 font-medium">
                   <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    Strict Data Isolation: Authenticating locks operational portals strictly to {pendingAuthInspector.full_name}&apos;s assigned queue &amp; jurisdiction.
+                    {currentLang === 'hi'
+                      ? `सख्त डेटा अलगाव: लॉगिन करने पर केवल ${pendingAuthInspector.full_name} के आवंटित केस व अधिकार क्षेत्र दिखाई देगा।`
+                      : currentLang === 'te'
+                      ? `కఠినమైన డేటా భద్రత: లాగిన్ చేయడం ద్వారా కేవలం ${pendingAuthInspector.full_name} యొక్క కేసులే కనిపిస్తాయి.`
+                      : `Strict Data Isolation: Authenticating locks operational portals strictly to ${pendingAuthInspector.full_name}'s assigned queue & jurisdiction.`}
                   </span>
                 </div>
 
@@ -647,14 +812,14 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
                     onClick={() => setPendingAuthInspector(null)}
                     className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
                   >
-                    Cancel
+                    {uiText.cancel}
                   </button>
                   <button
                     type="submit"
                     className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0077b6] to-[#023e8a] hover:from-[#023e8a] hover:to-[#03045e] text-white font-extrabold text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 active:scale-98"
                   >
                     <LogIn className="w-4 h-4" />
-                    <span>Authenticate &amp; Access Tablet</span>
+                    <span>{uiText.authSubmit}</span>
                   </button>
                 </div>
               </form>

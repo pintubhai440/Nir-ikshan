@@ -532,7 +532,7 @@ export default function App() {
           workExecution: {
             id: c.workExecution?.id || `WE-${c.id.replace('CMP-AP-2026-', '')}`,
             engineerName: c.workExecution?.engineerName || c.assignedEngineer || 'Action Worker',
-            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '+91 94402 33445',
+            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '',
             assignedAt: c.workExecution?.assignedAt || c.assignedEngineerAt || new Date().toISOString(),
             deadline: c.workExecution?.deadline || 'Today, 6:00 PM',
             ...(c.workExecution || {}),
@@ -568,7 +568,7 @@ export default function App() {
           workExecution: {
             id: c.workExecution?.id || `WE-${c.id.replace('CMP-AP-2026-', '')}`,
             engineerName: `[Declined by ${previousWorker}]`,
-            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '+91 94402 33445',
+            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '',
             assignedAt: c.workExecution?.assignedAt || c.assignedEngineerAt || new Date().toISOString(),
             deadline: 'Reassignment Needed',
             ...(c.workExecution || {}),
@@ -597,7 +597,7 @@ export default function App() {
           workExecution: {
             id: c.workExecution?.id || `WE-${c.id.replace('CMP-AP-2026-', '')}`,
             engineerName: c.workExecution?.engineerName || c.assignedEngineer || 'Action Worker',
-            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '+91 94402 33445',
+            engineerPhone: c.workExecution?.engineerPhone || c.assignedEngineerPhone || '',
             assignedAt: c.workExecution?.assignedAt || c.assignedEngineerAt || new Date().toISOString(),
             deadline: c.workExecution?.deadline || 'Completed',
             ...(c.workExecution || {}),

@@ -3844,23 +3844,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                                 hasInspection
                                   ? 'bg-purple-100 text-purple-800 border-purple-200'
-                                  : 'bg-amber-100 text-amber-800 border-amber-200'
+                                  : (c.assignedInspector || c.inspectionReport?.inspectorName)
+                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
                               }`}>
-                                {hasInspection ? uiText.cardInspectedBadge : uiText.cardEnrouteBadge}
+                                {hasInspection ? uiText.cardInspectedBadge : (c.assignedInspector || c.inspectionReport?.inspectorName) ? uiText.cardEnrouteBadge : 'Pending Assignment'}
                               </span>
                             </div>
 
                             <div className="mt-2 space-y-0.5">
-                              <strong className="text-sm font-black text-slate-900 block truncate">
-                                {c.assignedInspector || c.inspectionReport?.inspectorName || 'Sri K. Rama Krishna'}
+                              <strong className={`text-sm font-black block truncate ${(c.assignedInspector || c.inspectionReport?.inspectorName) ? 'text-slate-900' : 'text-slate-500 italic'}`}>
+                                {c.assignedInspector || c.inspectionReport?.inspectorName || 'Awaiting Nodal Assignment'}
                               </strong>
-                              <a
-                                href={`tel:${c.assignedInspectorPhone || c.inspectionReport?.inspectorPhone || '+91 94401 22334'}`}
-                                className="inline-flex items-center gap-1.5 text-xs text-purple-700 font-mono font-bold hover:underline"
-                              >
-                                <Phone className="w-3 h-3 text-purple-600" />
-                                <span>{c.assignedInspectorPhone || c.inspectionReport?.inspectorPhone || '+91 94401 22334'}</span>
-                              </a>
+                              {(c.assignedInspector || c.inspectionReport?.inspectorName) && (c.assignedInspectorPhone || c.inspectionReport?.inspectorPhone) ? (
+                                <a
+                                  href={`tel:${c.assignedInspectorPhone || c.inspectionReport?.inspectorPhone}`}
+                                  className="inline-flex items-center gap-1.5 text-xs text-purple-700 font-mono font-bold hover:underline"
+                                >
+                                  <Phone className="w-3 h-3 text-purple-600" />
+                                  <span>{c.assignedInspectorPhone || c.inspectionReport?.inspectorPhone}</span>
+                                </a>
+                              ) : (
+                                <span className="text-[11px] text-slate-400 font-medium">Pending Nodal Triage</span>
+                              )}
                             </div>
 
                             {/* Timing stamps: Inspector checked site & Re-verification */}
@@ -3874,7 +3880,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <span className="font-mono font-bold text-slate-800 text-[11px]">
                                     {c.inspectionReport?.inspectedAt
                                       ? formatStepTimestamp(c.inspectionReport.inspectedAt).formatted
-                                      : 'En-route to site'}
+                                      : (c.assignedInspector || c.inspectionReport?.inspectorName) ? 'En-route to site' : 'Awaiting Assignment'}
                                   </span>
                                 </div>
                                 {c.inspectionReport?.inspectedAt && (
@@ -3928,7 +3934,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <strong>{uiText.labelNotes}</strong> {c.inspectionReport.validationRemarks || c.inspectionReport.sourcePinDescription}
                                 </div>
                               </div>
-                            ) : (
+                            ) : c.assignedInspector ? (
                               <div className="mt-2 p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
                                 <div className="flex items-center gap-1.5 font-bold text-amber-800">
                                   <Clock className="w-3.5 h-3.5 text-amber-600" />
@@ -3936,6 +3942,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                                 <p className="text-[11px] text-amber-700 leading-relaxed">
                                   {uiText.cardInspectorEnrouteDesc}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
+                                <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>Pending Nodal Triage</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 leading-relaxed">
+                                  District Nodal Officer has not yet assigned a Field Inspector. 72h statutory SLA is active.
                                 </p>
                               </div>
                             )}
@@ -3980,23 +3996,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                                   : hasWork
                                   ? 'bg-amber-100 text-amber-800 border-amber-200'
-                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  : (c.assignedEngineer || c.workExecution?.engineerName)
+                                  ? 'bg-sky-100 text-sky-800 border-sky-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
                               }`}>
-                                {isResolved ? uiText.filterStatusResolved : hasWork ? uiText.cardWorkInProgress : uiText.filterStatusSubmitted}
+                                {isResolved ? uiText.filterStatusResolved : hasWork ? uiText.cardWorkInProgress : (c.assignedEngineer || c.workExecution?.engineerName) ? 'Work Order Issued' : 'Pending Allocation'}
                               </span>
                             </div>
 
                             <div className="mt-2 space-y-0.5">
-                              <strong className="text-sm font-black text-slate-900 block truncate">
-                                {c.assignedEngineer || c.workExecution?.engineerName || 'Er. T. Venkata Ramana'}
+                              <strong className={`text-sm font-black block truncate ${(c.assignedEngineer || c.workExecution?.engineerName) ? 'text-slate-900' : 'text-slate-500 italic'}`}>
+                                {c.assignedEngineer || c.workExecution?.engineerName || 'Awaiting Work Order'}
                               </strong>
-                              <a
-                                href={`tel:${c.assignedEngineerPhone || c.workExecution?.engineerPhone || '+91 94402 33445'}`}
-                                className="inline-flex items-center gap-1.5 text-xs text-amber-700 font-mono font-bold hover:underline"
-                              >
-                                <Phone className="w-3 h-3 text-amber-600" />
-                                <span>{c.assignedEngineerPhone || c.workExecution?.engineerPhone || '+91 94402 33445'}</span>
-                              </a>
+                              {(c.assignedEngineer || c.workExecution?.engineerName) && (c.assignedEngineerPhone || c.workExecution?.engineerPhone) ? (
+                                <a
+                                  href={`tel:${c.assignedEngineerPhone || c.workExecution?.engineerPhone}`}
+                                  className="inline-flex items-center gap-1.5 text-xs text-amber-700 font-mono font-bold hover:underline"
+                                >
+                                  <Phone className="w-3 h-3 text-amber-600" />
+                                  <span>{c.assignedEngineerPhone || c.workExecution?.engineerPhone}</span>
+                                </a>
+                              ) : (
+                                <span className="text-[11px] text-slate-400 font-medium">Awaiting Inspection Sign-off</span>
+                              )}
                             </div>
 
                             {/* Timing stamps: Work assigned, started & proof uploaded */}
@@ -4085,11 +4107,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   </div>
                                 )}
                               </div>
-                            ) : (
+                            ) : (c.assignedEngineer || c.workExecution?.engineerName) ? (
                               <div className="mt-2 p-2.5 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1 border border-slate-200/80">
                                 <span className="font-bold text-slate-800 block">{uiText.cardWorkOrderDispatched}</span>
                                 <p className="text-[11px] text-slate-500 leading-relaxed">
                                   {uiText.cardWorkOrderStagedDesc}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="mt-2 p-2.5 bg-slate-50 rounded-xl text-xs text-slate-500 space-y-1 border border-slate-200/80">
+                                <span className="font-bold text-slate-700 block">Awaiting Ground Verification</span>
+                                <p className="text-[11px] text-slate-500 leading-relaxed">
+                                  Remediation crew will be dispatched once site inspection report is signed off by Nodal Officer.
                                 </p>
                               </div>
                             )}
@@ -4172,19 +4201,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <span className="text-[10px] text-emerald-600 font-bold">🟢 Prompt Dispatch</span>
                         </td>
                         <td className="py-3 px-3">
-                          <strong className="text-slate-800 block truncate max-w-[160px]">
-                            {c.assignedInspector || c.inspectionReport?.inspectorName || 'Sri K. Rama Krishna'}
+                          <strong className={`block truncate max-w-[160px] ${(c.assignedInspector || c.inspectionReport?.inspectorName) ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                            {c.assignedInspector || c.inspectionReport?.inspectorName || 'Awaiting Assignment'}
                           </strong>
-                          <span className="text-[10px] text-purple-700 font-semibold">
-                            {c.inspectionReport ? '🟢 Inspected & Verified' : '🟡 En-route'}
+                          <span className={`text-[10px] font-semibold ${c.inspectionReport ? 'text-purple-700' : c.assignedInspector ? 'text-amber-700' : 'text-slate-400'}`}>
+                            {c.inspectionReport ? '🟢 Inspected & Verified' : c.assignedInspector ? '🟡 En-route' : '⚪ Pending Triage'}
                           </span>
                         </td>
                         <td className="py-3 px-3">
-                          <strong className="text-slate-800 block truncate max-w-[160px]">
-                            {c.assignedEngineer || c.workExecution?.engineerName || 'Er. T. Venkata Ramana'}
+                          <strong className={`block truncate max-w-[160px] ${(c.assignedEngineer || c.workExecution?.engineerName) ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                            {c.assignedEngineer || c.workExecution?.engineerName || 'Awaiting Order'}
                           </strong>
-                          <span className="text-[10px] text-amber-700 font-semibold">
-                            {c.status === 'WORKER_IN_PROGRESS' ? '🟡 65% Remediated' : c.status === 'RESOLVED' ? '🟢 100% Restored' : 'Assigned'}
+                          <span className={`text-[10px] font-semibold ${c.status === 'WORKER_IN_PROGRESS' ? 'text-amber-700' : c.status === 'RESOLVED' ? 'text-emerald-700' : (c.assignedEngineer || c.workExecution?.engineerName) ? 'text-sky-700' : 'text-slate-400'}`}>
+                            {c.status === 'WORKER_IN_PROGRESS' ? '🟡 65% Remediated' : c.status === 'RESOLVED' ? '🟢 100% Restored' : (c.assignedEngineer || c.workExecution?.engineerName) ? 'Assigned' : '⚪ Unassigned'}
                           </span>
                         </td>
                         <td className="py-3 px-3">

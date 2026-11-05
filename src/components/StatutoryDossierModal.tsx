@@ -315,16 +315,20 @@ export const StatutoryDossierModal: React.FC<StatutoryDossierModalProps> = ({
                 </div>
 
                 <div className="mt-2.5 space-y-0.5">
-                  <strong className="text-sm font-black text-slate-900 block truncate">
-                    {complaint.assignedInspector || complaint.inspectionReport?.inspectorName || 'Sri K. Rama Krishna'}
+                  <strong className={`text-sm font-black block truncate ${(complaint.assignedInspector || complaint.inspectionReport?.inspectorName) ? 'text-slate-900' : 'text-slate-500 italic'}`}>
+                    {complaint.assignedInspector || complaint.inspectionReport?.inspectorName || 'Awaiting Nodal Assignment'}
                   </strong>
-                  <a
-                    href={`tel:${complaint.assignedInspectorPhone || complaint.inspectionReport?.inspectorPhone || '+919848123456'}`}
-                    className="inline-flex items-center gap-1 text-xs text-[#0077B6] font-mono font-bold hover:underline"
-                  >
-                    <Phone className="w-3 h-3 text-[#0077B6]" />
-                    <span>{complaint.assignedInspectorPhone || complaint.inspectionReport?.inspectorPhone || '+91 98481 23456'}</span>
-                  </a>
+                  {(complaint.assignedInspector || complaint.inspectionReport?.inspectorName) && (complaint.assignedInspectorPhone || complaint.inspectionReport?.inspectorPhone) ? (
+                    <a
+                      href={`tel:${complaint.assignedInspectorPhone || complaint.inspectionReport?.inspectorPhone}`}
+                      className="inline-flex items-center gap-1 text-xs text-[#0077B6] font-mono font-bold hover:underline"
+                    >
+                      <Phone className="w-3 h-3 text-[#0077B6]" />
+                      <span>{complaint.assignedInspectorPhone || complaint.inspectionReport?.inspectorPhone}</span>
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 font-medium">Pending Nodal Triage</span>
+                  )}
                 </div>
 
                 <div className="mt-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-xs">
@@ -400,16 +404,20 @@ export const StatutoryDossierModal: React.FC<StatutoryDossierModalProps> = ({
                 </div>
 
                 <div className="mt-2.5 space-y-0.5">
-                  <strong className="text-sm font-black text-slate-900 block truncate">
-                    {complaint.assignedEngineer || complaint.workExecution?.engineerName || 'Er. T. Venkata Ramana'}
+                  <strong className={`text-sm font-black block truncate ${(complaint.assignedEngineer || complaint.workExecution?.engineerName) ? 'text-slate-900' : 'text-slate-500 italic'}`}>
+                    {complaint.assignedEngineer || complaint.workExecution?.engineerName || 'Awaiting Work Order'}
                   </strong>
-                  <a
-                    href={`tel:${complaint.assignedEngineerPhone || complaint.workExecution?.engineerPhone || '+919440345678'}`}
-                    className="inline-flex items-center gap-1 text-xs text-[#0077B6] font-mono font-bold hover:underline"
-                  >
-                    <Phone className="w-3 h-3 text-[#0077B6]" />
-                    <span>{complaint.assignedEngineerPhone || complaint.workExecution?.engineerPhone || '+91 94403 45678'}</span>
-                  </a>
+                  {(complaint.assignedEngineer || complaint.workExecution?.engineerName) && (complaint.assignedEngineerPhone || complaint.workExecution?.engineerPhone) ? (
+                    <a
+                      href={`tel:${complaint.assignedEngineerPhone || complaint.workExecution?.engineerPhone}`}
+                      className="inline-flex items-center gap-1 text-xs text-[#0077B6] font-mono font-bold hover:underline"
+                    >
+                      <Phone className="w-3 h-3 text-[#0077B6]" />
+                      <span>{complaint.assignedEngineerPhone || complaint.workExecution?.engineerPhone}</span>
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 font-medium">Awaiting Inspection Report</span>
+                  )}
                 </div>
 
                 <div className="mt-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-xs">

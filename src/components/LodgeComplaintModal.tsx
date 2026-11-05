@@ -577,18 +577,15 @@ export const LodgeComplaintModal: React.FC<LodgeComplaintModalProps> = ({
     setShowWastePrompt(true);
   };
 
-  // Helper to determine Nodal Officer for the district
+  // Helper to determine Nodal Officer for the district (1 of 26 AP District Nodal Officers)
   const getNodalOfficer = (distName: string) => {
     const found = ANDHRA_PRADESH_26_DISTRICTS.find(
       (d) => d.name.toLowerCase() === distName.toLowerCase()
     );
     if (found?.officerInCharge) {
-      return `${found.officerInCharge.name} (${found.officerInCharge.designation}), ${distName}`;
+      return `${found.officerInCharge.name} (${found.officerInCharge.designation})`;
     }
-    if (distName === 'Vizianagaram') return 'Dr. B. K. Rao (IAS), Vizianagaram';
-    if (distName === 'Parvathipuram Manyam') return 'Smt. S. Lakshmi (IAS), Parvathipuram';
-    if (distName === 'Visakhapatnam') return 'Sri K. Venkat (IAS), Visakhapatnam';
-    return `District Nodal Officer (IAS), ${distName}`;
+    return `District Nodal Officer, ${distName}`;
   };
 
   // Handle Quick Inline OTP Login

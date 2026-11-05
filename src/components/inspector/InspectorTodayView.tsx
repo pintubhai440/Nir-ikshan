@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 
 import { SupabaseFieldInspectorRow } from '../../data/allDistrictsTeamData';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface InspectorTodayViewProps {
   inspector?: SupabaseFieldInspectorRow;
@@ -82,6 +83,9 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
   submissionBannerText,
   onDismissBanner,
 }) => {
+  const { language } = useLanguage();
+  const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
+
   const [internalCategory, setInternalCategory] = useState<'pending' | 'completed' | 'verify'>('pending');
   const activeCategory = controlledCategory !== undefined ? controlledCategory : internalCategory;
 
@@ -251,10 +255,18 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                 <CheckCircle2 className="w-9 h-9" />
               </div>
               <h3 className="font-black text-slate-900 text-xl tracking-tight">
-                No Pending Inspections in Your Queue
+                {currentLang === 'hi' 
+                  ? 'आपकी कतार में कोई लंबित निरीक्षण नहीं है' 
+                  : currentLang === 'te' 
+                  ? 'మీ క్యూలో పెండింగ్ తనిఖీలు ఏవీ లేవు' 
+                  : 'No Pending Inspections in Your Queue'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                All grievance cases dispatched to your workstation by the District Nodal Officer have been inspected and sealed.
+                {currentLang === 'hi'
+                  ? 'जिला नोडल अधिकारी द्वारा आपके वर्कस्टेशन पर भेजे गए सभी शिकायत मामलों की जांच पूर्ण व सील कर दी गई है।'
+                  : currentLang === 'te'
+                  ? 'జిల్లా నోడల్ అధికారి ద్వారా మీ వర్క్‌స్టేషన్‌కు పంపబడిన అన్ని ఫిర్యాదు కేసుల తనిఖీ పూర్తయి సీల్ చేయబడింది.'
+                  : 'All grievance cases dispatched to your workstation by the District Nodal Officer have been inspected and sealed.'}
               </p>
             </div>
           ) : (
