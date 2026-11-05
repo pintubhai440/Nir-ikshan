@@ -397,10 +397,18 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
 
           const assignedComplaints = mergedList.filter((c) => isComplaintAssignedToWorker(c, worker));
           let urgentWorkCount = assignedComplaints.filter(
-            (c) => c.status === 'ACTION_ASSIGNED' || c.workExecution?.status === 'PENDING_ACCEPTANCE'
+            (c) =>
+              c.workExecution?.status !== 'BLOCKED' &&
+              c.workExecution?.status !== 'COMPLETED' &&
+              (c.status === 'ACTION_ASSIGNED' || c.workExecution?.status === 'PENDING_ACCEPTANCE' || !c.workExecution?.status)
           ).length;
           let inProgressWorkCount = assignedComplaints.filter(
-            (c) => c.status === 'WORKER_IN_PROGRESS' || c.workExecution?.status === 'ACCEPTED'
+            (c) =>
+              c.workExecution?.status !== 'PENDING_ACCEPTANCE' &&
+              c.status !== 'ACTION_ASSIGNED' &&
+              c.status !== 'VERIFICATION_PENDING' &&
+              c.status !== 'RESOLVED' &&
+              (c.status === 'WORKER_IN_PROGRESS' || c.workExecution?.status === 'ACCEPTED')
           ).length;
           let completedWorkCount = assignedComplaints.filter(
             (c) => c.status === 'VERIFICATION_PENDING' || c.status === 'RESOLVED' || c.workExecution?.status === 'COMPLETED'
@@ -427,11 +435,17 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                     if (!activeTaskForWorker) {
                       activeTaskForWorker = t;
                     }
-                    const alreadyInAssigned = assignedComplaints.some((c) => c.id === targetId || c.id === t.id);
-                    if (!alreadyInAssigned) {
+                    const matchingComplaint = assignedComplaints.find((c) => c.id === targetId || c.id === t.id);
+                    if (!matchingComplaint) {
                       if (t.stage === 'assigned') urgentWorkCount += 1;
                       else if (t.stage === 'in_progress') inProgressWorkCount += 1;
                       else if (t.stage === 'under_verification' || t.stage === 'verified_closed') completedWorkCount += 1;
+                    } else if (t.stage === 'assigned') {
+                      // If nodal task is assigned, ensure it is counted in urgentWorkCount awaiting worker acceptance
+                      if (matchingComplaint.status === 'WORKER_IN_PROGRESS' || matchingComplaint.workExecution?.status === 'ACCEPTED') {
+                        inProgressWorkCount = Math.max(0, inProgressWorkCount - 1);
+                        urgentWorkCount += 1;
+                      }
                     }
                   }
                 });

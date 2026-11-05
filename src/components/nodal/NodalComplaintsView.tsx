@@ -548,23 +548,35 @@ export const NodalComplaintsView: React.FC<NodalComplaintsViewProps> = ({
                                 </button>
                               )}
 
-                              {isNew ? (
+                              {!c.assignedInspector ? (
                                 <button
                                   onClick={() => onAssignInspector(c)}
                                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#0077b6] hover:bg-[#005f92] text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
                                   title="Dispatch Field Inspector"
                                 >
                                   <Play className="w-3 h-3 fill-current" />
-                                  <span>Dispatch</span>
+                                  <span>Inspector</span>
                                 </button>
-                              ) : isUnderInspection ? (
-                                <span className="text-[11px] text-slate-500 font-medium px-2 py-1 rounded bg-slate-50 border border-slate-200">
-                                  {c.assignedInspector || 'Inspector Assigned'}
-                                </span>
+                              ) : !c.assignedEngineer ? (
+                                <button
+                                  onClick={() => onAssignEngineer && onAssignEngineer(c)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
+                                  title="Deploy Action Remediation Worker / Machinery"
+                                >
+                                  <Wrench className="w-3 h-3" />
+                                  <span>Worker</span>
+                                </button>
                               ) : (
-                                <span className="text-[11px] text-slate-400">
-                                  Logged
-                                </span>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => onAssignEngineer && onAssignEngineer(c)}
+                                    className="inline-flex items-center gap-1 text-[10px] text-slate-700 hover:text-emerald-700 font-semibold px-2 py-1 rounded bg-slate-100 hover:bg-emerald-50 border border-slate-200 cursor-pointer transition-colors"
+                                    title="Click to reassign Action Worker"
+                                  >
+                                    <Wrench className="w-2.5 h-2.5 text-emerald-600" />
+                                    <span className="truncate max-w-[90px]">{c.assignedEngineer}</span>
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </td>

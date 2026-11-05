@@ -66,45 +66,26 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const legacyMockIds = new Set([
+          const fakeMockIds = new Set([
             'CMP-AP-2026-112', 'CMP-AP-2026-215', 'CMP-AP-2026-340', 'CMP-AP-2026-478',
             'CMP-AP-2026-512', 'CMP-AP-2026-589', 'CMP-AP-2026-621', 'CMP-AP-2026-680',
             'CMP-AP-2026-733', 'CMP-AP-2026-805', 'CMP-AP-2026-867', 'CMP-AP-2026-921',
             'CMP-AP-2026-954', 'CMP-AP-2026-1021', 'CMP-AP-2026-1077', 'CMP-AP-2026-1132',
             'CMP-AP-2026-1188', 'CMP-AP-2026-1244', 'CMP-AP-2026-1301', 'CMP-AP-2026-1365',
-            'CMP-AP-2026-1420', 'CMP-AP-2026-1488', 'CMP-AP-2026-1540', 'CMP-AP-2026-1600'
+            'CMP-AP-2026-1420', 'CMP-AP-2026-1488', 'CMP-AP-2026-1540', 'CMP-AP-2026-1600',
+            'CMP-AP-2026-403', 'CMP-AP-2026-788', 'CMP-AP-2026-MVI4VXGG-9760',
+            'CMP-AP-2026-VZM-902', 'CMP-AP-2026-VZM-903', 'CMP-AP-2026-BOB-003',
+            'CMP-AP-2026-VZM-904', 'CMP-AP-2026-VZM-905', 'CMP-VZ-0192', 'CMP-VZ-0174',
+            'CMP-VZ-0165', 'CMP-VZ-0130', 'CMP-PVM-0177', 'CMP-PVM-0180', 'CMP-PVM-0130'
           ]);
-          const cleaned = parsed.filter(c => c && c.id && !legacyMockIds.has(c.id));
-          if (cleaned.length > 0) {
-            const sampleMap = new Map(SAMPLE_CITIZEN_COMPLAINTS.map(s => [s.id, s]));
-            const merged = cleaned.map(c => {
-              const sample = sampleMap.get(c.id);
-              if (sample) {
-                return {
-                  ...c,
-                  assignedEngineer: sample.assignedEngineer,
-                  assignedEngineerId: sample.assignedEngineerId,
-                  assignedEngineerPhone: sample.assignedEngineerPhone,
-                  assignedNodalOfficer: sample.assignedNodalOfficer,
-                  assignedInspector: sample.assignedInspector,
-                  locationLandmark: sample.locationLandmark,
-                  mandal: sample.mandal,
-                  village: sample.village,
-                  coordinates: sample.coordinates,
-                  workExecution: sample.workExecution ? { ...c.workExecution, ...sample.workExecution } : c.workExecution,
-                };
-              }
-              return c;
-            });
-            const existingIds = new Set(merged.map(c => c.id));
-            const missing = SAMPLE_CITIZEN_COMPLAINTS.filter(s => !existingIds.has(s.id));
-            return [...merged, ...missing];
-          }
+          const cleaned = parsed.filter(c => c && c.id && !fakeMockIds.has(c.id));
+          localStorage.setItem('nir_complaints', JSON.stringify(cleaned));
+          return cleaned;
         }
       }
-      return SAMPLE_CITIZEN_COMPLAINTS;
+      return [];
     } catch {
-      return SAMPLE_CITIZEN_COMPLAINTS;
+      return [];
     }
   });
 
@@ -173,7 +154,7 @@ export default function App() {
     const syncLiveComplaints = () => {
       if (isSupabaseConfigured()) {
         fetchComplaintsFromSupabase().then((remoteComplaints) => {
-          if (remoteComplaints && remoteComplaints.length > 0) {
+          if (remoteComplaints !== null) {
             // Strictly deduplicate remote complaints by ID
             const uniqueRemoteMap = new Map<string, CitizenComplaint>();
             for (const item of remoteComplaints) {
@@ -455,9 +436,11 @@ export default function App() {
             const hasAssignedEngineer = Boolean(c.assignedEngineer || c.assignedEngineerId || c.workExecution?.engineerName);
             const updated: CitizenComplaint = {
               ...c,
-              // If an engineer / contractor is assigned, move to WORKER_IN_PROGRESS so worker can execute remediation!
-              // NEVER move to VERIFICATION_PENDING before worker completes work!
-              status: hasAssignedEngineer ? 'WORKER_IN_PROGRESS' : 'INSPECTION_COMPLETED',
+              // If an engineer / contractor is assigned, move to ACTION_ASSIGNED so worker receives work order in Tab 1!
+              // Once worker accepts, it moves to WORKER_IN_PROGRESS
+              status: hasAssignedEngineer
+                ? (c.workExecution?.status === 'ACCEPTED' ? 'WORKER_IN_PROGRESS' : 'ACTION_ASSIGNED')
+                : 'INSPECTION_COMPLETED',
               inspectionReport: report,
             };
             targetComplaint = updated;
@@ -523,7 +506,7 @@ export default function App() {
         };
         const updated: CitizenComplaint = {
           ...c,
-          status: 'WORKER_IN_PROGRESS',
+          status: 'ACTION_ASSIGNED',
           assignedEngineer: engineerName,
           assignedEngineerPhone: engineerPhone,
           workExecution: workExec,
@@ -1002,7 +985,12 @@ export default function App() {
         onRefresh={() => {
           if (isSupabaseConfigured()) {
             fetchComplaintsFromSupabase().then((data) => {
-              if (data && data.length > 0) setComplaints(data);
+              if (data !== null) {
+                setComplaints(data);
+                try {
+                  localStorage.setItem('nir_complaints', JSON.stringify(data));
+                } catch {}
+              }
             });
           }
         }}

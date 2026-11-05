@@ -570,16 +570,26 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                 assignedEngineerId: selectedWorker.worker_id,
                 wasteType: t.title || existing?.wasteType || 'Channel Choke & Silt',
                 photoUrl: t.beforePhotoUrl || existing?.photoUrl || DEFAULT_BEFORE_PHOTO,
-                status: existing?.status && existing.status !== 'INSPECTOR_ASSIGNED' && existing.status !== 'SUBMITTED' ? existing.status : mappedStatus,
+                status: (t.stage === 'assigned' || !t.stage) ? 'ACTION_ASSIGNED' : (existing?.status && existing.status !== 'INSPECTOR_ASSIGNED' && existing.status !== 'SUBMITTED' ? existing.status : mappedStatus),
                 machineryDeployed: t.machineryType || existing?.machineryDeployed || 'Hydraulic Excavator & Suction Pump',
-                workExecution: existing?.workExecution || {
+                workExecution: (t.stage === 'assigned' || !t.stage) ? {
+                  ...(existing?.workExecution || {}),
+                  id: existing?.workExecution?.id || `EXEC-${targetId}`,
+                  engineerName: t.assignedWorkerName || selectedWorker.name_or_crew,
+                  engineerPhone: t.assignedWorkerPhone || selectedWorker.phone,
+                  assignedAt: t.reportedDate || new Date().toISOString(),
+                  deadline: t.targetDate || '24 Hours',
+                  status: 'PENDING_ACCEPTANCE' as const,
+                  beforePhotoUrl: t.beforePhotoUrl || DEFAULT_BEFORE_PHOTO,
+                  workSummary: t.remedialNotes,
+                } : existing?.workExecution || {
                   id: `EXEC-${targetId}`,
                   engineerName: t.assignedWorkerName || selectedWorker.name_or_crew,
                   engineerPhone: t.assignedWorkerPhone || selectedWorker.phone,
                   assignedAt: t.reportedDate || new Date().toISOString(),
                   deadline: t.targetDate || '24 Hours',
-                  status: execStatus as any,
-                  acceptedAt: new Date().toISOString(),
+                  status: (t.stage === 'assigned' || !t.stage) ? ('PENDING_ACCEPTANCE' as const) : (execStatus as any),
+                  acceptedAt: (t.stage === 'assigned' || !t.stage) ? undefined : new Date().toISOString(),
                   beforePhotoUrl: t.beforePhotoUrl || DEFAULT_BEFORE_PHOTO,
                   afterPhotoUrl: t.afterPhotoUrl || (t.stage === 'under_verification' || t.stage === 'verified_closed' ? DEFAULT_AFTER_PHOTO : undefined),
                   workSummary: t.remedialNotes,
@@ -606,15 +616,24 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
     (c: CitizenComplaint) =>
       !declinedComplaintIds.includes(c.id) &&
       c.workExecution?.status !== 'BLOCKED' &&
+      c.workExecution?.status !== 'COMPLETED' &&
       (c.status === 'ACTION_ASSIGNED' ||
-        (c.workExecution && c.workExecution.status === 'PENDING_ACCEPTANCE'))
+        c.workExecution?.status === 'PENDING_ACCEPTANCE' ||
+        !c.workExecution?.status)
   );
 
   const inProgressTasks: CitizenComplaint[] = workerComplaints.filter(
     (c: CitizenComplaint) =>
-      c.status === 'WORKER_IN_PROGRESS' ||
-      (c.workExecution &&
-        (c.workExecution.status === 'ACCEPTED' || (c.workExecution.status as string) === 'IN_PROGRESS'))
+      !declinedComplaintIds.includes(c.id) &&
+      c.workExecution?.status !== 'PENDING_ACCEPTANCE' &&
+      c.workExecution?.status !== 'COMPLETED' &&
+      c.workExecution?.status !== 'BLOCKED' &&
+      c.status !== 'ACTION_ASSIGNED' &&
+      c.status !== 'VERIFICATION_PENDING' &&
+      c.status !== 'RESOLVED' &&
+      (c.status === 'WORKER_IN_PROGRESS' ||
+        (c.workExecution &&
+          (c.workExecution.status === 'ACCEPTED' || (c.workExecution.status as string) === 'IN_PROGRESS')))
   );
 
   const waitingReviewTasks: CitizenComplaint[] = workerComplaints.filter(
@@ -654,8 +673,8 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   // Active complaint determination
   const activeComplaint =
     workerComplaints.find((c: CitizenComplaint) => c.id === selectedComplaintId) ||
-    inProgressTasks[0] ||
     urgentTasks[0] ||
+    inProgressTasks[0] ||
     workerComplaints[0];
 
   const executionTask =

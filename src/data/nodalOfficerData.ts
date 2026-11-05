@@ -704,7 +704,7 @@ export const PARVATHIPURAM_NODAL_TASKS: NodalKanbanTask[] = [
     id: 'TSK-PVM-2101',
     district: 'Parvathipuram Manyam',
     source: 'Citizen Complaint',
-    sourceRefId: 'CMP-AP-2026-788',
+    sourceRefId: 'CMP-PVM-2101',
     assetCode: 'AP-PVM-GBI-001',
     title: 'Thotapalli Barrage Left Regulator Pool Weed Clearance',
     description: 'Invasive water hyacinth & weed canopy blocking head regulator pool by 40%. Dense biomass impedes surface light and reduces canal draw.',

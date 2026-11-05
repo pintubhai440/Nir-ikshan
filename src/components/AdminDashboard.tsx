@@ -1226,7 +1226,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [accountabilityFilter, setAccountabilityFilter] = useState<'all' | 'on_track' | 'needs_attention'>('all');
   const [photoPreviewModal, setPhotoPreviewModal] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
   const [selectedComplaintId, setSelectedComplaintId] = useState<string>(() => {
-    return complaints[0]?.id || 'CMP-AP-2026-403';
+    return complaints[0]?.id || '';
   });
 
   // State Admin Statutory Dossier Modal (100% Read-Only)

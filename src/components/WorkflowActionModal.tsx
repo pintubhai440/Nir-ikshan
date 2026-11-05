@@ -7,6 +7,7 @@ import {
   FieldInspectorProfile,
   RemediationWorkerProfile 
 } from '../data/operationalRosterData';
+import { isDistrictMatch } from '../utils/workerFilter';
 import { 
   X, 
   CheckCircle2, 
@@ -299,7 +300,7 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
     if (complaint.assignedInspectorId) return complaint.assignedInspectorId;
     const matchByName = AP_FIELD_INSPECTORS_ROSTER.find(i => i.name === complaint.assignedInspector);
     if (matchByName) return matchByName.id;
-    const matchDistrict = AP_FIELD_INSPECTORS_ROSTER.find(i => i.district.toLowerCase() === (complaint.district || '').toLowerCase());
+    const matchDistrict = AP_FIELD_INSPECTORS_ROSTER.find(i => isDistrictMatch(i.district, complaint.district || ''));
     return matchDistrict ? matchDistrict.id : AP_FIELD_INSPECTORS_ROSTER[0].id;
   });
   const [inspectorNotes, setInspectorNotes] = useState<string>(txt.step2.defaultNote);
@@ -310,9 +311,18 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
         setSelectedInspectorId(complaint.assignedInspectorId);
       } else {
         const matchByName = AP_FIELD_INSPECTORS_ROSTER.find(i => i.name === complaint.assignedInspector);
-        const matchDistrict = AP_FIELD_INSPECTORS_ROSTER.find(i => i.district.toLowerCase() === (complaint.district || '').toLowerCase());
+        const matchDistrict = AP_FIELD_INSPECTORS_ROSTER.find(i => isDistrictMatch(i.district, complaint.district || ''));
         if (matchByName) setSelectedInspectorId(matchByName.id);
         else if (matchDistrict) setSelectedInspectorId(matchDistrict.id);
+      }
+
+      if (complaint.assignedEngineerId && AP_REMEDIATION_WORKERS_ROSTER.some(w => w.id === complaint.assignedEngineerId)) {
+        setSelectedWorkerId(complaint.assignedEngineerId);
+      } else {
+        const matchByName = AP_REMEDIATION_WORKERS_ROSTER.find(w => w.leadName === complaint.assignedEngineer);
+        const matchDistrict = AP_REMEDIATION_WORKERS_ROSTER.find(w => isDistrictMatch(w.district, complaint.district || ''));
+        if (matchByName) setSelectedWorkerId(matchByName.id);
+        else if (matchDistrict) setSelectedWorkerId(matchDistrict.id);
       }
     }
   }, [complaint]);
@@ -338,9 +348,13 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
   );
 
   // Form states for Step 4: Assign Worker & Machinery
-  const [selectedWorkerId, setSelectedWorkerId] = useState<string>(
-    AP_REMEDIATION_WORKERS_ROSTER.find(w => w.leadName === complaint.assignedEngineer)?.id || AP_REMEDIATION_WORKERS_ROSTER[0].id
-  );
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string>(() => {
+    if (complaint.assignedEngineerId) return complaint.assignedEngineerId;
+    const matchByName = AP_REMEDIATION_WORKERS_ROSTER.find(w => w.leadName === complaint.assignedEngineer);
+    if (matchByName) return matchByName.id;
+    const matchDistrict = AP_REMEDIATION_WORKERS_ROSTER.find(w => isDistrictMatch(w.district, complaint.district || ''));
+    return matchDistrict ? matchDistrict.id : AP_REMEDIATION_WORKERS_ROSTER[0].id;
+  });
   const [machineryType, setMachineryType] = useState<string>(
     complaint.machineryDeployed || '1x JCB 3DX Heavy Backhoe Loader + 2 Tippers'
   );
@@ -409,8 +423,7 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
         engineerPhone: selectedWorker.phone,
         assignedAt: nowIso,
         deadline: workerDeadline,
-        status: 'ACCEPTED',
-        startedAt: nowIso,
+        status: 'PENDING_ACCEPTANCE',
         beforePhotoUrl: complaint.photoUrl || inspectionPhotoUrl,
         workSummary: workerNotes,
       };
@@ -419,7 +432,7 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
       updated.assignedEngineerAt = nowIso;
       updated.machineryDeployed = machineryType;
       updated.workExecution = newWork;
-      updated.status = 'WORKER_IN_PROGRESS';
+      updated.status = 'ACTION_ASSIGNED';
     } else if (targetStep === 5) {
       // Step 5: Worker Marks Finished & Uploads Proof
       const currentWork = updated.workExecution || {
@@ -555,7 +568,7 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
                 >
                   <optgroup label={`Registered Inspectors in ${complaint.district || 'District'}`}>
                     {AP_FIELD_INSPECTORS_ROSTER.filter(
-                      i => i.district.toLowerCase() === (complaint.district || '').toLowerCase()
+                      i => isDistrictMatch(i.district, complaint.district || '')
                     ).map((insp, idx) => (
                       <option key={`${insp.id}-dist-${idx}`} value={insp.id}>
                         {insp.name} ({insp.badgeId}) • Mandals: {insp.assignedMandals.join(', ')} • {insp.specialization}
@@ -564,7 +577,7 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
                   </optgroup>
                   <optgroup label="Other Districts & Statewide">
                     {AP_FIELD_INSPECTORS_ROSTER.filter(
-                      i => i.district.toLowerCase() !== (complaint.district || '').toLowerCase()
+                      i => !isDistrictMatch(i.district, complaint.district || '')
                     ).map((insp, idx) => (
                       <option key={`${insp.id}-state-${idx}`} value={insp.id}>
                         {insp.name} ({insp.badgeId}) • {insp.district} • {insp.specialization}
@@ -786,11 +799,24 @@ export const WorkflowActionModal: React.FC<WorkflowActionModalProps> = ({
                   onChange={(e) => setSelectedWorkerId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-800"
                 >
-                  {AP_REMEDIATION_WORKERS_ROSTER.map(w => (
-                    <option key={w.id} value={w.id}>
-                      {w.leadName} ({w.crewCode}) • {w.district} • {w.primaryMachinery}
-                    </option>
-                  ))}
+                  <optgroup label={`Remediation Units & Crews in ${complaint.district || 'District'}`}>
+                    {AP_REMEDIATION_WORKERS_ROSTER.filter(
+                      w => isDistrictMatch(w.district, complaint.district || '')
+                    ).map((w, idx) => (
+                      <option key={`${w.id}-dist-${idx}`} value={w.id}>
+                        {w.leadName} ({w.crewCode}) • {w.designation}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Other Districts & Statewide Fleet">
+                    {AP_REMEDIATION_WORKERS_ROSTER.filter(
+                      w => !isDistrictMatch(w.district, complaint.district || '')
+                    ).map((w, idx) => (
+                      <option key={`${w.id}-state-${idx}`} value={w.id}>
+                        {w.leadName} ({w.crewCode}) • {w.district} • {w.primaryMachinery}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
 

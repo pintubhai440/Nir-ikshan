@@ -29,7 +29,7 @@ import { ANDHRA_PRADESH_26_DISTRICTS, DistrictTelemetry } from '../data/andhraDi
 import { AP_OFFICIAL_RESERVOIRS } from '../data/apReservoirsData';
 import { VIZIANAGARAM_ALL_MANDAL_WATER_BODIES } from '../data/vizianagaramMandalsWaterData';
 import { getDistrictTeamProfiles } from '../data/nodalOfficerData';
-import { COMPLETE_AP_FIELD_INSPECTORS } from '../data/allDistrictsTeamData';
+import { COMPLETE_AP_FIELD_INSPECTORS, COMPLETE_AP_ACTION_WORKERS } from '../data/allDistrictsTeamData';
 import { isDistrictMatch } from '../utils/inspectorFilter';
 import { InteractiveAndhraMap } from './InteractiveAndhraMap';
 import { DistrictNodalSatelliteMap } from './nodal/DistrictNodalSatelliteMap';
@@ -238,10 +238,29 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
     return list;
   }, [currentDistrict, officers, currentDistrictData]);
 
-  // STRICT DATA ISOLATION: Engineers belonging to this district
+  // STRICT DATA ISOLATION: Engineers & Action Workers belonging to this district
   const districtEngineers = useMemo(() => {
+    const realWorkers = COMPLETE_AP_ACTION_WORKERS.filter((w) =>
+      isDistrictMatch(w.district, currentDistrict)
+    );
+
+    if (realWorkers.length > 0) {
+      return realWorkers.map((w) => ({
+        id: w.worker_id,
+        name: w.name_or_crew || w.contact_person,
+        designation: `${w.type}: ${w.skills} (Lead: ${w.contact_person})`,
+        role: 'Action Engineer' as const,
+        district: w.district as any,
+        phone: w.phone,
+        email: `${w.worker_id.toLowerCase().replace(/[^a-z0-9]/g, '')}@works.ap.gov.in`,
+        officeAddress: `${w.service_areas || currentDistrict}, Andhra Pradesh`,
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+        status: (w.availability === 'Busy' ? 'Active on Field' : 'On Duty') as any,
+      }));
+    }
+
     const list = officers.filter(
-      (o) => o.role === 'Action Engineer' && (o.district.toLowerCase() === currentDistrict.toLowerCase() || o.district === 'State Level (AP)')
+      (o) => o.role === 'Action Engineer' && (isDistrictMatch(o.district, currentDistrict) || o.district === 'State Level (AP)')
     );
     if (list.length === 0) {
       return [
@@ -260,7 +279,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
       ];
     }
     return list;
-  }, [officers, currentDistrict, currentDistrictData]);
+  }, [currentDistrict, officers, currentDistrictData]);
 
   const [selectedInspectorId, setSelectedInspectorId] = useState<string>(
     districtInspectors[0]?.id || ''
@@ -609,10 +628,19 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
     if (engineer) {
       const updated: CitizenComplaint = {
         ...selectedComplaintForEngineer,
-        status: 'WORKER_IN_PROGRESS',
+        status: 'ACTION_ASSIGNED',
         assignedEngineer: engineer.name,
         assignedEngineerPhone: engineer.phone,
         assignedEngineerAt: new Date().toISOString(),
+        workExecution: {
+          id: `WE-${selectedComplaintForEngineer.id}`,
+          engineerName: engineer.name,
+          engineerPhone: engineer.phone,
+          assignedAt: new Date().toISOString(),
+          deadline: engineerDeadline || '48 Hours',
+          status: 'PENDING_ACCEPTANCE',
+          beforePhotoUrl: selectedComplaintForEngineer.photoUrl,
+        },
       };
 
       onAssignEngineer(

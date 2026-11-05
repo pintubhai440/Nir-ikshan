@@ -169,7 +169,7 @@ export interface OfficerContact {
   name: string;
   designation: string;
   role: 'Nodal Officer' | 'Inspector' | 'Action Engineer' | 'District Collectorate';
-  district: 'Vizianagaram' | 'Parvathipuram Manyam' | 'State Level (AP)';
+  district: string;
   phone: string;
   email: string;
   officeAddress: string;

@@ -113,7 +113,7 @@ export const CryptographicAuditAndSecurity: React.FC<CryptographicAuditAndSecuri
   } | null>(null);
 
   // Directive Form State
-  const [directiveRecordId, setDirectiveRecordId] = useState<string>(complaints[0]?.id || 'CMP-AP-2026-403');
+  const [directiveRecordId, setDirectiveRecordId] = useState<string>(complaints[0]?.id || 'SYS-AUDIT-001');
   const [directiveActionType, setDirectiveActionType] = useState<string>('Statutory Administrative Directive');
   const [directiveActorName, setDirectiveActorName] = useState<string>('S. Ramanathan, State Administrator');
   const [directiveFromState, setDirectiveFromState] = useState<string>('Active Surveillance');
@@ -155,7 +155,7 @@ export const CryptographicAuditAndSecurity: React.FC<CryptographicAuditAndSecuri
             blockNumber: 'Block #884,912',
             initiatedBy: { name: 'P. Kalyani, IAS', role: 'District Collector & Nodal', initials: 'PK', staffId: 'AP-WRA-VZM-01' },
             action: 'Status Transition',
-            recordId: complaints[0]?.id || 'CMP-AP-2026-403',
+            recordId: complaints[0]?.id || 'SYS-AUDIT-001',
             stateTransition: { from: 'SUBMITTED', to: 'INSPECTOR_ASSIGNED' },
           },
           {
@@ -173,7 +173,7 @@ export const CryptographicAuditAndSecurity: React.FC<CryptographicAuditAndSecuri
             blockNumber: 'Block #884,914',
             initiatedBy: { name: 'K. Rama Krishna', role: 'Field Water Inspector', initials: 'KR', staffId: 'AP-INSP-701' },
             action: 'Field Inspection Logged',
-            recordId: complaints[1]?.id || 'CMP-AP-2026-401',
+            recordId: complaints[1]?.id || 'SYS-AUDIT-002',
             stateTransition: { from: 'En-Route', to: 'Physical Probe Completed (GPS Matched)' },
           },
           {
@@ -182,7 +182,7 @@ export const CryptographicAuditAndSecurity: React.FC<CryptographicAuditAndSecuri
             blockNumber: 'Block #884,915',
             initiatedBy: { name: 'S. Ramanathan', role: 'State Administrator', initials: 'SR', staffId: 'AP-ADM-HQ-01' },
             action: 'Force Reassigned',
-            recordId: complaints[2]?.id || 'CMP-AP-2026-405',
+            recordId: complaints[2]?.id || 'SYS-AUDIT-003',
             stateTransition: { from: 'Officer: R. Reddy', to: 'Officer: Er. T. Venkata Ramana' },
           },
           {

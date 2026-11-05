@@ -818,15 +818,27 @@ export function subscribeToPersonnel(
  */
 export function isDistrictMatch(rowDistrict: string | null | undefined, targetDistrict: string): boolean {
   if (!rowDistrict || !targetDistrict) return false;
-  const d1 = rowDistrict.toLowerCase().replace(/district/g, '').trim();
-  const d2 = targetDistrict.toLowerCase().replace(/district/g, '').trim();
-  if (d1 === d2) return true;
-  if (d1.includes('parvathipuram') && d2.includes('parvathipuram')) return true;
-  if (d1.includes('manyam') && d2.includes('manyam')) return true;
-  if (d1.includes('vizianagaram') && d2.includes('vizianagaram')) return true;
-  if (d1.includes('visakhapatnam') && d2.includes('visakhapatnam')) return true;
-  if (d1.includes('srikakulam') && d2.includes('srikakulam')) return true;
-  return d1.includes(d2) || d2.includes(d1);
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[\.\,\(\)\-\_]/g, ' ')
+      .replace(/\bdistrict\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const a = norm(rowDistrict);
+  const b = norm(targetDistrict);
+  if (a === b) return true;
+
+  if ((a.includes('nellore') || a.includes('spsr')) && (b.includes('nellore') || b.includes('spsr'))) return true;
+  if ((a.includes('anantapur') || a.includes('ananthapur')) && (b.includes('anantapur') || b.includes('ananthapur'))) return true;
+  if ((a.includes('kadapa') || a.includes('ysr')) && (b.includes('kadapa') || b.includes('ysr'))) return true;
+  if (a.includes('konaseema') && b.includes('konaseema')) return true;
+  if ((a.includes('parvathipuram') || a.includes('manyam')) && (b.includes('parvathipuram') || b.includes('manyam'))) return true;
+  if ((a.includes('alluri') || a.includes('sitharama') || a.includes('asr')) && (b.includes('alluri') || b.includes('sitharama') || b.includes('asr'))) return true;
+  if (a.includes('sathya') && b.includes('sathya')) return true;
+
+  return a.includes(b) || b.includes(a);
 }
 
 /**

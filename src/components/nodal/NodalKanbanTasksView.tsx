@@ -67,7 +67,7 @@ import {
   BadgeAlert,
   Shield,
   Droplets,
-  Map,
+  Map as MapIcon,
   Copy,
   CheckCheck,
   ShieldCheck,
@@ -105,8 +105,22 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Sanitize & stamp district on legacy un-stamped tasks
-          const sanitized = parsed.map((t: NodalKanbanTask) => {
+          const fakeComplaintRefs = new Set([
+            'CMP-AP-2026-112', 'CMP-AP-2026-215', 'CMP-AP-2026-340', 'CMP-AP-2026-478',
+            'CMP-AP-2026-512', 'CMP-AP-2026-589', 'CMP-AP-2026-621', 'CMP-AP-2026-680',
+            'CMP-AP-2026-733', 'CMP-AP-2026-805', 'CMP-AP-2026-867', 'CMP-AP-2026-921',
+            'CMP-AP-2026-954', 'CMP-AP-2026-1021', 'CMP-AP-2026-1077', 'CMP-AP-2026-1132',
+            'CMP-AP-2026-1188', 'CMP-AP-2026-1244', 'CMP-AP-2026-1301', 'CMP-AP-2026-1365',
+            'CMP-AP-2026-1420', 'CMP-AP-2026-1488', 'CMP-AP-2026-1540', 'CMP-AP-2026-1600',
+            'CMP-AP-2026-403', 'CMP-AP-2026-788', 'CMP-AP-2026-MVI4VXGG-9760',
+            'CMP-AP-2026-VZM-902', 'CMP-AP-2026-VZM-903', 'CMP-AP-2026-BOB-003',
+            'CMP-AP-2026-VZM-904', 'CMP-AP-2026-VZM-905', 'CMP-VZ-0192', 'CMP-VZ-0174',
+            'CMP-VZ-0165', 'CMP-VZ-0130', 'CMP-PVM-0177', 'CMP-PVM-0180', 'CMP-PVM-0130'
+          ]);
+          // Sanitize & stamp district on legacy un-stamped tasks, and filter fake test complaints
+          const sanitized = parsed
+            .filter((t: NodalKanbanTask) => !t.sourceRefId || !fakeComplaintRefs.has(t.sourceRefId))
+            .map((t: NodalKanbanTask) => {
             if (!t.district) {
               const m = (t.mandal || '').toLowerCase();
               if (m.includes('salur') || m.includes('kurupam') || m.includes('parvathipuram') || m.includes('palakonda') || m.includes('garugubilli') || m.includes('komarada')) {
@@ -117,34 +131,88 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
             if (t.district === 'Parvathipuram Manyam' && t.mandal.toLowerCase().includes('bobb')) {
               return { ...t, mandal: 'Garugubilli', village: 'Thotapalli Barrage' };
             }
+            // If task was prematurely moved to in_progress without any actual field progress/photos, reset to assigned
+            if (t.stage === 'in_progress' && !t.duringPhotoUrl && !t.afterPhotoUrl) {
+              return { ...t, stage: 'assigned' as const };
+            }
             return t;
           });
           return sanitized;
         }
       }
     } catch {}
-    return INITIAL_NODAL_TASKS;
+    return [];
   });
 
-  // Ensure current district tasks exist in state; if not, generate & append
+  // Dynamically bridge real complaints from Supabase / citizen grievance into Kanban tasks
   useEffect(() => {
-    setTasks((prev) => {
-      const hasDistrict = prev.some((t) => isDistrictMatch(t.district || '', district));
-      if (hasDistrict) return prev;
-      const initialDistrictTasks = getDistrictInitialKanbanTasks(district);
-      const updated = [...prev, ...initialDistrictTasks];
+    if (!complaints || complaints.length === 0) return;
+
+    setTasks((prev: NodalKanbanTask[]): NodalKanbanTask[] => {
+      const taskMap = new Map<string, NodalKanbanTask>(prev.map((t) => [t.sourceRefId || t.id, t]));
+      let hasChanges = false;
+
+      complaints.forEach((c) => {
+        const existing = taskMap.get(c.id);
+        const stage: NodalKanbanTask['stage'] = 
+          c.status === 'RESOLVED' ? 'verified_closed' :
+          c.status === 'VERIFICATION_PENDING' ? 'under_verification' :
+          c.status === 'WORKER_IN_PROGRESS' ? 'in_progress' :
+          (c.status === 'ACTION_ASSIGNED' || c.status === 'INSPECTOR_ASSIGNED') ? 'assigned' :
+          'unassigned';
+
+        if (!existing) {
+          hasChanges = true;
+          const newTask: NodalKanbanTask = {
+            id: `TSK-${(c.district || district).slice(0, 3).toUpperCase()}-${c.id.replace(/\D/g, '').slice(-4) || '001'}`,
+            district: c.district || district,
+            source: 'Citizen Complaint',
+            sourceRefId: c.id,
+            assetCode: `AP-${(c.district || district).slice(0, 3).toUpperCase()}-${(c.mandal || 'GEN').slice(0, 3).toUpperCase()}-${c.id.replace(/\D/g, '').slice(-4) || '101'}`,
+            title: c.locationLandmark || c.wasteType || 'Citizen Water Grievance',
+            description: c.shortDescription || 'Citizen reported water obstruction awaiting statutory triage.',
+            mandal: c.mandal || '',
+            village: c.village || '',
+            ayacutHa: 300,
+            cadastralRef: `CAD-${c.id}`,
+            surveyParcel: `SY-${c.id.slice(-4)}`,
+            coordinates: c.coordinates || { lat: 18.1124, lng: 83.4022 },
+            priority: 'Critical (Priority 1)',
+            stage,
+            reportedDate: c.submittedAt,
+            targetDate: '24-48 Hours',
+            beforePhotoUrl: c.photoUrl,
+            verificationInspectorName: c.assignedInspector,
+            verificationInspectorId: c.assignedInspectorId,
+            verificationInspectorPhone: c.assignedInspectorPhone,
+            assignedWorkerName: c.assignedEngineer,
+            assignedWorkerId: c.assignedEngineerId,
+            assignedWorkerPhone: c.assignedEngineerPhone,
+          };
+          taskMap.set(c.id, newTask);
+        } else if (existing.stage !== stage || existing.verificationInspectorName !== c.assignedInspector || existing.assignedWorkerName !== c.assignedEngineer) {
+          hasChanges = true;
+          taskMap.set(c.id, {
+            ...existing,
+            stage,
+            verificationInspectorName: c.assignedInspector || existing.verificationInspectorName,
+            verificationInspectorId: c.assignedInspectorId || existing.verificationInspectorId,
+            verificationInspectorPhone: c.assignedInspectorPhone || existing.verificationInspectorPhone,
+            assignedWorkerName: c.assignedEngineer || existing.assignedWorkerName,
+            assignedWorkerId: c.assignedEngineerId || existing.assignedWorkerId,
+            assignedWorkerPhone: c.assignedEngineerPhone || existing.assignedWorkerPhone,
+          });
+        }
+      });
+
+      if (!hasChanges) return prev;
+      const updated = Array.from(taskMap.values());
       try {
         localStorage.setItem('nir_nodal_tasks', JSON.stringify(updated));
       } catch {}
       return updated;
     });
-  }, [district]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nir_nodal_tasks', JSON.stringify(tasks));
-    } catch {}
-  }, [tasks]);
+  }, [complaints, district]);
 
   // Real-time synchronization across role dashboards (Inspector, Worker, Nodal)
   useEffect(() => {
@@ -385,28 +453,33 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
     const workerRole = chosenWorker ? `${chosenWorker.type} Lead` : 'Action Worker / Crew Lead';
 
     // 1. Update internal task in Nodal Kanban board
-    const nextTasks = tasks.map((t) => {
-      if (t.id === assigningTask.id) {
-        return {
-          ...t,
-          stage: 'assigned' as const,
-          verificationInspectorName: inspectorName,
-          verificationInspectorId: inspectorId,
-          assignedWorkerName: workerName,
-          assignedWorkerId: chosenWorker?.worker_id,
-          assignedWorkerPhone: workerPhone,
-          assignedWorkerRole: workerRole,
-          slaTimerText: 'Due in 24 hours (Inspector Site Verification Active)',
-          remedialNotes: nodalInstructions || t.remedialNotes,
-        };
-      }
-      return t;
-    });
+    const updatedTask: NodalKanbanTask = {
+      ...assigningTask,
+      district: assigningTask.district || district,
+      stage: 'assigned' as const,
+      verificationInspectorName: inspectorName,
+      verificationInspectorId: inspectorId,
+      assignedWorkerName: workerName,
+      assignedWorkerId: chosenWorker?.worker_id,
+      assignedWorkerPhone: workerPhone,
+      assignedWorkerRole: workerRole,
+      slaTimerText: 'Due in 24 hours (Inspector Site Verification Active)',
+      remedialNotes: nodalInstructions || assigningTask.remedialNotes,
+    };
+
+    const taskExists = tasks.some((t) => t.id === assigningTask.id);
+    const nextTasks = taskExists
+      ? tasks.map((t) => (t.id === assigningTask.id ? updatedTask : t))
+      : [updatedTask, ...tasks];
 
     setTasks(nextTasks);
     try {
       localStorage.setItem('nir_nodal_tasks', JSON.stringify(nextTasks));
     } catch {}
+
+    if (inspectingTask && inspectingTask.id === assigningTask.id) {
+      setInspectingTask(updatedTask);
+    }
 
     // 2. Sync to citizen complaints & Field Inspector Workstation
     const targetComplaintId = assigningTask.sourceRefId || assigningTask.id;
@@ -417,7 +490,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
     const updatedComplaint: CitizenComplaint = existingComplaint
       ? {
           ...existingComplaint,
-          status: 'INSPECTOR_ASSIGNED',
+          status: 'ACTION_ASSIGNED',
           district: chosenInspector?.district || existingComplaint.district || district,
           assignedInspector: inspectorName,
           assignedInspectorId: inspectorId,
@@ -427,6 +500,23 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
           assignedEngineer: workerName,
           assignedEngineerId: chosenWorker?.worker_id,
           assignedEngineerPhone: workerPhone,
+          assignedEngineerAt: new Date().toISOString(),
+          workExecution: existingComplaint.workExecution
+            ? {
+                ...existingComplaint.workExecution,
+                engineerName: workerName,
+                engineerPhone: workerPhone,
+                status: 'PENDING_ACCEPTANCE',
+              }
+            : {
+                id: `EXEC-${targetComplaintId}`,
+                engineerName: workerName,
+                engineerPhone: workerPhone,
+                assignedAt: new Date().toISOString(),
+                deadline: assigningTask.targetDate || '48 Hours',
+                status: 'PENDING_ACCEPTANCE',
+                beforePhotoUrl: assigningTask.beforePhotoUrl,
+              },
         }
       : {
           id: targetComplaintId,
@@ -442,7 +532,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
           citizenGender: 'Other',
           citizenPhone: '+91 94400 00000',
           assignedNodalOfficer: `District Nodal Officer (${district})`,
-          status: 'INSPECTOR_ASSIGNED',
+          status: 'ACTION_ASSIGNED',
           wasteType: assigningTask.title,
           photoUrl: assigningTask.beforePhotoUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f7?auto=format&fit=crop&w=600&q=80',
           assignedInspector: inspectorName,
@@ -453,6 +543,16 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
           assignedEngineer: workerName,
           assignedEngineerId: chosenWorker?.worker_id,
           assignedEngineerPhone: workerPhone,
+          assignedEngineerAt: new Date().toISOString(),
+          workExecution: {
+            id: `EXEC-${targetComplaintId}`,
+            engineerName: workerName,
+            engineerPhone: workerPhone,
+            assignedAt: new Date().toISOString(),
+            deadline: assigningTask.targetDate || '48 Hours',
+            status: 'PENDING_ACCEPTANCE',
+            beforePhotoUrl: assigningTask.beforePhotoUrl,
+          },
         };
 
     if (onUpdateComplaint) {
@@ -491,6 +591,46 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
 
     confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
     setAssigningTask(null);
+  };
+
+  const handleOpenAssignTask = (targetTask?: NodalKanbanTask) => {
+    if (targetTask) {
+      setAssigningTask(targetTask);
+      return;
+    }
+    if (unassignedTasks.length > 0) {
+      setAssigningTask(unassignedTasks[0]);
+      return;
+    }
+    const needingWorker = currentDistrictTasks.find((t) => !t.assignedWorkerName || t.stage === 'unassigned');
+    if (needingWorker) {
+      setAssigningTask(needingWorker);
+      return;
+    }
+    if (currentDistrictTasks.length > 0) {
+      setAssigningTask(currentDistrictTasks[0]);
+      return;
+    }
+    // New work order template for this district
+    const mandalName = availableMandals[0] || `${district} Central`;
+    const newTask: NodalKanbanTask = {
+      id: `TASK-${district.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+      title: `${mandalName} Hydraulic Defect & Silt Remediation`,
+      description: `Official statutory work order issued by Nodal Officer for ${district} (${mandalName}). Desilting and water body protection dispatched.`,
+      stage: 'unassigned',
+      priority: 'Critical (Priority 1)',
+      district: district,
+      mandal: mandalName,
+      village: `${mandalName} Village`,
+      assetCode: `AP-${district.slice(0, 3).toUpperCase()}-ASSET-${Math.floor(100 + Math.random() * 900)}`,
+      source: 'Inspector Finding',
+      sourceRefId: `NO-DISP-${Date.now().toString().slice(-4)}`,
+      reportedDate: new Date().toISOString().split('T')[0],
+      targetDate: new Date(Date.now() + 48 * 3600 * 1000).toISOString().split('T')[0],
+      ayacutHa: 380,
+      coordinates: { lat: 17.72, lng: 83.30 },
+    };
+    setAssigningTask(newTask);
   };
 
   // Helper to compute progression timeline steps dynamically from task data
@@ -608,13 +748,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
 
           {/* Clean Single Plus Button */}
           <button
-            onClick={() => {
-              if (unassignedTasks.length > 0) {
-                setAssigningTask(unassignedTasks[0]);
-              } else if (tasks.length > 0) {
-                setAssigningTask(tasks[0]);
-              }
-            }}
+            onClick={() => handleOpenAssignTask()}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0077b6] hover:bg-[#023e8a] text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95"
             title="Assign work order to field remediation crew"
           >
@@ -1152,29 +1286,27 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
 
                   {/* Bottom Action Area */}
                   <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                    {t.stage === 'unassigned' ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAssigningTask(t);
-                        }}
-                        className="flex-1 py-1.5 bg-[#0077b6] hover:bg-[#023e8a] text-white font-bold rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                      >
-                        <Wrench className="w-3.5 h-3.5" />
-                        <span>Assign Crew</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInspectingTask(t);
-                        }}
-                        className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-[#0077b6]" />
-                        <span>Inspect Dossier</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInspectingTask(t);
+                      }}
+                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#0077b6]" />
+                      <span>Inspect Dossier</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAssigningTask(t);
+                      }}
+                      className="py-1.5 px-3 bg-[#0077b6] hover:bg-[#023e8a] text-white font-bold rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                      title="Assign or reassign worker and inspector"
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                      <span>{t.stage === 'unassigned' ? 'Assign' : 'Reassign'}</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1636,6 +1768,29 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                 </span>
               </div>
 
+              {/* Task Switcher Dropdown */}
+              {currentDistrictTasks.length > 1 && (
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                  <label className="font-bold text-slate-700 block text-[11px]">
+                    Select Defect / Rectification Task in {district}:
+                  </label>
+                  <select
+                    value={assigningTask.id}
+                    onChange={(e) => {
+                      const selected = currentDistrictTasks.find((t) => t.id === e.target.value);
+                      if (selected) setAssigningTask(selected);
+                    }}
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    {currentDistrictTasks.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.id} • {t.mandal} • {t.title.slice(0, 42)}... ({t.stage.replace('_', ' ')})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Target Asset Box */}
               <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-3.5 space-y-1">
                 <div className="flex justify-between items-center text-[10px] font-mono font-bold text-sky-800">
@@ -2077,7 +2232,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                               <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider font-mono">Cadastral Survey</span>
                               <strong className="text-slate-800 font-mono text-xs">{inspectingTask.cadastralRef || 'CAD-VZM-01'}</strong>
                             </div>
-                            <Map className="w-4 h-4 text-slate-400" />
+                            <MapIcon className="w-4 h-4 text-slate-400" />
                           </div>
 
                           <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
@@ -2239,6 +2394,18 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                           {inspectingTask.stage === 'verified_closed' ? 'Certified' : inspectingTask.stage === 'under_verification' ? 'Inspection Due' : 'Standby'}
                         </span>
                       </div>
+
+                      {/* Reassign / Change Field Crew Action */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssigningTask(inspectingTask);
+                        }}
+                        className="w-full mt-2 py-2 px-3 bg-[#0077b6] hover:bg-[#023e8a] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-all active:scale-95"
+                      >
+                        <Wrench className="w-3.5 h-3.5 text-sky-200" />
+                        <span>Assign / Change Field Worker & Inspector</span>
+                      </button>
                     </div>
 
                     {/* Card 2: SLA & Mandated Timelines */}

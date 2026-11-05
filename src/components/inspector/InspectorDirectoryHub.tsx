@@ -44,6 +44,7 @@ import {
 
 import { CitizenComplaint } from '../../types/nirikshan';
 import { isComplaintAssignedToInspector, isComplaintSlaOverdue, isInspectorNameMatch } from '../../utils/inspectorFilter';
+import { isDistrictMatch } from '../../utils/workerFilter';
 
 interface InspectorDirectoryHubProps {
   district?: string;
@@ -106,7 +107,7 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
 
       // District filter
       if (selectedDistrict !== 'all') {
-        if (insp.district?.toLowerCase() !== selectedDistrict.toLowerCase()) {
+        if (!isDistrictMatch(insp.district, selectedDistrict)) {
           return false;
         }
       }

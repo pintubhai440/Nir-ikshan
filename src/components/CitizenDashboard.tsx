@@ -503,7 +503,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             </div>
             <input
               type="text"
-              placeholder={tr('Search by Ticket ID or Landmark (e.g. CMP-AP-2026-403)...', 'टिकट ID या स्थान से खोजें (उदा. CMP-AP-2026-403)...', 'టికెట్ ID లేదా ప్రాంతంతో వెతకండి (ఉదా. CMP-AP-2026-403)...')}
+              placeholder={tr('Search by Ticket ID or Landmark...', 'टिकट ID या स्थान से खोजें...', 'టికెట్ ID లేదా ప్రాంతంతో వెతకండి...')}
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
               className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm font-semibold bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] text-slate-800 placeholder-slate-400 transition-all"
