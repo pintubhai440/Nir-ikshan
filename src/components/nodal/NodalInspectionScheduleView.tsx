@@ -134,7 +134,7 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
   }, [districtPrefix, districtMandals]);
 
   const [scheduleItems, setScheduleItems] = useState<InspectionScheduleItem[]>(initialDistrictSchedule);
-  const [selectedInspection, setSelectedInspection] = useState<InspectionScheduleItem>(initialDistrictSchedule[0]);
+  const [selectedInspection, setSelectedInspection] = useState<InspectionScheduleItem | null>(initialDistrictSchedule[0] || null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
   const [selectedMandal, setSelectedMandal] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -822,6 +822,15 @@ export const NodalInspectionScheduleView: React.FC<NodalInspectionScheduleViewPr
                       </tr>
                     );
                   })}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-500">
+                        <CalendarDays className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                        <div className="text-sm font-semibold text-slate-700">No Inspection Records</div>
+                        <div className="text-xs text-slate-400 mt-1">Use the "Schedule New Inspection" button above to assign field inspections for this district.</div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

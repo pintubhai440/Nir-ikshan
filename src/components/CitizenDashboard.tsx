@@ -451,8 +451,72 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         </div>
       </div>
 
+{/* ============================================================== */}
+      {/* 2. PRIMARY MAP: ALL-INDIA NATIONAL WATER GRID (CITIZEN TELEMETRY) */}
       {/* ============================================================== */}
-      {/* 2. CITIZEN COMPLAINT REDRESSAL TRACKER (UPGRADED NIR-IKSHAN)   */}
+      <div id="citizen-telemetry-map" className="space-y-3 pt-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+          <div>
+            <h3 className="font-extrabold text-[#03045E] text-lg sm:text-xl flex items-center gap-2">
+              <span>🇮🇳 {tr('National Water Grid & Grievance Map', 'राष्ट्रीय जल ग्रिड एवं शिकायत मानचित्र', 'జాతీయ జల గ్రిడ్ & ఫిర్యాదుల మ్యాప్')}</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {tr(
+                'Select State or District (boundary line highlighted with smooth zoom-in/out). "Your Complaints" is automatically tracked for verified mobile users.',
+                'राज्य या जिला चुनें (सीमा रेखा हाइलाइट होगी, स्मूथ ज़ूम-इन/आउट)। "आपकी शिकायतें" सत्यापित मोबाइल उपयोगकर्ताओं के लिए स्वतः ट्रैक की जाती हैं।',
+                'రాష్ట్రం లేదా జిల్లాను ఎంచుకోండి (సరిహద్దు రేఖ హైలైట్ చేయబడుతుంది, జూమ్ చేయవచ్చు). "మీ ఫిర్యాదులు" ధృవీకరించబడిన మొబైల్ వినియోగదారుల కోసం స్వయంచాలకంగా ట్రాక్ చేయబడతాయి.'
+              )}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {isLoggedIn ? (
+              <>
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>⚠️ {userComplaints.filter(c => c.status !== 'RESOLVED').length} {tr('Your Active Grievances', 'आपकी सक्रिय शिकायतें', 'మీ క్రియాశీల ఫిర్యాదులు')}</span>
+                </span>
+
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>✓ {userComplaints.filter(c => c.status === 'RESOLVED').length} {tr('Resolved & Verified', 'निराकृत एवं सत्यापित', 'పరిష్కరించబడినవి & ధృవీకరించబడినవి')}</span>
+                </span>
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                <Lock className="w-3.5 h-3.5 text-amber-600" />
+                <span>{tr('Login to View Your Map Markers', 'अपने मानचित्र मार्कर देखने के लिए लॉगिन करें', 'మీ మ్యాప్ మార్కర్లను చూడటానికి లాగిన్ చేయండి')}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* The Full Interactive All-India Map */}
+        <InteractiveIndiaMap
+          waterBodies={waterBodies}
+          complaints={userComplaints}
+          currentRole="user"
+          selectedState={selectedState}
+          onStateChange={setSelectedState}
+          selectedDistrict={selectedDistrict}
+          onDistrictChange={setSelectedDistrict}
+          trackedComplaintId={trackedComplaint && userComplaints.some(uc => uc.id === trackedComplaint.id) ? trackedComplaint.id : undefined}
+          trackedMobile={currentUser?.phone}
+          currentUser={currentUser}
+          isLoggedIn={isLoggedIn}
+          onOpenLoginModal={onOpenLoginModal}
+          onSelectComplaint={(c) => {
+            if (userComplaints.some((vc) => vc.id === c.id)) {
+              setTrackedComplaint(c);
+            }
+            // Stay directly on the map with the flashcard open (do not jump up)
+          }}
+          onLodgeComplaint={onOpenLodgeModal}
+        />
+      </div>
+
+      {/* ============================================================== */}
+      {/* 3. CITIZEN COMPLAINT REDRESSAL TRACKER (UPGRADED NIR-IKSHAN)   */}
       {/* ============================================================== */}
       <div id="citizen-tracker-section" className="bg-[#f0f7fb] border border-sky-200/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 relative overflow-hidden">
         {/* Top Brand Accent Gradient Bar */}
@@ -1411,71 +1475,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 3. PRIMARY MAP: ALL-INDIA NATIONAL WATER GRID (PLACED AT LAST) */}
-      {/* ============================================================== */}
-      <div id="citizen-telemetry-map" className="space-y-3 pt-2">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <div>
-            <h3 className="font-extrabold text-[#03045E] text-lg sm:text-xl flex items-center gap-2">
-              <span>🇮🇳 {tr('National Water Grid & Grievance Map', 'राष्ट्रीय जल ग्रिड एवं शिकायत मानचित्र', 'జాతీయ జల గ్రిడ్ & ఫిర్యాదుల మ్యాప్')}</span>
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {tr(
-                'Select State or District (boundary line highlighted with smooth zoom-in/out). "Your Complaints" is automatically tracked for verified mobile users.',
-                'राज्य या जिला चुनें (सीमा रेखा हाइलाइट होगी, स्मूथ ज़ूम-इन/आउट)। "आपकी शिकायतें" सत्यापित मोबाइल उपयोगकर्ताओं के लिए स्वतः ट्रैक की जाती हैं।',
-                'రాష్ట్రం లేదా జిల్లాను ఎంచుకోండి (సరిహద్దు రేఖ హైలైట్ చేయబడుతుంది, జూమ్ చేయవచ్చు). "మీ ఫిర్యాదులు" ధృవీకరించబడిన మొబైల్ వినియోగదారుల కోసం స్వయంచాలకంగా ట్రాక్ చేయబడతాయి.'
-              )}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {isLoggedIn ? (
-              <>
-                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                  <span>⚠️ {userComplaints.filter(c => c.status !== 'RESOLVED').length} {tr('Your Active Grievances', 'आपकी सक्रिय शिकायतें', 'మీ క్రియాశీల ఫిర్యాదులు')}</span>
-                </span>
-
-                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>✓ {userComplaints.filter(c => c.status === 'RESOLVED').length} {tr('Resolved & Verified', 'निराकृत एवं सत्यापित', 'పరిష్కరించబడినవి & ధృవీకరించబడినవి')}</span>
-                </span>
-              </>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                <Lock className="w-3.5 h-3.5 text-amber-600" />
-                <span>{tr('Login to View Your Map Markers', 'अपने मानचित्र मार्कर देखने के लिए लॉगिन करें', 'మీ మ్యాప్ మార్కర్లను చూడటానికి లాగిన్ చేయండి')}</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* The Full Interactive All-India Map */}
-        <InteractiveIndiaMap
-          waterBodies={waterBodies}
-          complaints={userComplaints}
-          currentRole="user"
-          selectedState={selectedState}
-          onStateChange={setSelectedState}
-          selectedDistrict={selectedDistrict}
-          onDistrictChange={setSelectedDistrict}
-          trackedComplaintId={trackedComplaint && userComplaints.some(uc => uc.id === trackedComplaint.id) ? trackedComplaint.id : undefined}
-          trackedMobile={currentUser?.phone}
-          currentUser={currentUser}
-          isLoggedIn={isLoggedIn}
-          onOpenLoginModal={onOpenLoginModal}
-          onSelectComplaint={(c) => {
-            if (userComplaints.some((vc) => vc.id === c.id)) {
-              setTrackedComplaint(c);
-            }
-            // Stay directly on the map with the flashcard open (do not jump up)
-          }}
-          onLodgeComplaint={onOpenLodgeModal}
-        />
-      </div>
-
-      {/* ============================================================== */}
-      {/* 4. PHOTO PREVIEW LIGHTBOX MODAL                                 */}
+      {/* 3. PHOTO PREVIEW LIGHTBOX MODAL                                 */}
       {/* ============================================================== */}
       {previewPhoto && (
         <div 

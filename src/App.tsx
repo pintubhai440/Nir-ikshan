@@ -59,9 +59,19 @@ export default function App() {
     }
   });
 
-  // Complaints state: Clean complaints from database, strictly deduplicated by ID (Zero fake data)
+  // Automatic clean slate for end-to-end workflow testing (purges stale mock data)
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
+      const PURGE_KEY = 'nir_workflow_clean_slate_2026_v3';
+      if (typeof window !== 'undefined' && localStorage.getItem(PURGE_KEY) !== 'true') {
+        localStorage.removeItem('nir_complaints');
+        localStorage.removeItem('nir_nodal_tasks');
+        localStorage.removeItem('nir_inspector_completed_task_ids');
+        localStorage.removeItem('nir_inspector_completed_dossiers');
+        localStorage.removeItem('nir_engineer_completed_task_ids');
+        localStorage.setItem(PURGE_KEY, 'true');
+        return [];
+      }
       const saved = localStorage.getItem('nir_complaints');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -669,6 +679,22 @@ export default function App() {
     saveComplaintToSupabase(updated);
   };
 
+  // Reset / Clean Slate for Live Workflow Testing
+  const handleResetTestData = useCallback(() => {
+    try {
+      localStorage.removeItem('nir_complaints');
+      localStorage.removeItem('nir_nodal_tasks');
+      localStorage.removeItem('nir_inspector_completed_task_ids');
+      localStorage.removeItem('nir_inspector_completed_dossiers');
+      localStorage.removeItem('nir_engineer_completed_task_ids');
+    } catch {}
+    setComplaints([]);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('nir_tasks_updated'));
+      window.dispatchEvent(new Event('nir_complaint_updated'));
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif] w-full">
       {/* Top Navigation Bar with Language Toggle & Login / Hamburger Button */}
@@ -960,6 +986,7 @@ export default function App() {
         isLoggedIn={isLoggedIn}
         onOpenLogin={() => setIsOtpModalOpen(true)}
         onOpenSubmissionDossier={() => setIsSubmissionDossierOpen(true)}
+        onResetTestData={handleResetTestData}
       />
 
       {/* Citizen Mobile OTP Login Modal (Image 3 -> Login Page Flow) */}

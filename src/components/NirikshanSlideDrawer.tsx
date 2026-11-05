@@ -15,8 +15,7 @@ import {
   ChevronDown,
   CheckCircle2,
   Lock,
-  LogIn,
-  Paperclip
+  LogIn
 } from 'lucide-react';
 
 interface NirikshanSlideDrawerProps {
@@ -34,6 +33,7 @@ interface NirikshanSlideDrawerProps {
   onOpenLogin?: () => void;
   onOpenSupabaseModal?: () => void;
   onOpenSubmissionDossier?: () => void;
+  onResetTestData?: () => void;
 }
 
 export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
@@ -48,7 +48,6 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
   isLoggedIn = false,
   onOpenLogin,
   onOpenSupabaseModal,
-  onOpenSubmissionDossier,
 }) => {
   const { language, t } = useLanguage();
   const [isNodalExpanded, setIsNodalExpanded] = useState(true);
@@ -434,34 +433,6 @@ export const NirikshanSlideDrawer: React.FC<NirikshanSlideDrawerProps> = ({
                   {t('tagFullMap', 'FULL MAP')}
                 </span>
               </button>
-
-              {/* Supporting Materials (Architecture, Workflow, Screenshots) */}
-              {onOpenSubmissionDossier && (
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenSubmissionDossier();
-                  }}
-                  className="w-full text-left p-2.5 px-3 rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 transition-all cursor-pointer flex items-center justify-between shadow-2xs mt-3"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <Paperclip className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <h5 className="text-xs sm:text-[13px] font-extrabold text-amber-900 leading-tight truncate">
-                        Supporting Materials Dossier
-                      </h5>
-                      <p className="text-[11px] text-amber-700 mt-0.5 truncate">
-                        Architecture, Workflow & Screenshot Guide
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-mono px-2 py-0.5 rounded font-black bg-amber-200/80 text-amber-900 shrink-0">
-                    SUBMISSION
-                  </span>
-                </button>
-              )}
             </div>
 
           </div>
