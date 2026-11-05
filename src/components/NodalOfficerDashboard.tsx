@@ -1353,10 +1353,6 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             </button>
           </div>
         </div>
-              Rayalaseema (8)
-            </button>
-          </div>
-        </div>
 
         {/* 26 DISTRICT FLASHCARDS GRID (Matching image_c0716bdc.png styling) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
