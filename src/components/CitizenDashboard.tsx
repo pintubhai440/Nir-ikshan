@@ -4,6 +4,7 @@ import { InteractiveIndiaMap } from './InteractiveIndiaMap';
 import { useLanguage } from '../context/LanguageContext';
 import { generateWatershedPdfReport } from '../utils/generateWatershedPdf';
 import { RAW_MICRO_WATERSHEDS_DATA } from '../data/watershedData';
+import { CitizenRecentActionsAndSchemes } from './CitizenRecentActionsAndSchemes';
 import confetti from 'canvas-confetti';
 import { 
   AlertTriangle, 
@@ -192,7 +193,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   // Active dossier displayed in detail view
   const activeDossier = useMemo(() => {
     if (selectedDossierId) {
-      const found = filteredComplaints.find((c) => c.id === selectedDossierId) || complaints.find((c) => c.id === selectedDossierId);
+      const found = filteredComplaints.find((c) => c.id === selectedDossierId) || 
+                    complaints.find((c) => c.id === selectedDossierId);
       if (found) return found;
     }
     return activeComplaint;
@@ -1475,7 +1477,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 3. PHOTO PREVIEW LIGHTBOX MODAL                                 */}
+      {/* 4. RECENT VERIFIED ACTIONS & GOVERNMENT SCHEMES (FLOATING RIBBON) */}
+      {/* ============================================================== */}
+      <CitizenRecentActionsAndSchemes
+        complaints={complaints}
+        onSelectComplaint={handleOpenDossier}
+        onOpenLodgeModal={onOpenLodgeModal}
+      />
+
+      {/* ============================================================== */}
+      {/* 5. PHOTO PREVIEW LIGHTBOX MODAL                                 */}
       {/* ============================================================== */}
       {previewPhoto && (
         <div 

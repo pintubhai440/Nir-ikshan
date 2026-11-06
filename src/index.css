@@ -93,3 +93,29 @@ html, body {
   scrollbar-width: none;
 }
 
+/* True Infinite Seamless Marquee Animation */
+@keyframes marquee-continuous {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - 1rem));
+  }
+}
+
+.animate-marquee-continuous {
+  display: flex;
+  flex-shrink: 0;
+  gap: 1rem;
+  width: max-content;
+  animation: marquee-continuous 40s linear infinite;
+  will-change: transform;
+}
+
+.marquee-wrapper:hover .animate-marquee-continuous,
+.animate-marquee-continuous:hover {
+  animation-play-state: paused;
+}
+
+
+
