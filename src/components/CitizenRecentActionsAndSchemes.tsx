@@ -706,16 +706,16 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
     const photo = c.workExecution?.afterPhotoUrl || c.inspectionReport?.sitePhotoUrl || c.photoUrl;
 
     return (
-      <div className="w-[275px] sm:w-[305px] md:w-[325px] bg-white rounded-xl sm:rounded-2xl border border-sky-200 hover:border-emerald-500 p-3 sm:p-3.5 space-y-2 shrink-0 shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group flex flex-col justify-between">
+      <div className="w-[280px] sm:w-[315px] bg-white rounded-2xl border border-sky-200 hover:border-emerald-500 p-3 sm:p-3.5 shrink-0 shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group flex flex-col justify-between space-y-2.5">
         <div className="space-y-2">
           {/* Top Row: Dynamic Badge + Case ID */}
           <div className="flex items-center justify-between gap-1.5">
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border font-mono truncate max-w-[210px] ${statusMeta.color}`}>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border font-mono truncate max-w-[200px] ${statusMeta.color}`}>
               <StatusIcon className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate">{statusMeta.label}</span>
             </span>
             <span className="text-[9px] font-mono font-bold text-slate-400 shrink-0">
-              {c.id.split('-').slice(-2).join('-')}
+              #{c.id.split('-').slice(-2).join('-')}
             </span>
           </div>
 
@@ -728,13 +728,13 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
               <MapPin className="w-2.5 h-2.5 text-rose-500 shrink-0" />
               <span className="truncate">{c.village || c.mandal}, {c.district}</span>
               <span className="text-slate-300">•</span>
-              <span className="font-mono text-[9px]">{c.coordinates?.lat?.toFixed(2)}°, {c.coordinates?.lng?.toFixed(2)}°</span>
+              <span className="font-mono text-[9px] text-slate-400">{c.coordinates?.lat?.toFixed(2)}°, {c.coordinates?.lng?.toFixed(2)}°</span>
             </div>
           </div>
 
-          {/* Photographic Evidence Thumbnail if available */}
-          {photo && (
-            <div className="relative h-20 sm:h-22 rounded-lg overflow-hidden bg-slate-900 border border-slate-200 shadow-2xs">
+          {/* Evidence Thumbnail or Hydrological Status Bar */}
+          {photo ? (
+            <div className="relative h-20 sm:h-22 rounded-xl overflow-hidden bg-slate-900 border border-slate-200 shadow-2xs">
               <img 
                 src={photo} 
                 alt="Ground Evidence"
@@ -750,23 +750,39 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
                 </div>
               )}
             </div>
+          ) : (
+            <div className="h-16 rounded-xl bg-gradient-to-r from-sky-50 to-emerald-50 border border-sky-100 p-2 flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-white border border-sky-200 flex items-center justify-center text-base shrink-0 shadow-2xs">
+                🌊
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#0077B6] block">
+                  {tr('Water Body Redressal', 'जल निकाय समाधान', 'జల నివారణ')}
+                </span>
+                <span className="text-[11px] font-semibold text-slate-700 truncate block">
+                  {c.wasteType || tr('Weir & Canal Maintenance', 'वियर व नहर रख-रखाव', 'కాలువల నిర్వహణ')}
+                </span>
+              </div>
+            </div>
           )}
 
-          {/* Summary / Description */}
-          <p className="text-[10.5px] text-slate-600 line-clamp-2 leading-snug bg-slate-50 p-1.5 rounded-lg border border-slate-200/70">
-            {c.workExecution?.workSummary || c.inspectionReport?.validationRemarks || c.shortDescription}
-          </p>
+          {/* Grievance Summary */}
+          <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/70">
+            <p className="text-[10.5px] text-slate-600 line-clamp-2 leading-relaxed">
+              {c.workExecution?.workSummary || c.inspectionReport?.validationRemarks || c.shortDescription}
+            </p>
+          </div>
 
           {/* Accountability Credits */}
           <div className="text-[9px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-100 font-mono">
-            <span className="truncate max-w-[140px]">
+            <span className="truncate max-w-[130px]">
               By: <strong className="text-slate-800">{c.citizenName}</strong>
             </span>
-            <span className="truncate max-w-[140px] text-right">
+            <span className="truncate max-w-[130px] text-right">
               {c.assignedInspector ? (
                 <>Insp: <strong className="text-slate-800">{c.assignedInspector.split(' ').slice(0, 2).join(' ')}</strong></>
               ) : (
-                <span className="text-amber-700">Triage in Progress</span>
+                <span className="text-amber-700 font-semibold">Triage in Progress</span>
               )}
             </span>
           </div>
@@ -775,10 +791,10 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
         {/* View Details Button -> Jumps to full complaint dossier */}
         <button
           onClick={() => onSelectComplaint(c)}
-          className="mt-1.5 w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-[11px] shadow-2xs flex items-center justify-center gap-1 transition-all hover:scale-101 cursor-pointer"
+          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-[11px] shadow-2xs flex items-center justify-center gap-1.5 transition-all hover:scale-101 cursor-pointer"
         >
           <span>{tr('View Case Dossier', 'पूरी रिपोर्ट देखें', 'పూర్తి నివేదిక చూడండి')}</span>
-          <ArrowUpRight className="w-3 h-3" />
+          <ArrowUpRight className="w-3.5 h-3.5" />
         </button>
       </div>
     );
@@ -789,7 +805,7 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
   // -------------------------------------------------------------
   if (item.type === 'PROMPT') {
     return (
-      <div className="w-[275px] sm:w-[305px] md:w-[325px] bg-gradient-to-br from-white to-sky-50 rounded-xl sm:rounded-2xl border border-dashed border-sky-300 p-3 sm:p-3.5 space-y-2 shrink-0 shadow-2xs flex flex-col justify-between">
+      <div className="w-[280px] sm:w-[315px] bg-gradient-to-br from-white to-sky-50 rounded-2xl border border-dashed border-sky-300 p-3 sm:p-3.5 shrink-0 shadow-2xs flex flex-col justify-between space-y-2.5">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-sky-100 text-[#0077B6] font-mono">
@@ -818,10 +834,10 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
         {onOpenLodgeModal && (
           <button
             onClick={onOpenLodgeModal}
-            className="w-full py-1.5 px-2.5 rounded-lg bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-[11px] shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer"
+            className="w-full py-2 px-3 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-[11px] shadow-2xs flex items-center justify-center gap-1 transition-all cursor-pointer"
           >
             <span>{tr('Report Problem Now', 'अभी शिकायत दर्ज करें', 'ఇప్పుడే సమస్యను నివేదించండి')}</span>
-            <ArrowUpRight className="w-3 h-3" />
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -829,13 +845,13 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
   }
 
   // -------------------------------------------------------------
-  // CASE 3: OFFICIAL GOVERNMENT WATER SCHEME
+  // CASE 3: OFFICIAL GOVERNMENT WATER SCHEME (NO GAPS, HIGH FIDELITY)
   // -------------------------------------------------------------
   const s = item.data;
   return (
-    <div className="w-[275px] sm:w-[305px] md:w-[325px] bg-white rounded-xl sm:rounded-2xl border border-sky-200 hover:border-[#0077B6] p-3 sm:p-3.5 space-y-2 shrink-0 shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group flex flex-col justify-between">
+    <div className="w-[280px] sm:w-[315px] bg-white rounded-2xl border border-sky-200 hover:border-[#0077B6] p-3 sm:p-3.5 shrink-0 shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group flex flex-col justify-between space-y-2.5">
       <div className="space-y-2">
-        {/* Top Row: Category & Emblem */}
+        {/* Top Row: Category Badge & National Authority */}
         <div className="flex items-center justify-between gap-1.5">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-sky-100 text-[#0077B6] border border-sky-300 font-mono shadow-2xs truncate">
             <Landmark className="w-2.5 h-2.5 shrink-0 text-[#0077B6]" />
@@ -846,9 +862,9 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
           </span>
         </div>
 
-        {/* Scheme Title & Ministry */}
+        {/* Scheme Title & Ministry Header */}
         <div className="flex items-start gap-2">
-          <div className="w-7 h-7 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-sm shrink-0 shadow-2xs mt-0.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 flex items-center justify-center text-base shrink-0 shadow-2xs mt-0.5">
             {s.logoIcon}
           </div>
           <div className="min-w-0 flex-1">
@@ -861,37 +877,51 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
           </div>
         </div>
 
-        {/* Objective */}
-        <p className="text-[10.5px] text-slate-600 line-clamp-2 leading-snug bg-sky-50/50 p-1.5 rounded-lg border border-sky-100">
-          {language === 'hi' ? s.hindiDescription : language === 'te' ? s.teluguDescription : s.description}
-        </p>
+        {/* Official Scheme Highlight Pills - Fills the card meaningfully */}
+        <div className="bg-sky-50/70 p-2 rounded-xl border border-sky-100 space-y-1">
+          <div className="flex items-center gap-1 text-[9.5px] font-bold text-[#0077B6] uppercase tracking-wide">
+            <Sparkles className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+            <span>{tr('Key Scheme Mandate', 'योजना का मुख्य उद्देश्य', 'పథకం ముఖ్య లక్ష్యం')}</span>
+          </div>
+          <p className="text-[10.5px] text-slate-700 leading-snug font-normal line-clamp-2">
+            {language === 'hi' ? s.hindiDescription : language === 'te' ? s.teluguDescription : s.description}
+          </p>
+        </div>
+
+        {/* 1 Verified Key Feature Pill */}
+        {s.highlightPoints && s.highlightPoints[0] && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50/80 border border-emerald-200/80 text-[10px] text-emerald-900">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span className="truncate font-medium">{s.highlightPoints[0]}</span>
+          </div>
+        )}
 
         {/* Impact Metric Strip */}
-        <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200/80 flex items-center justify-between text-[10px]">
+        <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/80 flex items-center justify-between text-[10px]">
           <div>
             <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider block">
               {s.keyMetricLabel}
             </span>
-            <span className="text-xs sm:text-[13px] font-black text-[#03045E] font-mono">
+            <span className="text-xs sm:text-[13px] font-black text-[#03045E] font-mono block mt-0.5">
               {s.keyMetric}
             </span>
           </div>
           <div className="text-right">
             <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider block">
-              Coverage
+              {tr('Coverage', 'कवरेज', 'పరిధి')}
             </span>
-            <span className="text-[10px] font-bold text-slate-700">
-              {s.coverageArea.split(' ')[0]}
+            <span className="text-[11px] font-bold text-slate-700 block mt-0.5">
+              {s.coverageArea}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Dual Compact Buttons */}
-      <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+      {/* Dual Action Buttons */}
+      <div className="grid grid-cols-2 gap-1.5 pt-1">
         <button
           onClick={() => onOpenSchemeModal(s)}
-          className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10.5px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
+          className="py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10.5px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
         >
           <Info className="w-3 h-3 text-slate-500" />
           <span>{tr('Guidelines', 'दिशानिर्देश', 'మార్గదర్శకాలు')}</span>
@@ -899,7 +929,7 @@ const CompactFlashcardItem: React.FC<CompactFlashcardItemProps> = ({
 
         <button
           onClick={() => onOpenSchemePortal(s.portalUrl)}
-          className="py-1.5 px-2 rounded-lg bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-[10.5px] shadow-2xs flex items-center justify-center gap-1 transition-all hover:scale-101 cursor-pointer"
+          className="py-1.5 px-2 rounded-xl bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-[10.5px] shadow-2xs flex items-center justify-center gap-1 transition-all hover:scale-101 cursor-pointer"
         >
           <span>{tr('Official Portal', 'सरकारी पोर्टल', 'పోర్టల్')}</span>
           <ExternalLink className="w-3 h-3" />
