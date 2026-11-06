@@ -987,7 +987,7 @@ export const InteractiveAndhraMap: React.FC<InteractiveAndhraMapProps> = ({
       {/* ============================================================== */}
       {/* 3. MAP CANVAS WITH NO OVERLAPPING LABELS & CLEAN WATER NETWORK */}
       {/* ============================================================== */}
-      <div className={`relative w-full ${isMapExpanded ? 'h-[850px] sm:h-[950px] lg:h-[1050px]' : 'h-[680px] sm:h-[760px] lg:h-[840px]'} overflow-hidden select-none transition-all duration-300 ${
+      <div className={`relative w-full ${isMapExpanded ? 'h-[700px] sm:h-[850px] lg:h-[1050px]' : 'h-[440px] sm:h-[620px] lg:h-[800px]'} overflow-hidden select-none transition-all duration-300 ${
         theme === 'light' ? 'bg-[#f8fafc]' : 'bg-gradient-to-b from-slate-950 via-[#071326] to-[#0b1b36]'
       }`}>
         {effectiveDistrict === 'Vizianagaram' ? (

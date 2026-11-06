@@ -154,7 +154,9 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
             }`}
           >
             <Calendar className="w-4 h-4 text-sky-300" />
-            <span>Pending Field Inspections</span>
+            <span>
+              {currentLang === 'hi' ? 'लंबित फ़ील्ड निरीक्षण' : currentLang === 'te' ? 'పెండింగ్ ఫీల్డ్ తనిఖీలు' : 'Pending Field Inspections'}
+            </span>
             <span
               className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-extrabold ${
                 activeCategory === 'pending' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'
@@ -173,7 +175,9 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
             }`}
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-            <span>Completed Dossiers</span>
+            <span>
+              {currentLang === 'hi' ? 'पूर्ण निरीक्षण डॉसियर' : currentLang === 'te' ? 'పూర్తయిన తనిఖీ పత్రాలు' : 'Completed Dossiers'}
+            </span>
             <span
               className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-extrabold ${
                 activeCategory === 'completed' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'
@@ -193,7 +197,9 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
               }`}
             >
               <Wrench className="w-4 h-4 text-amber-300" />
-              <span>Repair Sign-Off</span>
+              <span>
+                {currentLang === 'hi' ? 'मरम्मत सत्यापन' : currentLang === 'te' ? 'మరమ్మత్తు ధృవీకరణ' : 'Repair Sign-Off'}
+              </span>
               <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-amber-200 text-amber-950 font-black">
                 {pendingVerificationCount}
               </span>
@@ -206,7 +212,9 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
           className="px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-all hover:border-sky-300 shadow-2xs ml-auto sm:ml-0"
         >
           <Navigation className="w-4 h-4 text-[#0077B6]" />
-          <span>Open GIS Cadastral Map</span>
+          <span>
+            {currentLang === 'hi' ? 'जीआईएस भूकर मानचित्र खोलें' : currentLang === 'te' ? 'జీఐఎస్ కాడాస్ట్రల్ మ్యాప్ తెరవండి' : 'Open GIS Cadastral Map'}
+          </span>
         </button>
       </div>
 
@@ -223,11 +231,19 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 <h4 className="font-extrabold text-amber-950 text-xs sm:text-sm">
-                  {pendingVerificationCount} Repair Completed: Action Crew Awaiting Sign-Off
+                  {currentLang === 'hi'
+                    ? `${pendingVerificationCount} मरम्मत कार्य पूर्ण: सत्यापन हेतु लंबित`
+                    : currentLang === 'te'
+                    ? `${pendingVerificationCount} మరమ్మత్తు పనులు పూర్తయ్యాయి: ధృవీకరణ కోసం వేచి ఉంది`
+                    : `${pendingVerificationCount} Repair Completed: Action Crew Awaiting Sign-Off`}
                 </h4>
               </div>
               <p className="text-xs text-amber-800 mt-0.5">
-                Executive Engineer crew finished silt clearance and desilting. Conduct statutory physical verification to close work order.
+                {currentLang === 'hi'
+                  ? 'कार्यकारी अभियंता दल ने गाद निकासी कार्य पूरा किया। कार्य आदेश बंद करने हेतु अनिवार्य भौतिक सत्यापन करें।'
+                  : currentLang === 'te'
+                  ? 'ఎగ్జిక్యూటివ్ ఇంజనీర్ బృందం పూడికతీత పనులను పూర్తి చేసింది. వర్క్ ఆర్డర్ ముగించడానికి భౌతిక ధృవీకరణ నిర్వహించండి.'
+                  : 'Executive Engineer crew finished silt clearance and desilting. Conduct statutory physical verification to close work order.'}
               </p>
             </div>
           </div>
@@ -237,7 +253,9 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
             }}
             className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-2xl text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all active:scale-98"
           >
-            <span>Verify &amp; Sign Off</span>
+            <span>
+              {currentLang === 'hi' ? 'सत्यापित व हस्ताक्षर करें' : currentLang === 'te' ? 'ధృవీకరించి సంతకం చేయండి' : 'Verify & Sign Off'}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -281,7 +299,13 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                       type="text"
                       value={taskSearchQuery}
                       onChange={(e) => setTaskSearchQuery(e.target.value)}
-                      placeholder="Search cases by asset name, cadastral sector, ID..."
+                      placeholder={
+                        currentLang === 'hi'
+                          ? 'जल निकाय नाम, भूकर क्षेत्र, आईडी द्वारा खोजें...'
+                          : currentLang === 'te'
+                          ? 'కేస్ పేరు, కాడాస్ట్రల్ సెక్టార్, ఐడీ ద్వారా శోధించండి...'
+                          : 'Search cases by asset name, cadastral sector, ID...'
+                      }
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6]"
                     />
                     {taskSearchQuery && (
@@ -304,7 +328,7 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      All ({scheduledTasks.length})
+                      {currentLang === 'hi' ? 'सभी' : currentLang === 'te' ? 'అన్నీ' : 'All'} ({scheduledTasks.length})
                     </button>
 
                     <button
@@ -316,7 +340,7 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                       }`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                      <span>24h SLA</span>
+                      <span>{currentLang === 'hi' ? '24 घंटे एसएलए' : currentLang === 'te' ? '24 గం. ఎస్‌ఎల్‌ఏ' : '24h SLA'}</span>
                     </button>
 
                     <button
@@ -328,33 +352,38 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                       }`}
                     >
                       <MapPin className="w-3 h-3 text-[#0077B6]" />
-                      <span>Nearby (&lt; 1km)</span>
+                      <span>{currentLang === 'hi' ? 'निकटवर्ती (< 1किमी)' : currentLang === 'te' ? 'సమీపంలో (< 1కి.మీ)' : 'Nearby (< 1km)'}</span>
                     </button>
                   </div>
 
                   {/* Sort Dropdown */}
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="text-slate-400 font-semibold hidden sm:inline">Sort:</span>
+                    <span className="text-slate-400 font-semibold hidden sm:inline">
+                      {currentLang === 'hi' ? 'क्रमबद्ध:' : currentLang === 'te' ? 'క్రమబద్ధీకరించు:' : 'Sort:'}
+                    </span>
                     <select
                       value={taskSortBy}
                       onChange={(e) => setTaskSortBy(e.target.value as any)}
                       className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
                     >
-                      <option value="sla">Urgent 24h SLA</option>
-                      <option value="distance">Nearest Distance</option>
-                      <option value="name">Asset Name (A-Z)</option>
+                      <option value="sla">{currentLang === 'hi' ? 'अति आवश्यक 24h SLA' : currentLang === 'te' ? 'అత్యవసరం 24 గం. ఎస్‌ఎల్‌ఏ' : 'Urgent 24h SLA'}</option>
+                      <option value="distance">{currentLang === 'hi' ? 'निकटतम दूरी' : currentLang === 'te' ? 'సమీప దూరం' : 'Nearest Distance'}</option>
+                      <option value="name">{currentLang === 'hi' ? 'नाम अनुसार (A-Z)' : currentLang === 'te' ? 'పేరు ప్రకారం (A-Z)' : 'Asset Name (A-Z)'}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 font-medium">
                   <span>
-                    Showing <strong className="text-slate-900 font-bold">{filteredTasks.length}</strong> of{' '}
-                    <strong className="text-slate-900 font-bold">{scheduledTasks.length}</strong> active inspection cases
+                    {currentLang === 'hi' ? 'दिखाए जा रहे हैं ' : currentLang === 'te' ? 'చూపిస్తోంది ' : 'Showing '}
+                    <strong className="text-slate-900 font-bold">{filteredTasks.length}</strong>
+                    {currentLang === 'hi' ? ' कुल ' : currentLang === 'te' ? ' లో ' : ' of '}
+                    <strong className="text-slate-900 font-bold">{scheduledTasks.length}</strong>
+                    {currentLang === 'hi' ? ' सक्रिय निरीक्षण मामले' : currentLang === 'te' ? ' క్రియాశీల తనిఖీ కేసులు' : ' active inspection cases'}
                   </span>
                   <span className="flex items-center gap-1 text-emerald-700 font-semibold">
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Calibrated Field Workstation Active</span>
+                    <span>{currentLang === 'hi' ? 'कैलिब्रेटेड फील्ड वर्कस्टेशन सक्रिय' : currentLang === 'te' ? 'క్యాలిబ్రేటెడ్ ఫీల్డ్ వర్క్‌స్టేషన్ క్రియాశీలం' : 'Calibrated Field Workstation Active'}</span>
                   </span>
                 </div>
               </div>
@@ -550,7 +579,7 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                             title="View Case Dossier"
                           >
                             <Eye className="w-3.5 h-3.5 text-slate-500" />
-                            <span>Details</span>
+                            <span>{currentLang === 'hi' ? 'विवरण' : currentLang === 'te' ? 'వివరాలు' : 'Details'}</span>
                           </button>
 
                           <button
@@ -562,7 +591,7 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                             className="flex-1 py-2 px-3 bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
                           >
                             <Lock className="w-3.5 h-3.5 text-sky-200" />
-                            <span>Start Inspection</span>
+                            <span>{currentLang === 'hi' ? 'निरीक्षण शुरू करें' : currentLang === 'te' ? 'తనిఖీ ప్రారంభించండి' : 'Start Inspection'}</span>
                             <ArrowRight className="w-3.5 h-3.5 text-sky-200" />
                           </button>
                         </div>
@@ -788,7 +817,13 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                           className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
                         >
                           <FileCheck className="w-3.5 h-3.5 text-emerald-100" />
-                          <span>View Official Signed Dossier</span>
+                          <span>
+                            {currentLang === 'hi'
+                              ? 'हस्ताक्षरित आधिकारिक डॉसियर देखें'
+                              : currentLang === 'te'
+                              ? 'అధికారికంగా సంతకం చేసిన పత్రాన్ని చూడండి'
+                              : 'View Official Signed Dossier'}
+                          </span>
                           <ExternalLink className="w-3 h-3 text-emerald-100" />
                         </button>
                       </div>
@@ -983,7 +1018,13 @@ export const InspectorTodayView: React.FC<InspectorTodayViewProps> = ({
                           className="w-full py-2.5 px-3 bg-[#03045E] hover:bg-[#0077B6] text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
                         >
                           <Wrench className="w-3.5 h-3.5 text-sky-200" />
-                          <span>Open Verification Protocol &amp; Certify</span>
+                          <span>
+                            {currentLang === 'hi'
+                              ? 'सत्यापन प्रोटोकॉल खोलें व प्रमाणित करें'
+                              : currentLang === 'te'
+                              ? 'ధృవీకరణ ప్రోటోకాల్‌ను తెరిచి ధృవీకరించండి'
+                              : 'Open Verification Protocol & Certify'}
+                          </span>
                           <ArrowRight className="w-3.5 h-3.5 text-sky-200" />
                         </button>
                       </div>

@@ -33,6 +33,7 @@ import { OfficerDirectoryModal } from './components/OfficerDirectoryModal';
 import { AuthModal } from './components/AuthModal';
 import { SupabaseSyncModal } from './components/SupabaseSyncModal';
 import { SubmissionDossierModal } from './components/SubmissionDossierModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { 
   isSupabaseConfigured, 
   fetchComplaintsFromSupabase, 
@@ -710,7 +711,7 @@ export default function App() {
       />
 
       {/* Main Dashboard Body Container */}
-      <main className="flex-1 w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-4 sm:px-8 py-5 space-y-6">
+      <main className="flex-1 w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 space-y-4 sm:space-y-6 pb-24 md:pb-8">
         {/* Sleek Breadcrumb Bar when viewing any restricted govt sub-dashboard (hidden on State Admin, Portal Home & Nodal) */}
         {currentRole !== 'overview' && currentRole !== 'user' && currentRole !== 'admin' && currentRole !== 'nodal' && !currentRole.startsWith('nodal_') && (
           <div className="bg-white border border-slate-200 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
@@ -913,8 +914,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-[#0b1b36] text-slate-300 text-xs py-7 border-t border-blue-900 mt-auto">
-        <div className="max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-4 sm:px-8 space-y-4">
+      <footer className="w-full bg-[#0b1b36] text-slate-300 text-xs py-7 pb-24 md:pb-7 border-t border-blue-900 mt-auto">
+        <div className="max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">
@@ -1031,6 +1032,15 @@ export default function App() {
           handleSelectRole(role);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+      />
+
+      {/* Mobile Sticky Bottom Dynamic Navigation Bar */}
+      <MobileBottomNav
+        currentRole={currentRole}
+        onSelectRole={handleSelectRole}
+        onOpenDrawer={() => setIsDrawerOpen(true)}
+        isLoggedIn={isLoggedIn}
+        onOpenLoginModal={() => setIsOtpModalOpen(true)}
       />
     </div>
   );

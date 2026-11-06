@@ -1206,7 +1206,7 @@ export const DistrictNodalSatelliteMap: React.FC<DistrictNodalSatelliteMapProps>
       {/* ============================================================== */}
       {/* SATELLITE MAP CONTAINER                                         */}
       {/* ============================================================== */}
-      <div className="relative z-0 isolate w-full h-[560px] md:h-[590px] rounded-3xl overflow-hidden border border-slate-300 shadow-md bg-slate-900">
+      <div className="relative z-0 isolate w-full h-[400px] sm:h-[500px] md:h-[590px] rounded-3xl overflow-hidden border border-slate-300 shadow-md bg-slate-900">
         <div ref={mapContainerRef} className="w-full h-full" />
 
         {/* Focused Asset HUD Banner */}

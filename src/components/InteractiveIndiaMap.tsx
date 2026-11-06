@@ -2037,7 +2037,7 @@ export const InteractiveIndiaMap: React.FC<InteractiveIndiaMapProps> = ({
       {/* ============================================================== */}
       {/* 2. MAP VIEW CONTAINER WITH FLOATING PERSISTENT FLASHCARD        */}
       {/* ============================================================== */}
-      <div className={`relative w-full h-[620px] sm:h-[700px] lg:h-[780px] overflow-hidden transition-colors ${basemapTheme === 'satellite' ? 'bg-[#0a0f1d]' : 'bg-[#eef2f6]'}`}>
+      <div className={`relative w-full h-[420px] sm:h-[560px] lg:h-[720px] overflow-hidden transition-colors ${basemapTheme === 'satellite' ? 'bg-[#0a0f1d]' : 'bg-[#eef2f6]'}`}>
         {/* Leaflet map canvas */}
         <div 
           ref={mapContainerRef} 

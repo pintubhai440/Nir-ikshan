@@ -420,20 +420,20 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 : 'bg-blue-50 text-[#0077B6] border-blue-200'
             }`}>
               <span className={`w-2 h-2 rounded-full ${isSupabaseLive ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
-              <span>{isSupabaseLive ? 'Supabase Live: public.action_workers' : 'AP Water Grid Remediation Fleet'}</span>
+              <span>{isSupabaseLive ? uiText.badgeLive : uiText.badgeFleet}</span>
             </span>
             <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold">
-              Live Workstation Hub
+              {uiText.badgeWorkstation}
             </span>
             <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-              Zero Fake Data
+              {uiText.badgeZeroFake}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Action Worker &amp; Remediation Fleet Directory (कार्यवाही कार्यकर्ता एवं कार्य दल)
+            {uiText.title}
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-4xl">
-            Live database records from Supabase <code className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">public.action_workers</code>. Select an authorized desilting crew, sanitation team, or action worker to launch their on-site field terminal.
+            {uiText.subtitle}
           </p>
         </div>
 
@@ -441,42 +441,42 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-1">
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-center">
             <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block">
-              Total Action Workers
+              {uiText.totalWorkers}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-[#03045E] mt-0.5 block">
               {totalCount}
             </span>
-            <span className="text-[10px] text-slate-400 block mt-0.5">Across All 26 Districts</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">{uiText.allDistrictsSub}</span>
           </div>
 
           <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 text-center">
             <span className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wider block">
-              Available For Dispatch
+              {uiText.availableDispatch}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5 block">
               {availableCount}
             </span>
-            <span className="text-[10px] text-emerald-600/80 block mt-0.5">Ready for Work Orders</span>
+            <span className="text-[10px] text-emerald-600/80 block mt-0.5">{uiText.readyOrdersSub}</span>
           </div>
 
           <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 text-center">
             <span className="text-[11px] text-amber-700 font-semibold uppercase tracking-wider block">
-              Active On-Site
+              {uiText.activeOnSite}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-amber-600 mt-0.5 block">
               {busyCount}
             </span>
-            <span className="text-[10px] text-amber-600/80 block mt-0.5">Remediation Underway</span>
+            <span className="text-[10px] text-amber-600/80 block mt-0.5">{uiText.remediationSub}</span>
           </div>
 
           <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3 text-center">
             <span className="text-[11px] text-[#0077B6] font-semibold uppercase tracking-wider block">
-              Open Work Orders
+              {uiText.openWorkOrders}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-[#0077B6] mt-0.5 block">
               {totalOpenTasks}
             </span>
-            <span className="text-[10px] text-[#0077B6]/80 block mt-0.5">Assigned Grievance Tasks</span>
+            <span className="text-[10px] text-[#0077B6]/80 block mt-0.5">{uiText.assignedTasksSub}</span>
           </div>
         </div>
 
@@ -492,7 +492,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by Worker/Crew Name, ID (MW-...), Mandal, Skills, Machinery..."
+                placeholder={uiText.searchPlaceholder}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6]"
               />
             </div>
@@ -504,12 +504,12 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 onChange={(e) => setSelectedDistrict(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] cursor-pointer"
               >
-                <option value="all">All 26 Andhra Pradesh Districts ({totalCount} Workers)</option>
+                <option value="all">{uiText.allDistricts} ({totalCount} {uiText.unitsSuffix})</option>
                 {ANDHRA_PRADESH_26_DISTRICTS.map((d) => {
                   const countInDist = uniqueWorkers.filter((w) => isDistrictMatch(w.district, d.name)).length;
                   return (
                     <option key={d.id} value={d.name}>
-                      {d.name} ({countInDist} Units)
+                      {d.name} ({countInDist} {uiText.unitsSuffix})
                     </option>
                   );
                 })}
@@ -523,11 +523,11 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 onChange={(e) => setTypeFilter(e.target.value as any)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] cursor-pointer"
               >
-                <option value="all">All Action Units ({totalCount})</option>
-                <option value="Crew">Desilting &amp; Cleaning Crews</option>
-                <option value="Individual">Individual Field Workers</option>
-                <option value="Contractor">Earthworks Contractors</option>
-                <option value="Engineer">Technical / Field Engineering Units</option>
+                <option value="all">{uiText.allUnits} ({totalCount})</option>
+                <option value="Crew">{uiText.crewsFilter}</option>
+                <option value="Individual">{uiText.individualFilter}</option>
+                <option value="Contractor">{uiText.contractorFilter}</option>
+                <option value="Engineer">{uiText.engineerFilter}</option>
               </select>
             </div>
 
@@ -538,10 +538,10 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30 focus:border-[#0077B6] cursor-pointer"
               >
-                <option value="all">All Duty Statuses</option>
-                <option value="Available">Available ({availableCount})</option>
-                <option value="Busy">Busy / On-Site ({busyCount})</option>
-                <option value="On leave">On Leave</option>
+                <option value="all">{uiText.allDutyStatuses}</option>
+                <option value="Available">{uiText.availableOption} ({availableCount})</option>
+                <option value="Busy">{uiText.busyOption} ({busyCount})</option>
+                <option value="On leave">{uiText.leaveOption}</option>
               </select>
             </div>
           </div>
@@ -695,7 +695,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                   <div className="flex items-center justify-between text-slate-700">
                     <div className="flex items-center gap-1.5 text-slate-500">
                       <MapPin className="w-3.5 h-3.5 text-[#0077B6]" />
-                      <span className="font-medium">Service Areas:</span>
+                      <span className="font-medium">{uiText.serviceAreas}</span>
                     </div>
                     <span className="font-bold text-slate-900 truncate max-w-[170px]" title={worker.service_areas}>
                       {worker.service_areas || 'Central District Area'}
@@ -704,16 +704,16 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                   <div className="flex items-center justify-between text-slate-700">
                     <div className="flex items-center gap-1.5 text-slate-500">
                       <Compass className="w-3.5 h-3.5 text-[#0077B6]" />
-                      <span className="font-medium">District Catchment:</span>
+                      <span className="font-medium">{uiText.districtCatchment}</span>
                     </div>
                     <span className="font-semibold text-slate-800">
-                      {worker.district} District
+                      {worker.district} {uiText.districtSuffix}
                     </span>
                   </div>
                   <div className="flex items-start justify-between text-slate-700 pt-1.5 border-t border-slate-200/60 gap-2">
                     <div className="flex items-center gap-1.5 text-slate-500 shrink-0">
                       <Cpu className="w-3.5 h-3.5 text-[#0077B6]" />
-                      <span className="font-medium">Machinery &amp; Skills:</span>
+                      <span className="font-medium">{uiText.machinerySkills}</span>
                     </div>
                     <span className="font-medium text-[11px] text-slate-800 text-right leading-tight line-clamp-2" title={worker.skills}>
                       {worker.skills || 'Excavation & Silt Clearing'}
@@ -725,37 +725,37 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className={`border rounded-xl p-2 ${urgentWorkCount > 0 ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-50/80 border-slate-200/80'}`}>
                     <span className="text-[9px] uppercase font-bold tracking-wider text-blue-700 block">
-                      Assigned
+                      {uiText.assignedCardMetric}
                     </span>
                     <span className="text-base sm:text-lg font-black text-[#03045E]">
                       {urgentWorkCount}
                     </span>
                     <span className="text-[9px] text-blue-600 block font-medium truncate">
-                      {urgentWorkCount > 0 ? 'Pending' : 'Empty'}
+                      {urgentWorkCount > 0 ? uiText.pendingLabel : uiText.emptyLabel}
                     </span>
                   </div>
 
                   <div className={`border rounded-xl p-2 ${inProgressWorkCount > 0 ? 'bg-amber-50/80 border-amber-200 text-amber-700' : 'bg-slate-50/80 border-slate-200/80 text-slate-600'}`}>
                     <span className="text-[9px] uppercase font-bold tracking-wider block">
-                      In-Progress
+                      {uiText.inProgressCardMetric}
                     </span>
                     <span className="text-base sm:text-lg font-black text-amber-800">
                       {inProgressWorkCount}
                     </span>
                     <span className="text-[9px] block font-medium truncate">
-                      {inProgressWorkCount > 0 ? 'Active' : 'Standby'}
+                      {inProgressWorkCount > 0 ? uiText.activeLabel : uiText.standbyLabel}
                     </span>
                   </div>
 
                   <div className={`border rounded-xl p-2 ${completedWorkCount > 0 ? 'bg-purple-50/80 border-purple-200 text-purple-700' : 'bg-slate-50/80 border-slate-200/80 text-slate-600'}`}>
                     <span className="text-[9px] uppercase font-bold tracking-wider block">
-                      Verification
+                      {uiText.verificationCardMetric}
                     </span>
                     <span className="text-base sm:text-lg font-black text-purple-800">
                       {completedWorkCount}
                     </span>
                     <span className="text-[9px] block font-medium truncate">
-                      {completedWorkCount > 0 ? 'Audit Due' : 'None'}
+                      {completedWorkCount > 0 ? uiText.auditDueLabel : uiText.noneLabel}
                     </span>
                   </div>
                 </div>
@@ -816,7 +816,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                     title="Directly launch this worker's remediation workstation"
                   >
                     <Wrench className="w-3.5 h-3.5 text-sky-200" />
-                    <span>Launch</span>
+                    <span>{uiText.launchBtn}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
 
@@ -831,7 +831,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                     title="Enter Security PIN (1234)"
                   >
                     <Lock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>PIN Auth</span>
+                    <span>{uiText.pinAuthBtn}</span>
                   </button>
                 </div>
               </div>
@@ -845,9 +845,9 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
             <Search className="w-6 h-6" />
           </div>
-          <h3 className="font-extrabold text-slate-900 text-base">No Action Workers Found</h3>
+          <h3 className="font-extrabold text-slate-900 text-base">{uiText.noWorkersFound}</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            No remediation units matched your search criteria. Try clearing the search or changing the district/type filter.
+            {uiText.noWorkersDesc}
           </p>
           <button
             onClick={() => {
@@ -858,7 +858,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
             }}
             className="px-4 py-2 bg-[#0077B6] hover:bg-[#03045E] text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
           >
-            Reset All Filters
+            {uiText.resetFilters}
           </button>
         </div>
       )}
@@ -881,10 +881,10 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[10px] font-mono font-bold text-sky-200 border border-white/20">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>STATUTORY FIELD CREW ACCESS</span>
+                  <span>{uiText.modalBadge}</span>
                 </span>
                 <span className="text-[10px] font-mono font-semibold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-300/30">
-                  Dummy Auth
+                  {uiText.modalDummy}
                 </span>
               </div>
 
@@ -892,7 +892,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 {pendingAuthWorker.name_or_crew || pendingAuthWorker.name_or_crew_type || pendingAuthWorker.contact_person}
               </h3>
               <p className="text-xs text-sky-100 font-medium mt-1">
-                Enter security credentials to unlock the remediation engineering terminal &amp; assigned work orders.
+                {uiText.modalSubtitle}
               </p>
             </div>
 
@@ -905,10 +905,10 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 <div className="min-w-0 flex-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] uppercase font-bold text-slate-400">
-                      Authorized Remediation Cadre
+                      {uiText.authorizedCrew}
                     </span>
                     <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      Cadre Verified
+                      {uiText.crewVerified}
                     </span>
                   </div>
                   <h4 className="font-extrabold text-slate-900 text-sm mt-0.5">
@@ -920,7 +920,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-slate-600 font-medium">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-[#0077B6]" />
-                      {pendingAuthWorker.service_areas || 'District Command'}, {pendingAuthWorker.district} District
+                      {pendingAuthWorker.service_areas || 'District Command'}, {pendingAuthWorker.district} {uiText.districtSuffix}
                     </span>
                     <span className="flex items-center gap-1">
                       <Cpu className="w-3 h-3 text-[#0077B6]" />
@@ -935,7 +935,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!authPin.trim()) {
-                    setAuthError('Please enter the security PIN (Default: 1234)');
+                    setAuthError(uiText.pinPlaceholder);
                     return;
                   }
                   confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
@@ -948,10 +948,10 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-bold text-slate-700">
-                      Security PIN / Crew Access Code:
+                      {uiText.pinLabel}
                     </label>
                     <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      Default: 1234
+                      {uiText.pinHint}
                     </span>
                   </div>
                   <div className="relative">
@@ -963,7 +963,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                         setAuthPin(e.target.value);
                         setAuthError('');
                       }}
-                      placeholder="Enter 4-digit PIN (1234)"
+                      placeholder={uiText.pinPlaceholder}
                       className="w-full pl-9 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0077b6]/30 focus:border-[#0077b6] outline-none font-mono font-bold text-slate-800"
                     />
                     <button
@@ -978,7 +978,7 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                     <p className="text-[11px] text-rose-600 font-medium mt-1">{authError}</p>
                   ) : (
                     <p className="text-[11px] text-slate-400 mt-1">
-                      * Dummy authentication active: enter 1234 or any credentials to sign in.
+                      * {uiText.modalDummy}: {uiText.pinHint}
                     </p>
                   )}
                 </div>
@@ -996,14 +996,14 @@ export const WorkerDirectoryHub: React.FC<WorkerDirectoryHubProps> = ({
                     onClick={() => setPendingAuthWorker(null)}
                     className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
                   >
-                    Cancel
+                    {uiText.cancel}
                   </button>
                   <button
                     type="submit"
                     className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0077b6] to-[#023e8a] hover:from-[#023e8a] hover:to-[#03045e] text-white font-extrabold text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 active:scale-98"
                   >
                     <LogIn className="w-4 h-4" />
-                    <span>Authenticate &amp; Access Terminal</span>
+                    <span>{uiText.authSubmit}</span>
                   </button>
                 </div>
               </form>

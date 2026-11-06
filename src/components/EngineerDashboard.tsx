@@ -55,14 +55,11 @@ import {
   HelpCircle, 
   ListTodo, 
   Layers,
-  Monitor,
-  Smartphone,
   SlidersHorizontal,
   Activity,
   Filter,
   CheckCheck,
   Maximize2,
-  Database,
   Search,
   Droplets,
   ThumbsUp,
@@ -107,7 +104,8 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   onCompleteTask,
   onViewChange,
 }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const currentLang = (language === 'hi' || language === 'te') ? language : 'en';
 
   // Action Workers State with live Supabase synchronization (Zero fake data)
   const [workersList, setWorkersList] = useState<SupabaseActionWorkerRow[]>(() => {
@@ -221,24 +219,6 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
   // Active top navigation tab
   const [activeTab, setActiveTab] = useState<WorkerTab>('assigned');
 
-  // Device layout mode ('desktop' vs 'mobile' vs 'auto')
-  const [deviceMode, setDeviceMode] = useState<'auto' | 'desktop' | 'mobile'>('auto');
-  const [isScreenDesktop, setIsScreenDesktop] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth >= 1024;
-    }
-    return true;
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsScreenDesktop(window.innerWidth >= 1024);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const effectiveLayout = deviceMode === 'auto' ? (isScreenDesktop ? 'desktop' : 'mobile') : deviceMode;
 
   // Selected task state
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
@@ -973,35 +953,59 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
       <div className="space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300 text-xs font-black uppercase tracking-wider">
           <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
-          <span>Statutory 1-to-1 Worker Task Isolation (कार्य पृथक्करण नियम)</span>
+          <span>
+            {currentLang === 'hi'
+              ? 'वैधानिक 1-टू-1 कार्य पृथक्करण नियम'
+              : currentLang === 'te'
+              ? 'చట్టబద్ధమైన 1-టు-1 టాస్క్ ఐసోలేషన్ నియమం'
+              : 'Statutory 1-to-1 Worker Task Isolation'}
+          </span>
         </div>
         <h2 className="text-lg sm:text-xl font-black text-slate-900">
-          No Work Orders Assigned to {selectedWorkerDisplayName}
+          {currentLang === 'hi'
+            ? `${selectedWorkerDisplayName} को कोई कार्य आवंटित नहीं`
+            : currentLang === 'te'
+            ? `${selectedWorkerDisplayName} కు ఎటువంటి పనులు కేటాయించబడలేదు`
+            : `No Work Orders Assigned to ${selectedWorkerDisplayName}`}
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-          <strong>सरकारी सुरक्षा नियम:</strong> एक वर्कर दूसरे वर्कर का कोई भी काम नहीं देख सकता ताकि फील्ड पर काम में कोई हस्तक्षेप या लापरवाही न हो। जिसे जिला नोडल अधिकारी (Nodal Officer) द्वारा आधिकारिक वर्क ऑर्डर जारी किया जाएगा, केवल उसी को अपने ऑर्डर्स दिखाई देंगे।
+          {currentLang === 'hi'
+            ? 'सरकारी सुरक्षा नियम: एक वर्कर दूसरे वर्कर का कोई भी काम नहीं देख सकता ताकि फील्ड पर काम में कोई हस्तक्षेप न हो। केवल जिला नोडल अधिकारी द्वारा आवंटित आधिकारिक कार्य ही दिखाई देंगे।'
+            : currentLang === 'te'
+            ? 'ప్రభుత్వ భద్రతా నిబంధన: ఫీల్డ్ పనుల్లో జోక్యం లేకుండా ఒక కార్మికుడు మరొకరి పనులను చూడలేరు. జిల్లా నోడల్ అధికారి కేటాయించిన పనులు మాత్రమే ఇక్కడ కనిపిస్తాయి.'
+            : 'Government Security Rule: Strict 1-to-1 data isolation prevents cross-worker interference. Only work orders officially assigned to your unit by the District Nodal Officer will appear here.'}
         </p>
       </div>
 
       <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2.5 text-xs">
         <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-          <span className="text-slate-500 font-semibold">Logged-in Action Worker:</span>
+          <span className="text-slate-500 font-semibold">
+            {currentLang === 'hi' ? 'लॉग-इन कार्यकर्ता:' : currentLang === 'te' ? 'లాగిన్ అయిన కార్మికుడు:' : 'Logged-in Action Worker:'}
+          </span>
           <span className="font-mono font-bold text-slate-900">{selectedWorkerDisplayName}</span>
         </div>
         <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-          <span className="text-slate-500 font-semibold">Worker Badge ID:</span>
+          <span className="text-slate-500 font-semibold">
+            {currentLang === 'hi' ? 'वर्कर बैज आईडी:' : currentLang === 'te' ? 'వర్కర్ బ్యాడ్జ్ ఐడీ:' : 'Worker Badge ID:'}
+          </span>
           <span className="font-mono font-bold text-[#0077B6] bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
             {selectedWorker.worker_id}
           </span>
         </div>
         <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-          <span className="text-slate-500 font-semibold">Assigned Jurisdiction:</span>
-          <span className="font-bold text-slate-800">{selectedWorker.district} Remediation Division</span>
+          <span className="text-slate-500 font-semibold">
+            {currentLang === 'hi' ? 'आवंटित कार्यक्षेत्र:' : currentLang === 'te' ? 'కేటాయించిన అధికార పరిధి:' : 'Assigned Jurisdiction:'}
+          </span>
+          <span className="font-bold text-slate-800">
+            {selectedWorker.district} {currentLang === 'hi' ? 'सुधार प्रभाग' : currentLang === 'te' ? 'పునరుద్ధరణ విభాగం' : 'Remediation Division'}
+          </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-slate-500 font-semibold">Assigned Work Orders:</span>
+          <span className="text-slate-500 font-semibold">
+            {currentLang === 'hi' ? 'आवंटित कार्य आदेश:' : currentLang === 'te' ? 'కేటాయించిన పని ఆదేశాలు:' : 'Assigned Work Orders:'}
+          </span>
           <span className="font-mono font-bold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200">
-            0 Active Orders (Strictly Isolated &amp; Shielded)
+            {currentLang === 'hi' ? '0 सक्रिय आदेश (पूर्णतः पृथक एवं सुरक्षित)' : currentLang === 'te' ? '0 క్రియాశీల ఆర్డర్లు (రక్షితం)' : '0 Active Orders (Strictly Isolated & Shielded)'}
           </span>
         </div>
       </div>
@@ -1025,14 +1029,22 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
           className="w-full sm:w-auto px-5 py-3 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 active:scale-98"
         >
           <Wrench className="w-4 h-4 text-sky-200" />
-          <span>Switch to Er. T. Venkata Ramana (Active Remediation Orders)</span>
+          <span>
+            {currentLang === 'hi'
+              ? 'Er. T. Venkata Ramana पर स्विच करें (सक्रिय आदेश)'
+              : currentLang === 'te'
+              ? 'Er. T. Venkata Ramana కు మారండి (క్రియాశీల ఆర్డర్లు)'
+              : 'Switch to Er. T. Venkata Ramana (Active Remediation Orders)'}
+          </span>
         </button>
         <button
           onClick={() => setIsSelectingWorker(true)}
           className="w-full sm:w-auto px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-300 flex items-center justify-center gap-2"
         >
           <Users className="w-4 h-4 text-slate-600" />
-          <span>Open Full Worker Directory</span>
+          <span>
+            {currentLang === 'hi' ? 'पूरी वर्कर डायरेक्टरी खोलें' : currentLang === 'te' ? 'పూర్తి వర్కర్ డైరెక్టరీ తెరవండి' : 'Open Full Worker Directory'}
+          </span>
         </button>
       </div>
     </div>
@@ -1066,133 +1078,6 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
       {/* 1. EXECUTIVE TOP HEADER CARD (GOVTECH SPECIFICATION)           */}
       {/* ============================================================== */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-        {/* Meta Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            {/* GPS Accuracy Badge */}
-            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl text-emerald-800 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>DGPS ±1.8m (RTK Fixed)</span>
-            </div>
-
-            {/* Sync Badge */}
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl font-semibold border ${
-              isSupabaseLive
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                : 'bg-blue-50 border-blue-200 text-[#0077B6]'
-            }`}>
-              <Database className="w-3.5 h-3.5" />
-              <span>{isSupabaseLive ? 'Supabase Live: public.action_workers' : 'Offline Verified Roster'}</span>
-            </div>
-
-            {/* AP-WRIMS Sync */}
-            <div className="hidden md:flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-xl text-slate-700 font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-              <span>AP-WRIMS Verified</span>
-            </div>
-          </div>
-
-          {/* Right Side: Switch Worker, Device Switcher & Audio Briefing */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Quick 1-to-1 Worker Isolation Test Selector */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-              <button
-                onClick={() => {
-                  const venkata = allWorkers.find(
-                    (w) =>
-                      w.worker_id === 'wrk-vzm-01' ||
-                      w.name_or_crew?.includes('Venkata Ramana') ||
-                      w.contact_person?.includes('Venkata Ramana')
-                  );
-                  if (venkata) {
-                    setSelectedWorker(venkata);
-                    try { localStorage.setItem('nir_current_worker_id', venkata.worker_id); } catch {}
-                  }
-                }}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
-                  selectedWorker.worker_id === 'wrk-vzm-01'
-                    ? 'bg-[#0077B6] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Er. T. Venkata Ramana (Has assigned remediation work orders)"
-              >
-                <Wrench className="w-3 h-3" />
-                <span>Er. T. Venkata Ramana (Active Orders)</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  const mw01 = allWorkers.find((w) => w.worker_id === 'MW-001') || allWorkers[1];
-                  if (mw01) {
-                    setSelectedWorker(mw01);
-                    try { localStorage.setItem('nir_current_worker_id', mw01.worker_id); } catch {}
-                  }
-                }}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
-                  selectedWorker.worker_id !== 'wrk-vzm-01'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Crew MW-001 (0 Tasks - Demonstrates 1-to-1 Worker Task Isolation Shield)"
-              >
-                <ShieldCheck className="w-3 h-3" />
-                <span>Crew MW-001 (0 Orders - Shielded)</span>
-              </button>
-            </div>
-
-            {/* Switch Worker Button */}
-            <button
-              onClick={() => setIsSelectingWorker(true)}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-              title="Return to Action Worker Directory Hub"
-            >
-              <Users className="w-3.5 h-3.5 text-slate-600" />
-              <span>Full Directory ({selectedWorker.worker_id})</span>
-            </button>
-
-            {/* Device Switcher Toggle */}
-            <div className="bg-slate-100 border border-slate-200 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
-              <button
-                onClick={() => setDeviceMode('desktop')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  effectiveLayout === 'desktop'
-                    ? 'bg-white text-[#03045E] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Laptop & Workstation View"
-              >
-                <Monitor className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Laptop Console</span>
-              </button>
-              <button
-                onClick={() => setDeviceMode('mobile')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  effectiveLayout === 'mobile'
-                    ? 'bg-white text-[#03045E] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Mobile Field Handheld View"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Mobile Field</span>
-              </button>
-            </div>
-
-            {/* Audio Voice Briefing */}
-            <button
-              onClick={() =>
-                speakText(
-                  `Nir-ikshan Action Worker Portal for ${selectedWorkerDisplayName}. You have ${urgentTasks.length} urgent work orders awaiting decision, ${inProgressTasks.length} active remediation sites, and ${waitingReviewTasks.length} sites submitted for inspector verification.`
-                )
-              }
-              className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-            >
-              <Volume2 className="w-3.5 h-3.5 text-[#0077B6]" />
-              <span className="hidden sm:inline">Listen to Tasks</span>
-            </button>
-          </div>
-        </div>
-
         {/* Executive Profile Row */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -1206,7 +1091,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                 </h1>
                 <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-[#0077B6] border border-blue-200/80 flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-rose-500" />
-                  <span>{selectedWorker.district} Remediation Division • {selectedWorker.service_areas || 'Field Operations'}</span>
+                  <span>
+                    {selectedWorker.district} {currentLang === 'hi' ? 'सुधार प्रभाग' : currentLang === 'te' ? 'పునరుద్ధరణ విభాగం' : 'Remediation Division'} • {selectedWorker.service_areas || (currentLang === 'hi' ? 'फ़ील्ड संचालन' : currentLang === 'te' ? 'ఫీల్డ్ కార్యకలాపాలు' : 'Field Operations')}
+                  </span>
                 </span>
                 <span className="font-mono text-[11px] font-medium bg-[#0077B6]/10 text-[#0077B6] border border-[#0077B6]/20 px-2 py-0.5 rounded-md">
                   {selectedWorker.worker_id}
@@ -1219,7 +1106,11 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                   <span className={`w-1.5 h-1.5 rounded-full ${
                     selectedWorker.availability === 'Busy' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
                   }`} />
-                  <span>{selectedWorker.availability === 'Busy' ? 'On-Site Active' : 'On-Field Ready'}</span>
+                  <span>
+                    {selectedWorker.availability === 'Busy'
+                      ? (currentLang === 'hi' ? 'साइट पर सक्रिय' : currentLang === 'te' ? 'సైట్‌లో క్రియాశీలం' : 'On-Site Active')
+                      : (currentLang === 'hi' ? 'फ़ील्ड पर तैयार' : currentLang === 'te' ? 'ఫీల్డ్‌లో సిద్ధం' : 'On-Field Ready')}
+                  </span>
                 </span>
                 <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
                   {selectedWorker.type}
@@ -1227,27 +1118,55 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
               </div>
 
               <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500 mt-1">
-                <span>{selectedWorker.skills || 'Desilting & Canal Remediation Wing'}</span>
+                <span>{selectedWorker.skills || (currentLang === 'hi' ? 'गाद निकासी एवं नहर सुधार विंग' : currentLang === 'te' ? 'పూడికతీత & కాలువ పునరుద్ధరణ విభాగం' : 'Desilting & Canal Remediation Wing')}</span>
                 <span className="text-slate-300">•</span>
                 <div className="flex items-center gap-1 text-slate-700 font-semibold">
                   <Users className="w-3.5 h-3.5 text-[#0077B6]" />
                   <span>
                     {selectedWorker.type === 'Contractor'
-                      ? 'Contractor Fleet: 12 Operators On-Site'
+                      ? (currentLang === 'hi' ? 'ठेकेदार बेड़ा: 12 ऑपरेटर साइट पर' : currentLang === 'te' ? 'కాంట్రాక్టర్ ఫ్లీట్: సైట్‌లో 12 ఆపరేటర్లు' : 'Contractor Fleet: 12 Operators On-Site')
                       : selectedWorker.type === 'Engineer'
-                      ? 'Engineering Command Unit'
-                      : `Crew: ${workerCount} Field Operatives On-Site`}
+                      ? (currentLang === 'hi' ? 'इंजीनियरिंग कमान इकाई' : currentLang === 'te' ? 'ఇంజనీరింగ్ కమాండ్ విభాగం' : 'Engineering Command Unit')
+                      : (currentLang === 'hi' ? `दल: ${workerCount} फ़ील्ड कर्मी साइट पर` : currentLang === 'te' ? `బృందం: సైట్‌లో ${workerCount} ఫీల్డ్ వర్కర్లు` : `Crew: ${workerCount} Field Operatives On-Site`)}
                   </span>
                 </div>
                 <span className="text-slate-300">•</span>
-                <span>Phone: {selectedWorker.phone || '+91 94402 33445'}</span>
+                <span>{currentLang === 'hi' ? 'फ़ोन:' : currentLang === 'te' ? 'ఫోన్:' : 'Phone:'} {selectedWorker.phone || '+91 94402 33445'}</span>
               </div>
             </div>
+          </div>
+
+          {/* Action Buttons: Directory & Audio Briefing */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setIsSelectingWorker(true)}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              title="Return to Action Worker Directory Hub"
+            >
+              <Users className="w-3.5 h-3.5 text-slate-600" />
+              <span>
+                {currentLang === 'hi' ? 'वर्कर डायरेक्टरी' : currentLang === 'te' ? 'వర్కర్ డైరెక్టరీ' : 'Directory'} ({selectedWorker.worker_id})
+              </span>
+            </button>
+
+            <button
+              onClick={() =>
+                speakText(
+                  `Nir-ikshan Action Worker Portal for ${selectedWorkerDisplayName}. You have ${urgentTasks.length} urgent work orders awaiting decision, ${inProgressTasks.length} active remediation sites, and ${waitingReviewTasks.length} sites submitted for inspector verification.`
+                )
+              }
+              className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-[#0077B6] border border-sky-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            >
+              <Volume2 className="w-3.5 h-3.5 text-[#0077B6]" />
+              <span className="hidden sm:inline">
+                {currentLang === 'hi' ? 'कार्य सुनें' : currentLang === 'te' ? 'పనులను వినండి' : 'Listen to Tasks'}
+              </span>
+            </button>
           </div>
         </div>
 
         {/* Clean Top Navigation Tabs (Exact 4 Tabs - No Redundant Tabs!) */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto">
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto no-scrollbar scroll-smooth">
           {/* Tab 1: Assigned Work Orders */}
           <button
             onClick={() => {
@@ -1261,7 +1180,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             }`}
           >
             <Clock className="w-4 h-4" />
-            <span>1. Assigned Work Orders</span>
+            <span>
+              {currentLang === 'hi' ? '1. आवंटित कार्य आदेश' : currentLang === 'te' ? '1. కేటాయించిన పని ఆదేశాలు' : '1. Assigned Work Orders'}
+            </span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 activeTab === 'assigned' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
@@ -1281,10 +1202,12 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             }`}
           >
             <Wrench className="w-4 h-4" />
-            <span>2. In-Progress Remediation</span>
+            <span>
+              {currentLang === 'hi' ? '2. प्रगतिरत सुधार कार्य' : currentLang === 'te' ? '2. పురోగతిలో ఉన్న పనులు' : '2. In-Progress Remediation'}
+            </span>
             {inProgressTasks.length > 0 && (
               <span className="bg-sky-500 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono">
-                {inProgressTasks.length} Active
+                {inProgressTasks.length} {currentLang === 'hi' ? 'सक्रिय' : currentLang === 'te' ? 'క్రియాశీలం' : 'Active'}
               </span>
             )}
           </button>
@@ -1299,7 +1222,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             }`}
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>3. Completed & Verification</span>
+            <span>
+              {currentLang === 'hi' ? '3. पूर्ण व सत्यापन हेतु' : currentLang === 'te' ? '3. పూర్తయినవి & ధృవీకరణ' : '3. Completed & Verification'}
+            </span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 activeTab === 'completed' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
@@ -1319,7 +1244,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>4. GIS Cadastral Map</span>
+            <span>
+              {currentLang === 'hi' ? '4. जीआईएस भूकर मानचित्र' : currentLang === 'te' ? '4. జీఐఎస్ కాడాస్ట్రల్ మ్యాప్' : '4. GIS Cadastral Map'}
+            </span>
           </button>
         </div>
       </div>
@@ -1482,7 +1409,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                               onClick={() => handleOpenTaskForReview(task)}
                               className="w-full py-2.5 px-4 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs hover:shadow-sm active:scale-98"
                             >
-                              <span>Open Task &amp; Accept Work Order</span>
+                              <span>
+                                {currentLang === 'hi' ? 'कार्य खोलें व आदेश स्वीकारें' : currentLang === 'te' ? 'పనిని తెరిచి ఆర్డర్‌ను అంగీకరించండి' : 'Open Task & Accept Work Order'}
+                              </span>
                               <ArrowRight className="w-4 h-4 text-sky-200" />
                             </button>
 
@@ -1497,7 +1426,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                                 className="py-2 px-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 truncate"
                               >
                                 <Volume2 className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
-                                <span className="truncate">Audio Memo</span>
+                                <span className="truncate">{currentLang === 'hi' ? 'ऑडियो मेमो' : currentLang === 'te' ? 'ఆడియో మెమో' : 'Audio Memo'}</span>
                               </button>
 
                               <button
@@ -1508,7 +1437,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                                 className="py-2 px-2.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200/80 hover:border-rose-300 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 truncate"
                               >
                                 <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                <span className="truncate">Decline</span>
+                                <span className="truncate">{currentLang === 'hi' ? 'अस्वीकार करें' : currentLang === 'te' ? 'తిరస్కరించండి' : 'Decline'}</span>
                               </button>
                             </div>
                           </div>
@@ -1867,7 +1796,9 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                       className="w-full py-3 px-4 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs hover:shadow-sm active:scale-98"
                     >
                       <CheckCircle2 className="w-4 h-4 text-sky-200" />
-                      <span>Accept Task &amp; View Steps ➔</span>
+                      <span>
+                        {currentLang === 'hi' ? 'कार्य स्वीकारें व चरण देखें ➔' : currentLang === 'te' ? 'పనిని అంగీకరించి దశలను చూడండి ➔' : 'Accept Task & View Steps ➔'}
+                      </span>
                     </button>
 
                     <div className="grid grid-cols-2 gap-2 pt-0.5">
@@ -1881,7 +1812,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                         className="py-2 px-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 truncate"
                       >
                         <Volume2 className="w-3.5 h-3.5 text-[#0077B6] shrink-0" />
-                        <span className="truncate">Audio Briefing</span>
+                        <span className="truncate">{currentLang === 'hi' ? 'ऑडियो विवरण' : currentLang === 'te' ? 'ఆడియో బ్రీఫింగ్' : 'Audio Briefing'}</span>
                       </button>
 
                       <button
@@ -1889,7 +1820,7 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                         className="py-2 px-2.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200/80 hover:border-rose-300 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 truncate"
                       >
                         <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                        <span className="truncate">Decline</span>
+                        <span className="truncate">{currentLang === 'hi' ? 'अस्वीकार करें' : currentLang === 'te' ? 'తిరస్కరించండి' : 'Decline'}</span>
                       </button>
                     </div>
 
@@ -2885,7 +2816,13 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                   className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-98"
                 >
                   <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                  <span>Complete Remediation &amp; Unlock Inspector Verification ➔</span>
+                  <span>
+                    {currentLang === 'hi'
+                      ? 'सुधार कार्य पूरा करें व इंस्पेक्टर सत्यापन अनलॉक करें ➔'
+                      : currentLang === 'te'
+                      ? 'పునరుద్ధరణను పూర్తి చేసి ఇన్‌స్పెక్టర్ ధృవీకరణను అన్‌లాక్ చేయండి ➔'
+                      : 'Complete Remediation & Unlock Inspector Verification ➔'}
+                  </span>
                 </button>
               </div>
 
@@ -2908,28 +2845,42 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
 
             <div className="space-y-1.5">
               <h3 className="text-base sm:text-lg font-black text-slate-900">
-                Statutory Verification &amp; Remediation Audit Ledger
+                {currentLang === 'hi'
+                  ? 'वैधानिक सत्यापन एवं सुधार ऑडिट बहीखाता'
+                  : currentLang === 'te'
+                  ? 'చట్టబద్ధమైన ధృవీకరణ & పునరుద్ధరణ ఆడిట్ రికార్డు'
+                  : 'Statutory Verification & Remediation Audit Ledger'}
               </h3>
               <p className="text-xs text-slate-500 max-w-lg mx-auto">
-                All physical works completed by <strong>{selectedWorkerDisplayName}</strong> undergo two-stage statutory verification: 1. Field Inspector physical on-site audit with DGPS coordinates and probe testing. 2. District Nodal Officer closure.
+                {currentLang === 'hi'
+                  ? `कार्यकारी दल द्वारा पूरे किए गए सभी कार्य दो-चरणीय वैधानिक सत्यापन से गुजरते हैं: 1. फ़ील्ड इंस्पेक्टर द्वारा भौतिक ऑन-साइट ऑडिट और टेलीमेट्री जांच। 2. ज़िला नोडल अधिकारी द्वारा अंतिम निस्तारण।`
+                  : currentLang === 'te'
+                  ? `సిబ్బంది పూర్తి చేసిన అన్ని పనులు రెండు దశల చట్టబద్ధమైన ధృవీకరణకు లోబడి ఉంటాయి: 1. ఫీల్డ్ ఇన్‌స్పెక్టర్ భౌతిక తనిఖీ & టెలిమెట్రీ పరిశీలన. 2. జిల్లా నోడల్ అధికారి ముగింపు.`
+                  : `All physical works completed by ${selectedWorkerDisplayName} undergo two-stage statutory verification: 1. Field Inspector physical on-site audit with DGPS coordinates and probe testing. 2. District Nodal Officer closure.`}
               </p>
             </div>
 
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2 text-xs max-w-md mx-auto">
               <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                <span className="text-slate-500 font-semibold">Active Action Worker:</span>
+                <span className="text-slate-500 font-semibold">
+                  {currentLang === 'hi' ? 'सक्रिय कार्य दल:' : currentLang === 'te' ? 'క్రియాశీల వర్కర్:' : 'Active Action Worker:'}
+                </span>
                 <span className="font-bold text-slate-900">{selectedWorkerDisplayName}</span>
               </div>
               <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                <span className="text-slate-500 font-semibold">Pending Inspector Sign-offs:</span>
+                <span className="text-slate-500 font-semibold">
+                  {currentLang === 'hi' ? 'लंबित इंस्पेक्टर सत्यापन:' : currentLang === 'te' ? 'పెండింగ్ ఇన్‌స్పెక్టర్ సంతకాలు:' : 'Pending Inspector Sign-offs:'}
+                </span>
                 <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  0 Records
+                  {currentLang === 'hi' ? '0 रिकॉर्ड' : currentLang === 'te' ? '0 రికార్డులు' : '0 Records'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-semibold">Completed &amp; Closed Works:</span>
+                <span className="text-slate-500 font-semibold">
+                  {currentLang === 'hi' ? 'पूर्ण व बंद कार्य:' : currentLang === 'te' ? 'పూర్తయి ముగించిన పనులు:' : 'Completed & Closed Works:'}
+                </span>
                 <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  0 Records in Current Cycle
+                  {currentLang === 'hi' ? 'वर्तमान चक्र में 0 रिकॉर्ड' : currentLang === 'te' ? 'ప్రస్తుత చక్రంలో 0 రికార్డులు' : '0 Records in Current Cycle'}
                 </span>
               </div>
             </div>
@@ -2943,14 +2894,18 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                 className="px-4 py-2.5 bg-[#0077B6] hover:bg-[#03045E] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>Go to Assigned Orders (Tab 1)</span>
+                <span>
+                  {currentLang === 'hi' ? 'आवंटित आदेशों पर जाएं (टैब 1)' : currentLang === 'te' ? 'కేటాయించిన ఆర్డర్లకు వెళ్లండి (ట్యాబ్ 1)' : 'Go to Assigned Orders (Tab 1)'}
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab('map')}
                 className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Open Cadastral Map (Tab 4)</span>
+                <span>
+                  {currentLang === 'hi' ? 'भूकर मानचित्र खोलें (टैब 4)' : currentLang === 'te' ? 'కాడాస్ట్రల్ మ్యాప్ తెరవండి (ట్యాబ్ 4)' : 'Open Cadastral Map (Tab 4)'}
+                </span>
               </button>
             </div>
           </div>
@@ -2963,10 +2918,20 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
               <div>
                 <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-amber-600" />
-                  <span>Awaiting Field Inspector Physical Verification ({waitingReviewTasks.length})</span>
+                  <span>
+                    {currentLang === 'hi'
+                      ? `फ़ील्ड इंस्पेक्टर भौतिक सत्यापन प्रतीक्षित (${waitingReviewTasks.length})`
+                      : currentLang === 'te'
+                      ? `ఫీల్డ్ ఇన్‌స్పెక్టర్ భౌతిక ధృవీకరణ కొరకు వేచి ఉంది (${waitingReviewTasks.length})`
+                      : `Awaiting Field Inspector Physical Verification (${waitingReviewTasks.length})`}
+                  </span>
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Tasks submitted by worker, currently waiting for inspector on-site re-inspection and statutory sign-off.
+                  {currentLang === 'hi'
+                    ? 'कार्यकर्ताओं द्वारा प्रस्तुत कार्य, वर्तमान में इंस्पेक्टर के ऑन-साइट सत्यापन एवं वैधानिक स्वीकृति हेतु प्रतीक्षारत।'
+                    : currentLang === 'te'
+                    ? 'సిబ్బంది సమర్పించిన పనులు, ప్రస్తుతం ఇన్‌స్పెక్టర్ ఆన్-సైట్ తనిఖీ మరియు చట్టబద్ధమైన ఆమోదం కోసం వేచి ఉన్నాయి.'
+                    : 'Tasks submitted by worker, currently waiting for inspector on-site re-inspection and statutory sign-off.'}
                 </p>
               </div>
             </div>
@@ -3054,10 +3019,20 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
             <div>
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Statutorily Verified & Closed Cases ({completedTasks.length})</span>
+                <span>
+                  {currentLang === 'hi'
+                    ? `वैधानिक रूप से सत्यापित एवं पूर्ण मामले (${completedTasks.length})`
+                    : currentLang === 'te'
+                    ? `చట్టబద్ధంగా ధృవీకరించిన కేసులు (${completedTasks.length})`
+                    : `Statutorily Verified & Closed Cases (${completedTasks.length})`}
+                </span>
               </h3>
               <p className="text-xs text-slate-500">
-                Water recharge assets with completed remediation and approved inspector sign-off.
+                {currentLang === 'hi'
+                  ? 'जल पुनर्भरण संपत्तियां जिनका सुधार कार्य पूरा हुआ एवं इंस्पेक्टर द्वारा स्वीकृत किया गया।'
+                  : currentLang === 'te'
+                  ? 'పునరుద్ధరణ పూర్తయి ఇన్‌స్పెక్టర్ ఆమోదం పొందిన జల వనరులు.'
+                  : 'Water recharge assets with completed remediation and approved inspector sign-off.'}
               </p>
             </div>
 
@@ -3070,10 +3045,18 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Statutorily Closed (RESOLVED)
+                      {currentLang === 'hi'
+                        ? 'वैधानिक रूप से बंद (निस्तारित)'
+                        : currentLang === 'te'
+                        ? 'చట్టబద్ధంగా ముగించబడింది (పరిష్కారం)'
+                        : 'Statutorily Closed (RESOLVED)'}
                     </span>
                     <span className="text-xs font-semibold text-emerald-700">
-                      100% Water Flow Restored
+                      {currentLang === 'hi'
+                        ? '100% जल प्रवाह बहाल'
+                        : currentLang === 'te'
+                        ? '100% నీటి ప్రవాహం పునరుద్ధరించబడింది'
+                        : '100% Water Flow Restored'}
                     </span>
                   </div>
 
@@ -3113,16 +3096,24 @@ export const EngineerDashboard: React.FC<EngineerDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  {selectedWorker.district} District Hydrological &amp; Remediation Satellite Map
+                  {currentLang === 'hi'
+                    ? `${selectedWorker.district} जिला जलविज्ञानी एवं सुधार उपग्रह मानचित्र`
+                    : currentLang === 'te'
+                    ? `${selectedWorker.district} జిల్లా హైడ్రాలాజికల్ & పునరుద్ధరణ శాటిలైట్ మ్యాప్`
+                    : `${selectedWorker.district} District Hydrological & Remediation Satellite Map`}
                 </h3>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Authoritative District Nodal Officer surveillance map: Esri World Satellite, ISRO Bhuvan telemetry, district reservoirs, river gauges, piezometers, and work orders.
+                {currentLang === 'hi'
+                  ? 'नोडल अधिकारी उपग्रह निगरानी: Esri World Satellite, ISRO Bhuvan टेलीमेट्री, जलाशय, नदी गेज और कार्य आदेश।'
+                  : currentLang === 'te'
+                  ? 'నోడల్ అధికారి ఉపగ్రహ నిఘా: Esri శాటిలైట్, ఇస్రో భువన్ టెలిమెట్రీ, జలాశయాలు మరియు పని ఆదేశాలు.'
+                  : 'Authoritative District Nodal Officer surveillance map: Esri World Satellite, ISRO Bhuvan telemetry, district reservoirs, river gauges, piezometers, and work orders.'}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs font-semibold text-[#0077B6] bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/80">
-                {selectedWorker.district} Circle
+                {selectedWorker.district} {currentLang === 'hi' ? 'सर्कल' : currentLang === 'te' ? 'సర్కిల్' : 'Circle'}
               </span>
             </div>
           </div>

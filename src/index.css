@@ -70,3 +70,26 @@
 .leaflet-control-attribution a {
   color: #0284c7 !important;
 }
+
+/* Dynamic Mobile & Desktop Viewport Optimizations */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* Safe-area insets for modern mobile phones (iOS Home Bar, Android navigation gesture bars) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+/* Touch-friendly horizontal tab scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

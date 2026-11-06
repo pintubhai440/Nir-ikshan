@@ -1176,7 +1176,11 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             {/* Supabase Status */}
             <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1 rounded-xl text-[#0077B6] font-semibold">
               <Database className="w-3.5 h-3.5 text-[#0077B6]" />
-              <span>{isSupabaseLive ? 'Supabase Synchronized' : 'Local Storage Cache'}</span>
+              <span>
+                {isSupabaseLive
+                  ? (currentLang === 'hi' ? 'सुपाबेस सिंक्रनाइज़्ड' : currentLang === 'te' ? 'సుపాబేస్ సింక్ చేయబడింది' : 'Supabase Synchronized')
+                  : (currentLang === 'hi' ? 'लोकल स्टोरेज कैश' : currentLang === 'te' ? 'లోకల్ స్టోరేజ్ కాష్' : 'Local Storage Cache')}
+              </span>
             </div>
           </div>
 
@@ -1227,17 +1231,17 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 <span className="text-slate-300">•</span>
                 <div className="flex items-center gap-1 text-slate-700 font-semibold">
                   <Cpu className="w-3.5 h-3.5 text-[#0077B6]" />
-                  <span>Kit: {selectedInspector.meter_id || 'TDS-AP-001'}</span>
+                  <span>{currentLang === 'hi' ? 'किट:' : currentLang === 'te' ? 'కిట్:' : 'Kit:'} {selectedInspector.meter_id || 'TDS-AP-001'}</span>
                 </div>
                 <span className="text-slate-300">•</span>
-                <span>Phone: {selectedInspector.phone}</span>
+                <span>{currentLang === 'hi' ? 'फ़ोन:' : currentLang === 'te' ? 'ఫోన్:' : 'Phone:'} {selectedInspector.phone}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Clean Top Navigation Tabs */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto">
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto no-scrollbar scroll-smooth">
           {/* Tab 1: Today */}
           <button
             onClick={() => setActiveTab('today')}
@@ -1248,7 +1252,9 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>1. Field Inspections</span>
+            <span>
+              {currentLang === 'hi' ? '1. फ़ील्ड निरीक्षण' : currentLang === 'te' ? '1. ఫీల్డ్ తనిఖీలు' : '1. Field Inspections'}
+            </span>
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                 activeTab === 'today' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
@@ -1268,10 +1274,12 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             }`}
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>2. Repair Verifications</span>
+            <span>
+              {currentLang === 'hi' ? '2. मरम्मत सत्यापन' : currentLang === 'te' ? '2. మరమ్మత్తు ధృవీకరణలు' : '2. Repair Verifications'}
+            </span>
             {pendingVerificationCount > 0 && (
               <span className="bg-amber-400 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono">
-                {pendingVerificationCount} Action
+                {pendingVerificationCount} {currentLang === 'hi' ? 'कार्रवाई' : currentLang === 'te' ? 'చర్య' : 'Action'}
               </span>
             )}
           </button>
@@ -1286,7 +1294,9 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             }`}
           >
             <MapIcon className="w-4 h-4" />
-            <span>3. GIS Cadastral Map</span>
+            <span>
+              {currentLang === 'hi' ? '3. जीआईएस भूकर मानचित्र' : currentLang === 'te' ? '3. జీఐఎస్ కాడాస్ట్రల్ మ్యాప్' : '3. GIS Cadastral Map'}
+            </span>
           </button>
         </div>
       </div>

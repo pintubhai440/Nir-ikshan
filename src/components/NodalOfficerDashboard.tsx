@@ -1310,7 +1310,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
 
           {/* Region Tabs */}
           <div className="flex items-center gap-2 flex-wrap text-xs pt-1 border-t border-slate-100">
-            <span className="text-slate-400 font-semibold mr-1">Filter Region:</span>
+            <span className="text-slate-400 font-semibold mr-1">{currentLang === 'hi' ? 'क्षेत्र फ़िल्टर करें:' : currentLang === 'te' ? 'ప్రాంతాన్ని ఫిల్టర్ చేయండి:' : 'Filter Region:'}</span>
             <button
               onClick={() => setDistrictRegionFilter('all')}
               className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
@@ -1655,19 +1655,19 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 setAuthenticatedDistrict(null);
               }}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
-              title="Back to 26 Districts Command"
+              title={uiText.portalHome}
             >
               <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
-              <span>Back</span>
+              <span>{uiText.back}</span>
             </button>
           ) : (
             <button
               onClick={() => setActiveTab('hub')}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#03045E] hover:bg-[#0077B6] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
-              title="Back to District Command Hub"
+              title={uiText.portalHome}
             >
               <ArrowLeft className="w-3.5 h-3.5 text-sky-200" />
-              <span>Back</span>
+              <span>{uiText.back}</span>
             </button>
           )}
 
@@ -1679,7 +1679,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>Portal Home</span>
+            <span>{uiText.portalHome}</span>
           </button>
 
           <span className="text-slate-300">/</span>
@@ -1692,7 +1692,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>Nodal Officer</span>
+            <span>{uiText.nodalBreadcrumb}</span>
           </button>
 
           <span className="text-slate-300">/</span>
@@ -1700,7 +1700,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
           {activeTab === 'hub' ? (
             <span className="font-bold text-[#03045E] bg-[#CAF0F8] px-3 py-1 rounded-full border border-[#00B4D8]/30 flex items-center gap-1.5 shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>{currentDistrict} District Hub</span>
+              <span>{currentDistrict} {currentLang === 'hi' ? 'जिला कमान हब' : currentLang === 'te' ? 'జిల్లా కమాండ్ హబ్' : 'District Hub'}</span>
             </span>
           ) : (
             <>
@@ -1709,7 +1709,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 className="font-semibold text-slate-500 hover:text-[#0077B6] flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <MapPin className="w-3.5 h-3.5 text-[#0077b6]" />
-                <span>{currentDistrict} District</span>
+                <span>{currentDistrict} {currentLang === 'hi' ? 'जिला' : currentLang === 'te' ? 'జిల్లా' : 'District'}</span>
               </button>
 
               <span className="text-slate-300">/</span>
@@ -1733,7 +1733,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             iconBg: fc.iconBg,
           }))}
           onSelect={(id) => setActiveTab(id as NodalActiveTab)}
-          hubOptionLabel="Executive Hub (All 8 Modules)"
+          hubOptionLabel={currentLang === 'hi' ? 'कार्यकारी कमान हब (सभी 8 मॉड्यूल)' : currentLang === 'te' ? 'ఎగ్జిక్యూటివ్ హబ్ (అన్ని 8 మాడ్యూల్స్)' : 'Executive Hub (All 8 Modules)'}
           hubOptionId="hub"
           hubIcon={Building2}
         />
@@ -1753,7 +1753,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="inline-flex items-center gap-1.5 bg-white/15 px-3 py-1 rounded-full text-xs font-mono font-bold text-sky-200 border border-white/20">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>AP WATER RESOURCES DEPARTMENT • DISTRICT JURISDICTION</span>
+                    <span>{currentLang === 'hi' ? 'आंध्र प्रदेश जल संसाधन विभाग • जिला क्षेत्राधिकार' : currentLang === 'te' ? 'ఆంధ్రప్రదేశ్ జల వనరుల శాఖ • జిల్లా అధికార పరిధి' : 'AP WATER RESOURCES DEPARTMENT • DISTRICT JURISDICTION'}</span>
                   </span>
                   <span className="text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -1766,7 +1766,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                 </h2>
 
                 <p className="text-xs sm:text-sm text-sky-100 font-medium leading-relaxed">
-                  {uiText.officerInCharge}: <strong>{currentDistrictData.officerInCharge.name}</strong> ({currentDistrictData.officerInCharge.designation}) • HQ: {currentDistrictData.headquarter} • {currentDistrictData.region} Region. Strict jurisdictional data isolation active.
+                  {uiText.officerInCharge}: <strong>{currentDistrictData.officerInCharge.name}</strong> ({currentDistrictData.officerInCharge.designation}) • {currentLang === 'hi' ? 'मुख्यालय' : currentLang === 'te' ? 'హెచ్‌క్యూ' : 'HQ'}: {currentDistrictData.headquarter} • {currentDistrictData.region} {currentLang === 'hi' ? 'क्षेत्र। सख्त जिला डेटा अलगाव सक्रिय।' : currentLang === 'te' ? 'ప్రాంతం. కఠినమైన జిల్లా డేటా ఐసోలేషన్ యాక్టివ్.' : 'Region. Strict jurisdictional data isolation active.'}
                 </p>
               </div>
 
@@ -1941,7 +1941,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
 
             {/* Filter By Domain Pills matching image_734aec45.png */}
             <div className="flex items-center gap-2 flex-wrap text-xs pt-2 border-t border-slate-100">
-              <span className="text-slate-400 font-semibold mr-1">Filter By Domain:</span>
+              <span className="text-slate-400 font-semibold mr-1">{currentLang === 'hi' ? 'डोमेन अनुसार फ़िल्टर:' : currentLang === 'te' ? 'డొమైన్ ద్వారా ఫిల్టర్:' : 'Filter By Domain:'}</span>
               <button
                 onClick={() => setSelectedCategory('all')}
                 className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
@@ -2314,7 +2314,7 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
             <div className="bg-[#0077b6] text-white p-4 flex items-center justify-between">
               <h4 className="font-bold text-sm flex items-center gap-2">
                 <UserCheck className="w-4 h-4" />
-                <span>Assign Field Inspector • {currentDistrict}</span>
+                <span>{currentLang === 'hi' ? `फील्ड इंस्पेक्टर नियुक्त करें • ${currentDistrict}` : currentLang === 'te' ? `ఫీల్డ్ ఇన్‌స్పెక్టర్‌ను కేటాయించండి • ${currentDistrict}` : `Assign Field Inspector • ${currentDistrict}`}</span>
               </h4>
               <button onClick={() => setSelectedComplaintForInspector(null)} className="cursor-pointer">
                 <X className="w-5 h-5 text-white/80 hover:text-white" />
@@ -2323,13 +2323,13 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
 
             <form onSubmit={handleConfirmAssignInspector} className="p-5 space-y-4 text-xs">
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <span className="text-[10px] text-slate-500 font-bold block">COMPLAINT TICKET:</span>
+                <span className="text-[10px] text-slate-500 font-bold block">{currentLang === 'hi' ? 'शिकायत टिकट:' : currentLang === 'te' ? 'ఫిర్యాదు టికెట్:' : 'COMPLAINT TICKET:'}</span>
                 <span className="font-bold text-slate-900">{selectedComplaintForInspector.id}</span>
                 <p className="text-slate-600 mt-1">{selectedComplaintForInspector.locationLandmark}</p>
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Select Field Inspector</label>
+                <label className="font-bold text-slate-700 block mb-1">{currentLang === 'hi' ? 'फील्ड इंस्पेक्टर चुनें' : currentLang === 'te' ? 'ఫీల్డ్ ఇన్‌స్పెక్టర్‌ను ఎంచుకోండి' : 'Select Field Inspector'}</label>
                 <select
                   value={selectedInspectorId}
                   onChange={(e) => setSelectedInspectorId(e.target.value)}
@@ -2344,7 +2344,11 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
               </div>
 
               <div className="p-2.5 bg-blue-50 text-blue-900 rounded-lg border border-blue-200">
-                The Inspector will receive an instant dispatch alert to visit the GPS coordinates, test water TDS, identify waste source, and submit an evidence report.
+                {currentLang === 'hi' 
+                  ? 'इंस्पेक्टर को जीपीएस निर्देशांकों पर जाने, पानी के टीडीएस की जांच करने, कचरा स्रोत की पहचान करने और साक्ष्य रिपोर्ट जमा करने के लिए तत्काल प्रेषण अलर्ट प्राप्त होगा।' 
+                  : currentLang === 'te' 
+                  ? 'జిపిఎస్ కోఆర్డినేట్‌లను సందర్శించడానికి, నీటి టిడిఎస్‌ను పరీక్షించడానికి మరియు నివేదికను సమర్పించడానికి ఇన్‌స్పెక్టర్‌కు తక్షణ డిస్పాచ్ హెచ్చరిక అందుతుంది.' 
+                  : 'The Inspector will receive an instant dispatch alert to visit the GPS coordinates, test water TDS, identify waste source, and submit an evidence report.'}
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
@@ -2353,14 +2357,14 @@ export const NodalOfficerDashboard: React.FC<NodalOfficerDashboardProps> = ({
                   onClick={() => setSelectedComplaintForInspector(null)}
                   className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
-                  Cancel
+                  {uiText.cancel}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 bg-[#0077b6] hover:bg-[#005f92] text-white font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Dispatch Inspector Immediately</span>
+                  <span>{currentLang === 'hi' ? 'इंस्पेक्टर को तुरंत भेजें' : currentLang === 'te' ? 'ఇన్‌స్పెక్టర్‌ను వెంటనే పంపండి' : 'Dispatch Inspector Immediately'}</span>
                 </button>
               </div>
             </form>
