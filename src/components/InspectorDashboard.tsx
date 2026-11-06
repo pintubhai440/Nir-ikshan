@@ -412,7 +412,9 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
     const pendingDirectAssigned = myAssignedComplaints
       .filter((c) => 
-        (c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED') &&
+        c.status !== 'RESOLVED' &&
+        c.status !== 'REJECTED' &&
+        c.status !== 'INSPECTION_COMPLETED' &&
         !c.inspectionReport &&
         !locallyCompletedTaskIds.has(c.id)
       );

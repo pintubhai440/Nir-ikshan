@@ -437,13 +437,21 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
             }
           } catch {}
 
-          let activeAssignedCount = inspectorComplaints.filter(
-            (c) => (c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED') &&
-                   !c.inspectionReport &&
-                   !completedIdsSet.has(c.id)
-          ).length;
+          const activeInspectionIds = new Set<string>();
 
-          // Check nodal tasks cache as well
+          // 1. From complaints assigned to this inspector that are not yet inspected or closed
+          inspectorComplaints.forEach((c) => {
+            const isCompleted = 
+              completedIdsSet.has(c.id) || 
+              Boolean(c.inspectionReport) || 
+              c.status === 'RESOLVED' || 
+              c.status === 'REJECTED';
+            if (!isCompleted) {
+              activeInspectionIds.add(c.id);
+            }
+          });
+
+          // 2. From nodal tasks in localStorage (matching InspectorDashboard logic)
           try {
             const storedTasksStr = localStorage.getItem('nir_nodal_tasks');
             if (storedTasksStr) {
@@ -451,31 +459,36 @@ export const InspectorDirectoryHub: React.FC<InspectorDirectoryHubProps> = ({
               if (Array.isArray(storedTasks)) {
                 storedTasks.forEach((t) => {
                   const targetId = t.sourceRefId || t.id;
-                  const isCompletedLocally = completedIdsSet.has(t.id) || (targetId && completedIdsSet.has(targetId));
-                  const hasReport = !!t.inspectionReport || !!t.isInspected || t.status === 'INSPECTION_COMPLETED';
+                  const isCompletedLocally = 
+                    completedIdsSet.has(t.id) || 
+                    (targetId && completedIdsSet.has(targetId));
+                  const hasReport = 
+                    !!t.inspectionReport || 
+                    !!t.isInspected || 
+                    t.status === 'INSPECTION_COMPLETED' || 
+                    t.stage === 'verified_closed';
+                  const isAssignedToThisInsp = Boolean(
+                    (t.verificationInspectorId && t.verificationInspectorId.toLowerCase() === inspector.inspector_id.toLowerCase()) ||
+                    (t.verificationInspectorName && isInspectorNameMatch(t.verificationInspectorName, inspector))
+                  );
+
                   if (
                     t &&
                     !isCompletedLocally &&
                     !hasReport &&
-                    (t.stage === 'assigned' || t.stage === 'in_progress' || t.stage === 'under_verification') &&
-                    t.verificationInspectorName &&
-                    isInspectorNameMatch(t.verificationInspectorName, inspector)
+                    isAssignedToThisInsp &&
+                    (t.stage === 'assigned' || t.stage === 'in_progress' || t.stage === 'under_verification')
                   ) {
-                    const alreadyFound = inspectorComplaints.some(
-                      (c) => c.id === t.id || c.id === t.sourceRefId
-                    );
-                    if (!alreadyFound) {
-                      activeAssignedCount += 1;
-                    }
+                    activeInspectionIds.add(targetId || t.id);
                   }
                 });
               }
             }
           } catch {}
 
-          const openInspections = activeAssignedCount;
+          const openInspections = activeInspectionIds.size;
           const overdueInspections = inspectorComplaints.filter(
-            (c) => isComplaintSlaOverdue(c) && (c.status === 'INSPECTOR_ASSIGNED' || c.status === 'SUBMITTED')
+            (c) => activeInspectionIds.has(c.id) && isComplaintSlaOverdue(c)
           ).length;
 
           return (
