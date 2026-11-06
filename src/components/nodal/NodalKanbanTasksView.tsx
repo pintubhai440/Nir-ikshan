@@ -282,7 +282,7 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
             status: 'Active',
             meter_id: `TDS-${district.slice(0, 3).toUpperCase()}-101`,
             meter_last_calibrated: '2026-04-10',
-            open_inspections: r.activeInspectionsCount || 2,
+            open_inspections: r.activeInspectionsCount ?? 0,
             overdue_inspections: 0,
             joined_on: '2025-10-01',
           });
@@ -301,6 +301,39 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
     }
     return finalList.length > 0 ? finalList : COMPLETE_AP_FIELD_INSPECTORS.slice(0, 5);
   }, [district]);
+
+  // Dynamically calculate real-time active case count for an inspector (100% strictly real data)
+  const getInspectorActiveCasesCount = (insp: SupabaseFieldInspectorRow) => {
+    const activeIssueIds = new Set<string>();
+
+    // 1. Check Kanban tasks assigned to this inspector that are not verified_closed
+    tasks.forEach((t) => {
+      if (t.stage !== 'verified_closed') {
+        const isIdMatch = Boolean(
+          t.verificationInspectorId && t.verificationInspectorId.toLowerCase() === insp.inspector_id.toLowerCase()
+        );
+        const isNameMatch = Boolean(
+          t.verificationInspectorName && isInspectorNameMatch(t.verificationInspectorName, insp)
+        );
+        if (isIdMatch || isNameMatch) {
+          activeIssueIds.add(t.sourceRefId || t.id);
+        }
+      }
+    });
+
+    // 2. Check complaints assigned to this inspector that are not resolved or rejected
+    complaints.forEach((c) => {
+      if (c.status !== 'RESOLVED' && c.status !== 'REJECTED') {
+        const isIdMatch = Boolean(c.assignedInspectorId && c.assignedInspectorId.toLowerCase() === insp.inspector_id.toLowerCase());
+        const isNameMatch = Boolean(c.assignedInspector && isInspectorNameMatch(c.assignedInspector, insp));
+        if (isIdMatch || isNameMatch) {
+          activeIssueIds.add(c.id);
+        }
+      }
+    });
+
+    return activeIssueIds.size;
+  };
 
   // Dynamically obtain Action Workers / Remediation Crews for this district
   const districtActionWorkers = useMemo(() => {
@@ -1872,17 +1905,21 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                   className="w-full p-2.5 border border-sky-300 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-[#0077b6] outline-none text-slate-800"
                   required
                 >
-                  {districtInspectors.map((insp, idx) => (
-                    <option key={`${insp.inspector_id}-${idx}`} value={insp.inspector_id}>
-                      {insp.full_name} ({insp.meter_id || 'TDS Probes'} • {insp.mandal} • {insp.open_inspections} active)
-                    </option>
-                  ))}
+                  {districtInspectors.map((insp, idx) => {
+                    const activeCount = getInspectorActiveCasesCount(insp);
+                    return (
+                      <option key={`${insp.inspector_id}-${idx}`} value={insp.inspector_id}>
+                        {insp.full_name} ({insp.meter_id || 'TDS Probes'} • {insp.mandal} • {activeCount} active)
+                      </option>
+                    );
+                  })}
                 </select>
 
                 {/* Selected Inspector Badge Card */}
                 {(() => {
                   const activeInsp = districtInspectors.find((i) => i.inspector_id === selectedInspectorId) || districtInspectors[0];
                   if (!activeInsp) return null;
+                  const activeCount = getInspectorActiveCasesCount(activeInsp);
                   return (
                     <div className="p-2.5 bg-white rounded-xl border border-sky-200/90 flex items-center justify-between gap-2 text-[11px]">
                       <div className="flex items-center gap-2">
@@ -1896,8 +1933,12 @@ export const NodalKanbanTasksView: React.FC<NodalKanbanTasksViewProps> = ({
                           </span>
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
-                        Workstation Active
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 ${
+                        activeCount === 0 
+                          ? 'bg-emerald-100 text-emerald-800' 
+                          : 'bg-amber-100 text-amber-900'
+                      }`}>
+                        {activeCount === 0 ? 'Workstation Ready • 0 Active Cases' : `${activeCount} Active Case${activeCount > 1 ? 's' : ''}`}
                       </span>
                     </div>
                   );

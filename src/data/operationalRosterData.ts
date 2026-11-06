@@ -52,7 +52,7 @@ const baseInspectors: FieldInspectorProfile[] = COMPLETE_AP_FIELD_INSPECTORS.map
     ? `Calibrated Digital Meter (${insp.meter_id}) • Water Quality & Silt Auditing` 
     : 'TDS Water Quality Testing & Silt Auditing',
   assignedMandals: [insp.mandal || 'Central Command'],
-  activeInspectionsCount: insp.open_inspections || 2,
+  activeInspectionsCount: insp.open_inspections ?? 0,
   rating: 4.9,
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
 }));
@@ -67,7 +67,7 @@ const stateInspector: FieldInspectorProfile = {
   district: 'State Level (AP)',
   specialization: 'Apex Rapid-Response Quality & Physical Re-verification',
   assignedMandals: ['State-wide Roving'],
-  activeInspectionsCount: 2,
+  activeInspectionsCount: 0,
   rating: 5.0,
   avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
 };
